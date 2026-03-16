@@ -3,161 +3,169 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NICU Baghdad Hospital</title>
+    <title>NICU Baghdad System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap');
-        * { font-family: 'Tajawal', sans-serif; }
-        input, select { border: 2px solid #e2e8f0 !important; border-radius: 0.75rem !important; padding: 0.6rem !important; }
-        .patient-card { border-right: 4px solid #0369a1; transition: all 0.2s; }
-        /* تصميم الـ PDF الـ 6 خانات */
-        #pdf-template { width: 297mm; height: 210mm; background: white; position: absolute; left: -9999px; padding: 10mm; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); gap: 5mm; }
-        .pdf-section { border: 1.5px solid #000; padding: 10px; font-size: 14px; position: relative; }
+        * { font-family: 'Tajawal', sans-serif; box-sizing: border-box; }
+        body { background-color: #f8fafc; margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; }
+        main { width: 100%; max-width: 500px; padding: 15px; }
+        .input-card { background: white; border-radius: 20px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 15px; border: 1px solid #e2e8f0; }
+        input, select { border: 2px solid #e2e8f0 !important; border-radius: 12px !important; padding: 10px !important; width: 100%; outline: none; transition: 0.2s; }
+        input:focus { border-color: #0369a1 !important; }
+        #pdf-template { width: 297mm; height: 210mm; background: white; position: absolute; left: -9999px; padding: 10mm; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); gap: 5mm; border: 1px solid #eee; }
+        .pdf-section { border: 2px solid #000; padding: 10px; font-size: 14px; display: flex; flex-direction: column; }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen pb-24">
+<body class="bg-slate-50">
 
-    <header class="bg-sky-800 text-white p-5 shadow-lg sticky top-0 z-50">
-        <div class="max-w-xl mx-auto flex justify-between items-center">
-            <div>
-                <h1 class="text-xl font-bold">حاسبة الـ NICU</h1>
-                <p class="text-[10px] opacity-80">مستشفى بغداد التعليمي</p>
-            </div>
-            <div id="patient-count" class="bg-white/20 px-4 py-2 rounded-2xl text-sm font-bold">0 مرضى</div>
-        </div>
+    <header class="w-full bg-sky-800 text-white p-4 shadow-md text-center sticky top-0 z-50">
+        <h1 class="text-xl font-bold">نظام جرعات الخدج</h1>
+        <p class="text-[10px] opacity-70">مستشفى بغداد التعليمي</p>
     </header>
 
-    <main class="max-w-xl mx-auto p-4 space-y-4">
-        
-        <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-            <h2 class="text-sky-900 font-bold mb-4 flex items-center gap-2">👶 بيانات الطفل</h2>
-            <div class="grid grid-cols-1 gap-4">
-                <input id="pName" type="text" placeholder="اسم الطفل الرباعي" class="w-full">
+    <main>
+        <section class="input-card">
+            <h2 class="text-sky-900 font-bold mb-4 flex items-center gap-2">👶 معلومات الطفل</h2>
+            <div class="space-y-3">
+                <input id="pName" type="text" placeholder="اسم الطفل الرباعي">
                 <div class="grid grid-cols-3 gap-2">
-                    <input id="pWeight" type="number" step="0.1" placeholder="الوزن (كجم)">
-                    <select id="pAgeDays"></select>
-                    <input id="pGA" type="number" placeholder="عمر الحمل">
+                    <div>
+                        <label class="text-[10px] text-slate-400">الوزن (kg)</label>
+                        <input id="pWeight" type="number" step="0.1" placeholder="1.5">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-slate-400">العمر (يوم)</label>
+                        <select id="pAgeDays"></select>
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-slate-400">الحمل (GA)</label>
+                        <input id="pGA" type="number" placeholder="35">
+                    </div>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-            <h2 class="text-sky-900 font-bold mb-4">💊 الأدوية والجرع</h2>
-            <div id="selected-drugs-list" class="space-y-3 mb-4"></div>
+        <section class="input-card">
+            <h2 class="text-sky-900 font-bold mb-4">💊 الأدوية المحددة</h2>
+            <div id="selected-drugs-list" class="space-y-3 mb-4">
+                </div>
             
-            <div class="flex gap-2">
-                <select id="drug-selector" class="flex-1 bg-sky-50">
+            <div class="space-y-2">
+                <select id="drug-selector" class="bg-sky-50 border-sky-200">
                     <option value="">+ اختر علاج من القائمة</option>
                 </select>
-                <button id="add-custom-drug" class="bg-slate-100 px-4 rounded-xl text-sky-700 text-sm font-bold">علاج آخر</button>
+                <button id="add-custom-drug" class="w-full py-2 border-2 border-dashed border-sky-200 rounded-xl text-sky-600 text-xs font-bold hover:bg-sky-50">
+                    + إضافة علاج غير موجود (Other)
+                </button>
             </div>
-        </div>
+        </section>
 
-        <button id="save-patient-btn" class="w-full bg-emerald-600 text-white py-4 rounded-2xl font-bold shadow-xl active:scale-95 transition-transform">حفظ وإضافة طفل جديد</button>
+        <button id="save-patient-btn" class="w-full bg-emerald-600 text-white py-4 rounded-2xl font-bold shadow-lg active:scale-95 transition-all mb-6">
+            حفظ الطفل الحالي
+        </button>
 
-        <div id="patients-queue" class="space-y-3 pt-4 border-t"></div>
-
+        <div id="patients-queue" class="space-y-2 pb-20">
+            </div>
     </main>
 
-    <div class="fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-md border-t shadow-2xl flex gap-2">
-        <button id="generate-pdf-btn" class="flex-1 bg-sky-900 text-white py-4 rounded-2xl font-bold">إصدار PDF (6 خانات)</button>
-        <button onclick="location.reload()" class="bg-red-50 text-red-600 px-5 rounded-2xl border border-red-100">🔄</button>
+    <div class="fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur border-t shadow-2xl flex gap-2 justify-center">
+        <div class="max-w-[500px] w-full flex gap-2">
+            <button id="generate-pdf-btn" class="flex-1 bg-sky-900 text-white py-4 rounded-2xl font-bold shadow-xl">
+                إصدار ورقة الـ PDF (6 خانات)
+            </button>
+            <button onclick="window.location.reload()" class="bg-slate-100 px-5 rounded-2xl text-slate-500 border border-slate-200">🔄</button>
+        </div>
     </div>
 
     <div id="pdf-template" dir="rtl"></div>
 
     <script>
-        // --- 1. الإعدادات والبيانات ---
         const BOT_TOKEN = '8554444620:AAEKG5brSd0RFQ-NftjIHp7OJtqJRhQuJog';
         const CHAT_ID = '-1002141194993';
 
         const DRUG_DB = [
-            { id: 'mero', name: 'Meropenem', dosePerKg: 40, freq: 'TID (كل 8 ساعات)', prep: '10ml NS' },
-            { id: 'amox', name: 'Amoxicillin', dosePerKg: 50, freq: 'BID (كل 12 ساعة)', prep: '10ml NS' },
-            { id: 'genta', name: 'Gentamicin', dosePerKg: 5, freq: 'Once Daily', prep: 'Syr. Direct' }
+            { id: 'mero', name: 'Meropenem', dosePerKg: 40, freq: '3', prep: '10ml NS' },
+            { id: 'amox', name: 'Amoxicillin', dosePerKg: 50, freq: '2', prep: '10ml NS' },
+            { id: 'genta', name: 'Gentamicin', dosePerKg: 5, freq: '1', prep: 'Syr. Direct' }
         ];
 
         let patients = [];
         let currentDrugs = [];
         let editId = null;
 
-        // تعبئة المنيو
-        const ageSel = document.getElementById('pAgeDays');
-        for(let i=1; i<=30; i++) ageSel.options.add(new Option(`${i} يوم`, i));
-        ageSel.options.add(new Option("+30 يوم", 31));
+        // تعبئة القائمة
+        const ageSelect = document.getElementById('pAgeDays');
+        for(let i=1; i<=30; i++) ageSelect.options.add(new Option(i, i));
+        ageSelect.options.add(new Option("+30", 31));
 
         DRUG_DB.forEach(d => document.getElementById('drug-selector').options.add(new Option(d.name, d.id)));
 
-        // --- 2. المنطق البرمجي ---
-
-        // عند اختيار دواء
+        // إضافة علاج
         document.getElementById('drug-selector').onchange = (e) => {
             const drug = DRUG_DB.find(d => d.id === e.target.value);
             if(!drug) return;
             const weight = parseFloat(document.getElementById('pWeight').value) || 0;
             
-            addDrugToCurrent({
-                id: drug.id,
+            addDrug({
+                instanceId: Date.now(),
                 name: drug.name,
                 calcDose: (drug.dosePerKg * weight).toFixed(1),
-                freq: drug.freq,
-                prep: drug.prep
+                freq: drug.freq
             });
             e.target.value = "";
         };
 
-        // زر Others (إضافة يدوي)
         document.getElementById('add-custom-drug').onclick = () => {
-            addDrugToCurrent({ id: 'custom', name: 'علاج جديد', calcDose: '0', freq: 'مرتين', prep: 'تخفيف يدوي' });
+            addDrug({ instanceId: Date.now(), name: 'علاج جديد', calcDose: '0', freq: '1' });
         };
 
-        function addDrugToCurrent(drugObj) {
-            drugObj.instanceId = Date.now() + Math.random();
-            currentDrugs.push(drugObj);
+        function addDrug(obj) {
+            currentDrugs.push(obj);
             renderCurrentDrugs();
         }
 
         function renderCurrentDrugs() {
             const container = document.getElementById('selected-drugs-list');
             container.innerHTML = currentDrugs.map(d => `
-                <div class="bg-sky-50 p-4 rounded-2xl border border-sky-100 space-y-3">
-                    <div class="flex justify-between">
-                        <input type="text" value="${d.name}" onchange="updateDrug(${d.instanceId}, 'name', this.value)" class="bg-transparent font-bold text-sky-900 border-none !p-0">
-                        <button onclick="removeDrug(${d.instanceId})" class="text-red-400">✕</button>
+                <div class="bg-sky-50 p-4 rounded-xl border border-sky-100 space-y-2">
+                    <div class="flex justify-between items-center">
+                        <input type="text" value="${d.name}" onchange="updateDrug(${d.instanceId}, 'name', this.value)" class="bg-transparent border-none font-bold text-sky-900 !p-0">
+                        <button onclick="removeDrug(${d.instanceId})" class="text-red-400 text-sm">حذف</button>
                     </div>
-                    <div class="grid grid-cols-2 gap-2">
+                    <div class="grid grid-cols-2 gap-4">
                         <div class="bg-white p-2 rounded-lg">
-                            <span class="text-[9px] text-slate-400 block">الجرعة (mg/ml)</span>
-                            <input type="text" value="${d.calcDose}" onchange="updateDrug(${d.instanceId}, 'calcDose', this.value)" class="w-full border-none font-bold text-emerald-700 !p-0">
+                            <label class="text-[9px] block text-slate-400">الجرعة</label>
+                            <input type="text" value="${d.calcDose}" onchange="updateDrug(${d.instanceId}, 'calcDose', this.value)" class="border-none font-bold text-emerald-600 !p-0">
                         </div>
                         <div class="bg-white p-2 rounded-lg">
-                            <span class="text-[9px] text-slate-400 block">التكرار</span>
-                            <input type="text" value="${d.freq}" onchange="updateDrug(${d.instanceId}, 'freq', this.value)" class="w-full border-none !p-0">
+                            <label class="text-[9px] block text-slate-400">مرات الإعطاء/يوم</label>
+                            <input type="number" value="${d.freq}" onchange="updateDrug(${d.instanceId}, 'freq', this.value)" class="border-none font-bold !p-0">
                         </div>
                     </div>
                 </div>
             `).join('');
         }
 
-        window.updateDrug = (instId, field, val) => {
-            const drug = currentDrugs.find(x => x.instanceId === instId);
-            if(drug) drug[field] = val;
+        window.updateDrug = (id, field, val) => {
+            const d = currentDrugs.find(x => x.instanceId === id);
+            if(d) d[field] = val;
         };
 
-        window.removeDrug = (instId) => {
-            currentDrugs = currentDrugs.filter(x => x.instanceId !== instId);
+        window.removeDrug = (id) => {
+            currentDrugs = currentDrugs.filter(x => x.instanceId !== id);
             renderCurrentDrugs();
         };
 
-        // حفظ المريض
+        // حفظ الطفل
         document.getElementById('save-patient-btn').onclick = () => {
             const name = document.getElementById('pName').value;
             const weight = document.getElementById('pWeight').value;
-            if(!name || !weight) return alert("املأ الاسم والوزن");
+            if(!name || !weight) return alert("يرجى إكمال الاسم والوزن أولاً");
 
-            const data = {
+            const patient = {
                 id: editId || Date.now(),
                 name, weight,
                 age: document.getElementById('pAgeDays').value,
@@ -165,24 +173,30 @@
                 drugs: [...currentDrugs]
             };
 
-            if(editId) patients = patients.map(p => p.id === editId ? data : p);
-            else patients.push(data);
+            if(editId) patients = patients.map(p => p.id === editId ? patient : p);
+            else patients.push(patient);
 
-            clearAll();
+            // مسح الحقول
+            editId = null;
+            currentDrugs = [];
+            document.getElementById('pName').value = "";
+            document.getElementById('pWeight').value = "";
+            renderCurrentDrugs();
             renderQueue();
         };
 
         function renderQueue() {
-            document.getElementById('patient-count').innerText = `${patients.length} مرضى`;
-            document.getElementById('patients-queue').innerHTML = patients.map(p => `
-                <div class="patient-card bg-white p-4 rounded-2xl shadow-sm flex justify-between items-center">
+            const container = document.getElementById('patients-queue');
+            container.innerHTML = `<h3 class="text-sm font-bold text-slate-400 mb-2">قائمة المرضى (${patients.length})</h3>` + 
+            patients.map(p => `
+                <div class="bg-white p-4 rounded-xl border flex justify-between items-center">
                     <div>
-                        <div class="font-bold text-slate-800">${p.name}</div>
-                        <div class="text-[10px] text-slate-400">${p.weight} كجم | ${p.drugs.length} علاجات</div>
+                        <div class="font-bold">${p.name}</div>
+                        <div class="text-[10px] text-slate-400">${p.weight}kg | ${p.drugs.length} علاجات</div>
                     </div>
-                    <div class="flex gap-2">
-                        <button onclick="editPatient(${p.id})" class="text-sky-600 bg-sky-50 px-3 py-1 rounded-lg text-xs">تعديل</button>
-                        <button onclick="deletePatient(${p.id})" class="text-red-600 bg-red-50 px-3 py-1 rounded-lg text-xs">حذف</button>
+                    <div class="flex gap-1">
+                        <button onclick="editPatient(${p.id})" class="bg-sky-50 text-sky-600 px-3 py-1 rounded-lg text-xs">تعديل</button>
+                        <button onclick="deletePatient(${p.id})" class="bg-red-50 text-red-500 px-3 py-1 rounded-lg text-xs">حذف</button>
                     </div>
                 </div>
             `).join('');
@@ -205,66 +219,60 @@
             renderQueue();
         };
 
-        function clearAll() {
-            document.getElementById('pName').value = "";
-            document.getElementById('pWeight').value = "";
-            document.getElementById('pGA').value = "";
-            currentDrugs = [];
-            editId = null;
-            renderCurrentDrugs();
-        }
-
-        // --- 3. تصدير الـ PDF وإرسال التليجرام ---
+        // الـ PDF والتليجرام
         document.getElementById('generate-pdf-btn').onclick = async () => {
-            if(patients.length === 0) return alert("لا يوجد مرضى!");
-            
-            const template = document.getElementById('pdf-template');
-            template.innerHTML = "";
+            if(patients.length === 0) return alert("لا يوجد مرضى لإصدار التقرير");
 
-            // توليد الـ 6 خانات
+            const pdfArea = document.getElementById('pdf-template');
+            pdfArea.innerHTML = "";
+
             patients.slice(0, 6).forEach(p => {
-                const div = document.createElement('div');
-                div.className = "pdf-section";
-                div.innerHTML = `
-                    <div style="border-bottom: 1.5px solid #000; margin-bottom: 5px; padding-bottom: 5px;">
+                const box = document.createElement('div');
+                box.className = "pdf-section";
+                box.innerHTML = `
+                    <div style="border-bottom: 2px solid #000; padding-bottom: 5px; margin-bottom: 10px;">
                         <strong>الاسم:</strong> ${p.name}<br>
-                        <strong>الوزن:</strong> ${p.weight}kg | <strong>عمر الطفل:</strong> ${p.age}يوم | <strong>GA:</strong> ${p.ga}
+                        <strong>الوزن:</strong> ${p.weight}kg | <strong>العمر:</strong> ${p.age} يوم | <strong>GA:</strong> ${p.ga}
                     </div>
-                    <table style="width:100%; font-size:12px; border-collapse: collapse;">
-                        <tr style="background:#f0f0f0;"><th>العلاج</th><th>الجرعة</th><th>التكرار</th></tr>
-                        ${p.drugs.map(d => `<tr><td>${d.name}</td><td>${d.calcDose}</td><td>${d.freq}</td></tr>`).join('')}
+                    <table style="width:100%; border-collapse: collapse; font-size: 13px;">
+                        <tr style="background: #eee;">
+                            <th style="border:1px solid #000; padding:4px;">العلاج</th>
+                            <th style="border:1px solid #000; padding:4px;">الجرعة</th>
+                            <th style="border:1px solid #000; padding:4px;">التكرار</th>
+                        </tr>
+                        ${p.drugs.map(d => `
+                            <tr>
+                                <td style="border:1px solid #000; padding:4px;">${d.name}</td>
+                                <td style="border:1px solid #000; padding:4px;">${d.calcDose}</td>
+                                <td style="border:1px solid #000; padding:4px;">${d.freq}</td>
+                            </tr>
+                        `).join('')}
                     </table>
                 `;
-                template.appendChild(div);
+                pdfArea.appendChild(box);
             });
 
-            // تحويل لصورة ثم PDF
-            template.style.left = "0";
-            const canvas = await html2canvas(template, { scale: 2 });
+            pdfArea.style.left = "0";
+            const canvas = await html2canvas(pdfArea, { scale: 2 });
             const imgData = canvas.toDataURL('image/png');
             const { jsPDF } = window.jspdf;
             const pdf = new jsPDF('l', 'mm', 'a4');
             pdf.addImage(imgData, 'PNG', 0, 0, 297, 210);
-            pdf.save(`NICU_Report.pdf`);
-            template.style.left = "-9999px";
+            pdf.save(`NICU_Report_Baghdad.pdf`);
+            pdfArea.style.left = "-9999px";
 
-            sendToTelegram();
-        };
-
-        async function sendToTelegram() {
-            let msg = `📋 *تقرير الـ NICU الجديد*\n\n`;
+            // إرسال للتليجرام
+            let msg = `📄 *تقرير NICU جديد*\n`;
             patients.forEach(p => {
-                msg += `👤 *${p.name}* (${p.weight}kg)\n`;
-                p.drugs.forEach(d => msg += `  - ${d.name}: ${d.calcDose} | ${d.freq}\n`);
-                msg += `-------------------\n`;
+                msg += `\n👤 *${p.name}* (${p.weight}kg)\n`;
+                p.drugs.forEach(d => msg += `• ${d.name}: ${d.calcDose} (مرة ${d.freq})\n`);
             });
-
             fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ chat_id: CHAT_ID, text: msg, parse_mode: 'Markdown' })
             });
-        }
+        };
     </script>
 </body>
 </html>
