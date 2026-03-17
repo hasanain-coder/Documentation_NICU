@@ -361,7 +361,7 @@
             { 
                 id: 8, name: 'Meropenem', dosePerKg: 40, unit: 'mg', factor: 50, methodIndex: 3, defaultFreq: 3,
                 warning_rule: (ga, age, freq) => {
-                    return (ga >= 32 && age > 14 && freq >< 3) 
+                    return (ga >= 32 && age > 14 && freq !== 3) 
                         ? "⚠️ تنبيه: الجرعة المقترحة هي 3 مرات يومياً بناءً على عمر الطفل." 
                         : null;
                 }
