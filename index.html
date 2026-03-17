@@ -126,6 +126,12 @@
             background: #FFFFFF;
             display: flex;
             flex-direction: column;
+            overflow: hidden; /* Prevent spillover */
+        }
+
+        /* Dynamic merging class */
+        .pdf-cell.span-2 {
+            grid-row: span 2;
         }
 
         .pdf-cell-header {
@@ -174,7 +180,7 @@
 
     <main class="max-w-5xl mx-auto px-4 py-6 space-y-6">
         <!-- Patient Input Section -->
-        <section class="bg-white rounded-2xl shadow-lg border border-[var(--border)] overflow-hidden animate-fade-up">
+        <section id="inputSection" class="bg-white rounded-2xl shadow-lg border border-[var(--border)] overflow-hidden animate-fade-up">
             <div class="bg-gradient-to-r from-[var(--accent)] to-[var(--accent-light)] px-6 py-4">
                 <h2 class="text-xl text-white font-semibold">Patient Information</h2>
                 <p class="text-white/75 text-sm mt-1">Enter details to calculate precise dosages</p>
@@ -249,7 +255,7 @@
                         </div>
                     </div>
 
-                    <!-- Method of Administration Preview -->
+                    <!-- Method Preview -->
                     <div id="methodPreviewContainer" class="hidden bg-[var(--surface)] border border-[var(--accent)]/20 rounded-xl p-4 mb-4">
                         <div class="flex items-start gap-3">
                             <div class="p-2 rounded-lg bg-[var(--accent)]/10">
@@ -265,7 +271,7 @@
                     </div>
                 </div>
 
-                <!-- Dopamine Special Table -->
+                <!-- Dopamine Table -->
                 <div id="dopamineTableContainer" class="hidden overflow-x-auto">
                     <h4 class="text-lg font-bold text-[var(--accent)] mb-3">Dopamine Infusion Table</h4>
                     <table class="w-full text-sm border border-[var(--border)] rounded-xl overflow-hidden">
@@ -275,8 +281,7 @@
                                 <th class="p-2">Dose (mcg/kg/min)</th>
                             </tr>
                         </thead>
-                        <tbody id="dopamineTableBody" class="bg-white">
-                        </tbody>
+                        <tbody id="dopamineTableBody" class="bg-white"></tbody>
                     </table>
                 </div>
 
@@ -294,29 +299,38 @@
         <section class="space-y-4">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <h2 class="text-2xl font-bold text-[var(--fg)]">Patient Queue</h2>
-                <div class="flex gap-2 flex-wrap">
-                    <button id="btnPdf" disabled
-                        class="btn-primary px-5 py-2.5 rounded-xl text-white font-medium flex items-center gap-2">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                        </svg>
-                        Generate PDF
-                    </button>
-                    <button id="btnTelegram" disabled
-                        class="px-5 py-2.5 rounded-xl bg-[#229ED9] text-white font-medium hover:bg-[#1a8bc4] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
-                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .37z"/>
-                        </svg>
-                        Send to Telegram
-                    </button>
-                    <button id="btnClearAll" 
-                        class="px-5 py-2.5 rounded-xl border border-[var(--danger)]/30 text-[var(--danger)] font-medium hover:bg-[var(--danger)]/5 transition-colors flex items-center gap-2">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                        </svg>
-                        Clear All
-                    </button>
+                
+                <!-- Select All & Actions -->
+                <div class="flex items-center gap-4">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" id="selectAllCheckbox" class="w-5 h-5 rounded border-[var(--border)] text-[var(--accent)] focus:ring-[var(--accent)]">
+                        <span class="text-sm font-medium text-[var(--fg)]">Select All</span>
+                    </label>
                 </div>
+            </div>
+
+            <div class="flex gap-2 flex-wrap">
+                <button id="btnPdf" disabled
+                    class="btn-primary px-5 py-2.5 rounded-xl text-white font-medium flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    Generate PDF
+                </button>
+                <button id="btnTelegram" disabled
+                    class="px-5 py-2.5 rounded-xl bg-[#229ED9] text-white font-medium hover:bg-[#1a8bc4] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .37z"/>
+                    </svg>
+                    Send to Telegram
+                </button>
+                <button id="btnClearAll" 
+                    class="px-5 py-2.5 rounded-xl border border-[var(--danger)]/30 text-[var(--danger)] font-medium hover:bg-[var(--danger)]/5 transition-colors flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                    Clear All
+                </button>
             </div>
 
             <div id="patientQueue" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
@@ -403,6 +417,7 @@
         // ==================== STATE ====================
         let patients = [];
         let currentDrugs = [];
+        let selectedPatientIds = new Set(); // For selective printing
 
         // ==================== DOM REFS ====================
         const $ = id => document.getElementById(id);
@@ -426,6 +441,7 @@
         const methodPreview = $('previewMethod');
         const methodPreviewContainer = $('methodPreviewContainer');
         const dopamineTable = $('dopamineTableContainer');
+        const selectAllCheckbox = $('selectAllCheckbox');
 
         // ==================== UTILITIES ====================
         const cleanWeightInput = (str) => {
@@ -561,6 +577,14 @@
             btnPdf.disabled = c === 0;
             btnTelegram.disabled = c === 0;
             emptyState.classList.toggle('hidden', c > 0);
+            updateSelectAllCheckbox();
+        };
+
+        const updateSelectAllCheckbox = () => {
+            const total = patients.length;
+            const selected = selectedPatientIds.size;
+            if (total === 0) selectAllCheckbox.checked = false;
+            else selectAllCheckbox.checked = total === selected;
         };
 
         const renderDrugsList = () => {
@@ -589,12 +613,20 @@
             if (patients.length === 0) { patientQueue.innerHTML = ''; updateCounter(); return; }
             
             patientQueue.innerHTML = patients.map((p, idx) => `
-                <div class="patient-card bg-white rounded-xl shadow-md border border-[var(--border)] overflow-hidden card-hover" style="animation-delay: ${idx * 80}ms">
-                    <div class="bg-gradient-to-r from-[var(--accent)] to-[var(--accent-light)] px-4 py-3">
+                <div class="patient-card bg-white rounded-xl shadow-md border border-[var(--border)] overflow-hidden card-hover relative" style="animation-delay: ${idx * 80}ms">
+                    <!-- Checkbox -->
+                    <div class="absolute top-3 left-3 z-10">
+                        <input type="checkbox" 
+                            class="patient-checkbox w-5 h-5 rounded border-[var(--border)] text-[var(--accent)] focus:ring-[var(--accent)]"
+                            data-id="${p.id}" ${selectedPatientIds.has(p.id) ? 'checked' : ''}
+                            onchange="togglePatientSelection('${p.id}')">
+                    </div>
+                    
+                    <div class="bg-gradient-to-r from-[var(--accent)] to-[var(--accent-light)] px-4 py-3 pl-10">
                         <h3 class="text-white font-bold text-lg truncate">${p.name}</h3>
                         <p class="text-white/80 text-sm">Day ${p.age} | ${p.ga}w GA | ${p.weight}kg</p>
                     </div>
-                    <div class="p-4 space-y-3">
+                    <div class="p-4 space-y-3 max-h-64 overflow-y-auto">
                         ${p.drugs.map(d => `
                             <div class="border-b border-[var(--border)] pb-2 last:border-0 last:pb-0">
                                 <div class="flex justify-between items-center mb-1">
@@ -606,6 +638,7 @@
                         `).join('')}
                     </div>
                     <div class="p-4 pt-0 flex gap-2">
+                         <button onclick="editPatient('${p.id}')" class="flex-1 py-2 rounded-lg border border-[var(--accent)]/30 text-[var(--accent)] font-medium hover:bg-[var(--accent)]/5 transition-colors text-sm">Edit</button>
                          <button onclick="deletePatient('${p.id}')" class="flex-1 py-2 rounded-lg border border-[var(--danger)]/30 text-[var(--danger)] font-medium hover:bg-[var(--danger)]/5 transition-colors text-sm">Delete</button>
                     </div>
                 </div>
@@ -676,6 +709,7 @@
             saveToStorage();
             renderQueue();
             
+            // Reset
             inputName.value = ''; inputWeight.value = ''; inputGA.value = ''; inputAge.value = '';
             currentDrugs = [];
             renderDrugsList();
@@ -687,102 +721,271 @@
 
         const deletePatient = (id) => {
             patients = patients.filter(p => p.id !== id);
+            selectedPatientIds.delete(id);
             saveToStorage();
             renderQueue();
         };
         window.deletePatient = deletePatient;
 
+        const editPatient = (id) => {
+            const patient = patients.find(p => p.id === id);
+            if (!patient) return;
+
+            // Populate inputs
+            inputName.value = patient.name;
+            inputWeight.value = patient.weight;
+            inputAge.value = patient.age;
+            inputGA.value = patient.ga;
+
+            // Load drugs
+            currentDrugs = [...patient.drugs];
+            renderDrugsList();
+
+            // Remove from queue
+            patients = patients.filter(p => p.id !== id);
+            selectedPatientIds.delete(id);
+            saveToStorage();
+            renderQueue();
+
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            showToast('Editing patient. Please re-save.', 'info');
+        };
+        window.editPatient = editPatient;
+
+        const togglePatientSelection = (id) => {
+            if (selectedPatientIds.has(id)) {
+                selectedPatientIds.delete(id);
+            } else {
+                selectedPatientIds.add(id);
+            }
+            updateSelectAllCheckbox();
+        };
+        window.togglePatientSelection = togglePatientSelection;
+
+        const toggleSelectAll = (e) => {
+            const checked = e.target.checked;
+            if (checked) {
+                patients.forEach(p => selectedPatientIds.add(p.id));
+            } else {
+                selectedPatientIds.clear();
+            }
+            renderQueue();
+        };
+
+        // ==================== PDF GENERATION ====================
         const generatePDF = async () => {
+            const selectedPatients = patients.filter(p => selectedPatientIds.has(p.id));
+            
+            if (selectedPatients.length === 0) {
+                showToast('No patients selected for PDF', 'error');
+                return;
+            }
+
             showToast('Generating PDF...', 'info');
             
             const container = $('pdf-render-container');
             container.innerHTML = ''; 
 
-            const totalPages = Math.ceil(patients.length / 6);
+            // Pagination Logic
+            const pages = [];
+            let currentPageCells = [];
+            let occupiedSlots = 0; // 0-5 (standard linear), but we need smarter logic for merging
 
-            for (let i = 0; i < totalPages; i++) {
-                const pagePatients = patients.slice(i * 6, (i + 1) * 6);
+            // Grid slots: 0(top-left) ... 2(top-right), 3(bot-left) ... 5(bot-right)
+            // Merging spans row: takes slot 0 & 3, or 1 & 4, or 2 & 5.
+            
+            // Simple linear placement with checks
+            let cells = Array(6).fill(null); // null = empty
+
+            const placePatient = (patient) => {
+                // Determine if needs merge (Heuristic: > 3 drugs)
+                const needsMerge = patient.drugs.length > 3;
+
+                let placed = false;
+                
+                // Try to fit in current page
+                for (let i = 0; i < 6; i++) {
+                    if (cells[i] === null) {
+                        if (needsMerge) {
+                            // Can only merge if in top row (0, 1, 2) and bottom slot is free
+                            const targetBelow = i + 3;
+                            if (i < 3 && targetBelow < 6 && cells[targetBelow] === null) {
+                                cells[i] = { patient, span: 2 };
+                                cells[targetBelow] = 'blocked'; // Mark as blocked
+                                placed = true;
+                                break;
+                            }
+                        } else {
+                            // Normal placement
+                            cells[i] = { patient, span: 1 };
+                            placed = true;
+                            break;
+                        }
+                    }
+                }
+                return placed;
+            };
+
+            selectedPatients.forEach(p => {
+                let placed = placePatient(p);
+                if (!placed) {
+                    // Push current page, create new one
+                    pages.push(cells);
+                    cells = Array(6).fill(null);
+                    placePatient(p); // Place in fresh page
+                }
+            });
+
+            // Push last page
+            if (cells.some(c => c !== null)) {
+                pages.push(cells);
+            }
+
+            // Render Pages to DOM
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
+            for (let i = 0; i < pages.length; i++) {
+                const pageCells = pages[i];
                 
                 const pageDiv = document.createElement('div');
                 pageDiv.className = 'pdf-page';
-
-                // Header
                 pageDiv.innerHTML = `
                     <div class="pdf-header">
                         Baghdad Teaching Hospital | NICU - Medical Documentation
                     </div>
-                    <div class="pdf-grid" id="pdf-grid-${i}"></div>
+                    <div class="pdf-grid"></div>
                 `;
-                
-                container.appendChild(pageDiv);
-                const grid = pageDiv.querySelector(`#pdf-grid-${i}`);
+                const grid = pageDiv.querySelector('.pdf-grid');
 
-                // Patient Cells
-                pagePatients.forEach(p => {
-                    const cell = document.createElement('div');
-                    cell.className = 'pdf-cell';
+                pageCells.forEach((cellData, index) => {
+                    const el = document.createElement('div');
+                    el.className = 'pdf-cell';
                     
-                    // Ensure Arabic font is applied explicitly for the capture
-                    cell.style.fontFamily = "'Noto Sans Arabic', sans-serif";
+                    // Explicit positioning for grid
+                    // Default order is fine, but we need to handle 'blocked' slots which shouldn't render
+                    if (!cellData || cellData === 'blocked') {
+                        // Empty or blocked cell logic
+                        // If it's blocked, it's physically part of the previous cell, 
+                        // but CSS Grid places items by source order. 
+                        // This approach with `display: grid` and auto-placement is tricky with blocked slots.
+                        
+                        // Better CSS Grid approach: 
+                        // Do NOT create elements for blocked slots. 
+                        // Use explicit grid-column and grid-row.
+                    } else {
+                        // Render patient
+                        const p = cellData.patient;
+                        if (cellData.span === 2) el.classList.add('span-2');
 
-                    let drugsHtml = p.drugs.map(d => `
-                        <div class="pdf-drug-item">
-                            <div style="display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 1mm;">
-                                <span style="color: #1C2526;">${d.name}</span>
-                                <span style="color: #0F766E;">${d.dose} mg</span>
+                        // Calculate position (for explicit grid-column/row) 
+                        // Standard order: 1, 2, 3, 4, 5, 6.
+                        // Grid CSS: grid-template-areas?
+                        // Let's rely on source order but skip 'blocked' elements entirely.
+                        // If we skip an element that was 'blocked', the auto-placer will shift the next one.
+                        // We must keep the empty placeholders for empty slots to maintain alignment.
+                        
+                        el.innerHTML = `
+                            <div class="pdf-cell-header">
+                                <div style="font-weight: 700; color: #0F766E; font-size: 12pt;">${p.name}</div>
+                                <div style="font-size: 9pt; color: #5A6872;">Weight: ${p.weight}kg | GA: ${p.ga}w | Day ${p.age}</div>
                             </div>
-                            <div style="font-size: 10pt; color: #5A6872; text-align: right; direction: rtl; font-family: 'Noto Sans Arabic', sans-serif;">
-                                ${d.method}
+                            <div style="flex: 1; overflow: hidden;">
+                                ${p.drugs.map(d => `
+                                    <div class="pdf-drug-item">
+                                        <div style="display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 1mm;">
+                                            <span style="color: #1C2526;">${d.name}</span>
+                                            <span style="color: #0F766E;">${d.dose} mg</span>
+                                        </div>
+                                        <div style="font-size: 10pt; color: #5A6872; text-align: right; direction: rtl; font-family: 'Noto Sans Arabic', sans-serif;">
+                                            ${d.method}
+                                        </div>
+                                    </div>
+                                `).join('')}
                             </div>
-                        </div>
-                    `).join('');
+                            <div style="text-align: right; font-size: 8pt; color: #ccc; margin-top: 2mm; border-top: 1px solid #eee; padding-top: 1mm;">
+                                Generated: ${new Date().toLocaleDateString('en-GB')}
+                            </div>
+                        `;
+                        grid.appendChild(el);
+                    }
+                });
 
-                    cell.innerHTML = `
+                // Handling 'blocked' slots logic fix:
+                // We need to process the array differently. 
+                // The grid auto-placer works best if we just inject the items that exist.
+                // But we need to fill empty slots at the START or MIDDLE.
+                // Let's iterate linearly and add placeholders.
+                
+                grid.innerHTML = ''; // Clear
+                pageCells.forEach((cellData, index) => {
+                    const el = document.createElement('div');
+                    
+                    // Positioning logic
+                    // Col: (index % 3) + 1
+                    // Row: (Math.floor(index / 3)) + 1
+                    
+                    const colStart = (index % 3) + 1;
+                    const rowStart = Math.floor(index / 3) + 1;
+                    
+                    el.style.gridColumn = colStart;
+                    el.style.gridRow = rowStart;
+
+                    if (!cellData || cellData === 'blocked') {
+                         el.className = 'pdf-cell';
+                         el.style.background = '#f9f9f9';
+                         el.style.border = '1px dashed #eee';
+                         if(cellData === 'blocked') el.style.visibility = 'hidden'; // Hide blocked slot
+                         grid.appendChild(el);
+                         return;
+                    }
+
+                    const p = cellData.patient;
+                    el.className = 'pdf-cell';
+                    if (cellData.span === 2) {
+                         el.style.gridRow = `${rowStart} / span 2`; // Span 2 rows
+                    }
+
+                    el.innerHTML = `
                         <div class="pdf-cell-header">
                             <div style="font-weight: 700; color: #0F766E; font-size: 12pt;">${p.name}</div>
                             <div style="font-size: 9pt; color: #5A6872;">Weight: ${p.weight}kg | GA: ${p.ga}w | Day ${p.age}</div>
                         </div>
                         <div style="flex: 1; overflow: hidden;">
-                            ${drugsHtml}
+                            ${p.drugs.map(d => `
+                                <div class="pdf-drug-item">
+                                    <div style="display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 1mm;">
+                                        <span style="color: #1C2526;">${d.name}</span>
+                                        <span style="color: #0F766E;">${d.dose} mg</span>
+                                    </div>
+                                    <div style="font-size: 10pt; color: #5A6872; text-align: right; direction: rtl; font-family: 'Noto Sans Arabic', sans-serif;">
+                                        ${d.method}
+                                    </div>
+                                </div>
+                            `).join('')}
                         </div>
                         <div style="text-align: right; font-size: 8pt; color: #ccc; margin-top: 2mm; border-top: 1px solid #eee; padding-top: 1mm;">
                             Generated: ${new Date().toLocaleDateString('en-GB')}
                         </div>
                     `;
-                    grid.appendChild(cell);
+                    grid.appendChild(el);
                 });
 
-                // Fill empty cells to maintain grid
-                const remaining = 6 - pagePatients.length;
-                for(let j=0; j<remaining; j++) {
-                    const emptyCell = document.createElement('div');
-                    emptyCell.className = 'pdf-cell';
-                    emptyCell.style.background = '#f9f9f9';
-                    grid.appendChild(emptyCell);
-                }
-            }
+                container.appendChild(pageDiv);
 
-            // Use html2canvas to capture pages
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-
-            const pages = container.querySelectorAll('.pdf-page');
-            
-            for (let i = 0; i < pages.length; i++) {
-                if (i > 0) doc.addPage();
-                
-                const canvas = await html2canvas(pages[i], {
-                    scale: 2, // Higher quality
+                const canvas = await html2canvas(pageDiv, {
+                    scale: 2, 
                     useCORS: true,
                     logging: false
                 });
                 
                 const imgData = canvas.toDataURL('image/jpeg', 1.0);
                 
-                // A4 Landscape dimensions in mm
+                if (i > 0) doc.addPage();
+                
                 const pageWidth = 297;
                 const pageHeight = 210;
-                
                 doc.addImage(imgData, 'JPEG', 0, 0, pageWidth, pageHeight);
             }
 
@@ -791,8 +994,16 @@
         };
 
         const sendToTelegram = async () => {
+            // Filter by selected patients
+            const selectedPatients = patients.filter(p => selectedPatientIds.has(p.id));
+            
+            if (selectedPatients.length === 0) {
+                showToast('No patients selected to send', 'error');
+                return;
+            }
+
             let msg = `*Baghdad Teaching Hospital - NICU Report*\nDate: ${new Date().toLocaleDateString('en-GB')}\n\n`;
-            patients.forEach((p, i) => {
+            selectedPatients.forEach((p, i) => {
                 msg += `*${i + 1}. ${p.name}*\nWeight: ${p.weight}kg | GA: ${p.ga}w\n`;
                 p.drugs.forEach(d => {
                     msg += `  - ${d.name}: ${d.dose} mg\n`;
@@ -821,8 +1032,14 @@
         btnPdf.addEventListener('click', generatePDF);
         btnTelegram.addEventListener('click', sendToTelegram);
         btnClearAll.addEventListener('click', () => {
-            if (confirm('Clear all patients?')) { patients = []; saveToStorage(); renderQueue(); }
+            if (confirm('Clear all patients?')) { 
+                patients = []; 
+                selectedPatientIds.clear();
+                saveToStorage(); 
+                renderQueue(); 
+            }
         });
+        selectAllCheckbox.addEventListener('change', toggleSelectAll);
 
         selectDrug.addEventListener('change', handleDrugSelectionChange);
         inputWeight.addEventListener('input', handleDrugSelectionChange);
