@@ -218,7 +218,7 @@
                         </div>
                         <div class="space-y-2 lg:col-span-1">
                             <label class="block text-sm font-semibold text-[var(--fg)]">Total Dose</label>
-                            <input type="text" id="inputDose" inputmode="decimal"
+                            <input type="text" id="inputDose" inputmode="decimal" oninput="this.value = this.value.replace(/،/g, '.').replace(/,/g, '.')"
                                 class="input-field w-full px-4 py-3 rounded-xl border border-[var(--border)]"
                                 placeholder="Auto or Manual">
                         </div>
@@ -229,6 +229,8 @@
                                 <option value="2">Twice daily (x 2)</option>
                                 <option value="3">Three times (x 3)</option>
                                 <option value="4">Four times (x 4)</option>
+                                <option value="1">q36hr (x 1 كل ٣٦ ساعة)</option>
+                                <option value="1">q48hr (x 1 كل ٤٨ ساعة)</option>
                             </select>
                         </div>
                         <div class="space-y-2 lg:col-span-1 hidden" id="targetVolContainer">
@@ -630,10 +632,15 @@
                             onchange="togglePatientSelection('${p.id}')">
                     </div>
                     
-                    <div class="bg-gradient-to-r from-[var(--accent)] to-[var(--accent-light)] px-4 py-3 pl-10">
-                        <h3 class="text-white font-bold text-lg truncate">${p.name}</h3>
-                        <p class="text-white/80 text-sm">Day ${p.age} | ${p.ga}w GA | ${p.weight}kg</p>
-                    </div>
+                    <div class="bg-gradient-to-r from-[var(--accent)] to-[var(--accent-light)] px-4 py-3 flex justify-between items-center">
+                     <div class="text-white/90 text-sm font-medium">
+                      ${p.weight}kg | GA: ${p.ga}w | D${p.age}
+                     </div>
+                      <h3 class="text-white font-bold text-lg arabic-text" style="direction: rtl;">
+                       ${p.name}
+                      </h3>
+                     </div>
+
                     <div class="p-4 space-y-3 max-h-64 overflow-y-auto">
                         ${p.drugs.map(d => `
                             <div class="border-b border-[var(--border)] pb-2 last:border-0 last:pb-0">
