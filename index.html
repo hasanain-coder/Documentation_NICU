@@ -184,7 +184,7 @@
                     </div>
                     <div class="space-y-2">
                         <label class="block text-sm font-semibold text-[var(--fg)]">Weight (kg)</label>
-                        <input type="text" id="inputWeight" inputmode="decimal"
+                        <input type="text" id="inputWeight" inputmode="decimal" oninput="this.value = this.value.replace(/،/g, '.').replace(/,/g, '.')"
                             class="input-field w-full px-4 py-3 rounded-xl border border-[var(--border)]"
                             placeholder="e.g., 2.35 or ٢،٣٥">
                     </div>
