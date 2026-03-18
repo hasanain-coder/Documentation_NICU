@@ -82,7 +82,6 @@
             text-align: right;
         }
 
-        /* PDF Hidden Container Styling */
         #pdf-render-container {
             position: absolute;
             top: 0;
@@ -306,7 +305,7 @@
 
             <div id="emptyState" class="text-center py-20 bg-white rounded-2xl border-2 border-dashed border-[var(--border)]">
                 <svg class="w-20 h-20 mx-auto text-[var(--muted)]/30 mb-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656 126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656 0.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
                 </svg>
                 <p class="text-[var(--muted)] text-lg font-medium">No patients in queue</p>
                 <p class="text-[var(--muted)]/60 text-sm mt-1">Add patient information above to begin</p>
@@ -321,7 +320,6 @@
     </div>
 
     <script>
-        // ==================== METHODS DICTIONARY ====================
         const METHODS = {
             1: '** / 5min',
             2: '** + 5 ml GW / 10 min',
@@ -403,11 +401,17 @@
 
         const checkClinicalAlerts = (drug) => {
             const ga = parseInt(inputGA.value) || 0;
-            const age = parseInt(inputAge.value) || 0;
+            let ageVal = inputAge.value;
+            const age = ageVal === '>30' ? 31 : parseInt(ageVal) || 0; 
             const freq = inputFreq.value;
+            
             if (drug.warning_rule) {
                 const alert = drug.warning_rule(ga, age, freq);
-                if (alert) { warningMessage.textContent = alert; warningMessage.classList.remove('hidden'); return; }
+                if (alert) { 
+                    warningMessage.textContent = alert; 
+                    warningMessage.classList.remove('hidden'); 
+                    return; 
+                }
             }
             warningMessage.classList.add('hidden');
         };
@@ -416,28 +420,40 @@
             if (drug.isDopamine) return '1 ml dopamin + 39 ml GW';
             if (!METHODS[drug.methodIndex]) return '-';
             
-            let drawn_volume = finalDoseMg / drug.factor;
-            let unitStr = (drug.unit.toUpperCase() === 'IU' || drug.unit.toUpperCase() === 'UNITS') ? ' unit' : ' ml';
+            let drawn_volume_ml = finalDoseMg / drug.factor;
             let methodStr = METHODS[drug.methodIndex];
             let diluent_volume;
 
             if (drug.methodIndex === 3) {
                 const targetVol = parseInt(inputTargetVol.value);
                 if (targetVol === 10) {
-                    drawn_volume *= 2;
-                    diluent_volume = 20 - drawn_volume;
+                    drawn_volume_ml *= 2;
+                    diluent_volume = 20 - drawn_volume_ml;
                     methodStr = methodStr.replace('^^', '10');
                 } else if (targetVol === 5) {
-                    drawn_volume *= 3;
-                    diluent_volume = 15 - drawn_volume;
+                    drawn_volume_ml *= 3;
+                    diluent_volume = 15 - drawn_volume_ml;
                     methodStr = methodStr.replace('^^', '5');
                 }
             } else {
-                diluent_volume = 20 - (unitStr.includes('unit') ? (drawn_volume / 100) : drawn_volume);
+                let vol_to_subtract = (drug.unit.toUpperCase() === 'IU' || drug.unit.toUpperCase() === 'UNITS') ? (drawn_volume_ml / 100) : drawn_volume_ml;
+                diluent_volume = 20 - vol_to_subtract;
             }
 
-            methodStr = methodStr.replace('**', `${drawn_volume.toFixed(1)}${unitStr}`);
-            if (methodStr.includes('##')) methodStr = methodStr.replace('##', diluent_volume.toFixed(1));
+            let display_volume = drawn_volume_ml;
+            let unitStr = (drug.unit.toUpperCase() === 'IU' || drug.unit.toUpperCase() === 'UNITS') ? ' unit' : ' ml';
+            
+            if (drawn_volume_ml < 1 && unitStr === ' ml') {
+                display_volume = drawn_volume_ml * 100;
+                unitStr = ' units';
+            }
+
+            let display_drawn_str = unitStr === ' units' ? Math.round(display_volume) : display_volume.toFixed(1);
+            methodStr = methodStr.replace('**', `${display_drawn_str}${unitStr}`);
+            
+            if (methodStr.includes('##')) {
+                methodStr = methodStr.replace('##', diluent_volume.toFixed(1));
+            }
             
             return methodStr;
         };
@@ -636,11 +652,13 @@
                 const grid = pageDiv.querySelector('.pdf-grid');
 
                 pages[i].forEach((cellData, index) => {
+                    if (!cellData || cellData === 'blocked') return; 
+                    
                     const el = document.createElement('div');
                     el.className = 'pdf-cell';
-                    if (!cellData || cellData === 'blocked') { if(cellData === 'blocked') el.style.visibility = 'hidden'; grid.appendChild(el); return; }
                     const p = cellData.patient;
                     if (cellData.span === 2) el.style.gridRow = `${Math.floor(index/3)+1} / span 2`;
+                    
                     el.innerHTML = `
                         <div class="pdf-cell-header">
                             <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -662,7 +680,7 @@
                                         </tr>
                                         ${[5,10,15,20].map(ds => `<tr>
                                             <td style="border: 1px solid #D1DEDD; padding:1.5mm; text-align:center;">${((ds*p.weight*1440)/4000).toFixed(1)} ml/24hr</td>
-                                            <td style="border: 1px solid #D1DEDD; padding:1.5mm; text-align:center;">${ds} mcg</td>
+                                            <td style="border: 1px solid #D1DEDD; padding:1.5mm; text-align:center;">${ds} mcg/kg/min</td>
                                         </tr>`).join('')}
                                     </table>` : ''}
                                 </div>
@@ -692,6 +710,16 @@
         inputDose.addEventListener('input', handleManualDoseChange);
         inputTargetVol.addEventListener('change', handleManualDoseChange);
         
+        const triggerWarningsUpdate = () => {
+            const drugId = parseInt(selectDrug.value);
+            const drug = DRUG_CONFIG.find(d => d.id === drugId);
+            if (drug) checkClinicalAlerts(drug);
+        };
+
+        inputGA.addEventListener('input', triggerWarningsUpdate);
+        inputAge.addEventListener('change', triggerWarningsUpdate);
+        inputFreq.addEventListener('change', triggerWarningsUpdate);
+
         populateDropdowns();
         loadFromStorage();
     </script>
