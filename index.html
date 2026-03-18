@@ -661,7 +661,7 @@
                                             <th style="border: 1px solid #D1DEDD; padding:2mm;">Dose</th>
                                         </tr>
                                         ${[5,10,15,20].map(ds => `<tr>
-                                            <td style="border: 1px solid #D1DEDD; padding:1.5mm; text-align:center;">${((ds*p.weight*60)/4000).toFixed(1)} ml/hr</td>
+                                            <td style="border: 1px solid #D1DEDD; padding:1.5mm; text-align:center;">${((ds*p.weight*1440)/4000).toFixed(1)} ml/hr</td>
                                             <td style="border: 1px solid #D1DEDD; padding:1.5mm; text-align:center;">${ds} mcg</td>
                                         </tr>`).join('')}
                                     </table>` : ''}
