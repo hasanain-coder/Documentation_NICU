@@ -483,7 +483,7 @@
             const tbody = $('dopamineTableBody');
             let rows = '';
             for (let dose = 5; dose <= 20; dose += 5) {
-                const rate = ((dose * weight * 60) / 4000).toFixed(1);
+                const rate = ((dose * weight * 1440) / 4000).toFixed(1);
                 rows += `<tr>
                     <td class="p-2 text-center font-bold text-[var(--accent)] border border-[var(--border)]">${rate} ml/hr</td>
                     <td class="p-2 text-center border border-[var(--border)]">${dose} mcg/kg/min</td>
