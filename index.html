@@ -84,12 +84,16 @@
 
         /* PDF Hidden Container Styling */
         #pdf-render-container {
-            position: absolute;
-            left: -9999px;
-            top: 0;
-            background: white;
-            font-family: 'Inter', 'Noto Sans Arabic', sans-serif;
-        }
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: -1000;
+    opacity: 0.01;
+    pointer-events: none;
+    background: white;
+    font-family: 'Inter', 'Noto Sans Arabic', sans-serif;
+}
+
         
         .pdf-page {
             width: 297mm;
@@ -448,7 +452,7 @@
             if (!METHODS[drug.methodIndex]) return '-';
 
             let drawn_volume = finalDoseMg / drug.factor;
-            let unitStr = (drug.unit.toUpperCase() === 'IU' || drug.unit.toUpperCase() === 'UNITS') ? ' وحدة انسولين' : ' مل';
+            let unitStr = (drug.unit.toUpperCase() === 'IU' || drug.unit.toUpperCase() === 'UNITS') ? ' unit' : ' ml';
 
             if (drug.methodIndex === 3) {
                 const targetVol = parseInt(inputTargetVol.value);
@@ -457,17 +461,17 @@
             }
 
             let diluent_volume = 20;
-            if (unitStr.includes('انسولين')) {
+            if (unitStr.includes('unit')) {
                 diluent_volume = 20 - (drawn_volume / 100);
             } else {
                 diluent_volume = 20 - drawn_volume;
             }
 
             let methodStr = METHODS[drug.methodIndex];
-            methodStr = methodStr.replace('**', `${drawn_volume.toFixed(2)}${unitStr}`);
+            methodStr = methodStr.replace('**', `${drawn_volume.toFixed(1)}${unitStr}`);
             
             if (methodStr.includes('##')) {
-                methodStr = methodStr.replace('##', diluent_volume.toFixed(2));
+                methodStr = methodStr.replace('##', diluent_volume.toFixed(1));
             }
 
             return methodStr;
@@ -914,7 +918,8 @@
                 });
 
                 container.appendChild(pageDiv);
-
+                 await document.fonts.ready; // ننتظر الخطوط تكمل تحميل
+                const canvas = await html2canvas(pageDiv, { scale: 2, useCORS: true, logging: false });
                 const canvas = await html2canvas(pageDiv, { scale: 2, useCORS: true, logging: false });
                 const imgData = canvas.toDataURL('image/jpeg', 1.0);
                 
