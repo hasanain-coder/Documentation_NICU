@@ -218,8 +218,8 @@
                                 <option value="2">Twice daily (x 2)</option>
                                 <option value="3">Three times (x 3)</option>
                                 <option value="4">Four times (x 4)</option>
-                                <option value="q36hr">q36hr (كل ٣٦ ساعة)</option>
-                                <option value="q48hr">q48hr (كل ٤٨ ساعة)</option>
+                                <option value="q36hr">q36hr</option>
+                                <option value="q48hr">q48hr</option>
                             </select>
                         </div>
                         <div class="space-y-2 lg:col-span-1 hidden" id="targetVolContainer">
@@ -255,13 +255,13 @@
                     </div>
                 </div>
 
-                <div id="dopamineTableContainer" class="hidden overflow-x-auto">
+                <div id="dopamineTableContainer" class="hidden mt-6 overflow-x-auto">
                     <h4 class="text-lg font-bold text-[var(--accent)] mb-3">Dopamine Infusion Table</h4>
-                    <table class="w-full text-sm border border-[var(--border)] rounded-xl overflow-hidden">
+                    <table class="w-full text-sm border-collapse border border-[var(--border)] rounded-xl overflow-hidden">
                         <thead class="bg-[var(--accent)] text-white">
                             <tr>
-                                <th class="p-2">Rate (ml/hr)</th>
-                                <th class="p-2">Dose (mcg/kg/min)</th>
+                                <th class="p-2 border border-[#0F766E]">Rate (ml/hr)</th>
+                                <th class="p-2 border border-[#0F766E]">Dose (mcg/kg/min)</th>
                             </tr>
                         </thead>
                         <tbody id="dopamineTableBody" class="bg-white"></tbody>
@@ -321,12 +321,11 @@
     </div>
 
     <script>
-        // ==================== METHODS DICTIONARY (Updated to ml) ====================
+        // ==================== METHODS DICTIONARY ====================
         const METHODS = {
             1: '** / 5min',
             2: '** + 5 ml GW / 10 min',
-            3: 'تسحب ** وتضاف إلى ## ml كلوكوز وتر، تفرغ 10 ml وتعطى 10 ml خلال 30 دقيقة',
-            4: 'تسحب ** وتخفف بـ 5 ml كلوكوز وتر ويعطى خلال 10 دقائق'
+            3: '** + ## ml GW >> ^^ ml /30 min',
         };
 
         const DRUG_CONFIG = [
@@ -414,18 +413,32 @@
         };
 
         const generateMethodString = (drug, finalDoseMg) => {
-            if (drug.isDopamine) return 'يبدأ بمعدل 5 مكغ/كغ/د ويزداد تدريجياً حسب الاستجابة';
+            if (drug.isDopamine) return '1 ml dopamin + 39 ml GW';
             if (!METHODS[drug.methodIndex]) return '-';
+            
             let drawn_volume = finalDoseMg / drug.factor;
             let unitStr = (drug.unit.toUpperCase() === 'IU' || drug.unit.toUpperCase() === 'UNITS') ? ' unit' : ' ml';
+            let methodStr = METHODS[drug.methodIndex];
+            let diluent_volume;
+
             if (drug.methodIndex === 3) {
                 const targetVol = parseInt(inputTargetVol.value);
-                if (targetVol === 10) drawn_volume *= 2;
-                else if (targetVol === 5) drawn_volume *= 3;
+                if (targetVol === 10) {
+                    drawn_volume *= 2;
+                    diluent_volume = 20 - drawn_volume;
+                    methodStr = methodStr.replace('^^', '10');
+                } else if (targetVol === 5) {
+                    drawn_volume *= 3;
+                    diluent_volume = 15 - drawn_volume;
+                    methodStr = methodStr.replace('^^', '5');
+                }
+            } else {
+                diluent_volume = 20 - (unitStr.includes('unit') ? (drawn_volume / 100) : drawn_volume);
             }
-            let diluent_volume = 20 - (unitStr.includes('unit') ? (drawn_volume / 100) : drawn_volume);
-            let methodStr = METHODS[drug.methodIndex].replace('**', `${drawn_volume.toFixed(1)}${unitStr}`);
+
+            methodStr = methodStr.replace('**', `${drawn_volume.toFixed(1)}${unitStr}`);
             if (methodStr.includes('##')) methodStr = methodStr.replace('##', diluent_volume.toFixed(1));
+            
             return methodStr;
         };
 
@@ -434,14 +447,18 @@
             const drugId = parseInt(selectDrug.value);
             const drug = DRUG_CONFIG.find(d => d.id === drugId);
             if (!drug) return;
+            
             targetVolContainer.classList.toggle('hidden', drug.methodIndex !== 3);
+            
             if (drug.isDopamine) {
                 inputDose.value = ''; inputDose.placeholder = 'See table below'; inputDose.disabled = true;
                 dopamineTable.classList.remove('hidden'); methodPreviewContainer.classList.add('hidden');
                 renderDopamineTable(weight); return;
             }
+            
             inputDose.disabled = false; inputDose.placeholder = 'Auto or Manual';
             dopamineTable.classList.add('hidden'); methodPreviewContainer.classList.remove('hidden');
+            
             if (weight > 0) {
                 inputDose.value = (weight * drug.dosePerKg).toFixed(1);
                 inputFreq.value = drug.defaultFreq || 1;
@@ -467,7 +484,10 @@
             let rows = '';
             for (let dose = 5; dose <= 20; dose += 5) {
                 const rate = ((dose * weight * 60) / 4000).toFixed(1);
-                rows += `<tr class="border-b border-[var(--border)]"><td class="p-2 text-center font-bold text-[var(--accent)]">${rate} ml/hr</td><td class="p-2 text-center">${dose} mcg/kg/min</td></tr>`;
+                rows += `<tr>
+                    <td class="p-2 text-center font-bold text-[var(--accent)] border border-[var(--border)]">${rate} ml/hr</td>
+                    <td class="p-2 text-center border border-[var(--border)]">${dose} mcg/kg/min</td>
+                </tr>`;
             }
             tbody.innerHTML = rows;
         };
@@ -544,14 +564,17 @@
             const drugId = parseInt(selectDrug.value);
             const drug = DRUG_CONFIG.find(d => d.id === drugId);
             if (!drug) return;
+            
             const freqVal = inputFreq.value;
-            let freqDisplay = freqVal === 'q36hr' ? 'كل ٣٦ ساعة' : freqVal === 'q48hr' ? 'كل ٤٨ ساعة' : `x ${freqVal}`;
+            let freqDisplay = freqVal === 'q36hr' ? 'q36hr' : freqVal === 'q48hr' ? 'q48hr' : `x ${freqVal}`;
+            
             if (drug.isDopamine) {
-                currentDrugs.push({ id: generateId(), drugId: drug.id, name: drug.name, dose: 'Infusion', unit: '', freq: '', method: 'يبدأ بمعدل 5 مكغ/كغ/د ويزداد تدريجياً حسب الاستجابة' });
+                currentDrugs.push({ id: generateId(), drugId: drug.id, name: drug.name, dose: 'Infusion', unit: '', freq: '', method: '1 ml dopamin + 39 ml GW' });
                 renderDrugsList(); showToast('Dopamine added'); return;
             }
             const dose = cleanInputNumber(inputDose.value);
             if (!dose || dose <= 0) { showToast('Please enter a valid dose', 'error'); return; }
+            
             currentDrugs.push({ id: generateId(), drugId: drug.id, name: drug.name, dose, unit: drug.unit, freq: freqDisplay, method: generateMethodString(drug, dose) });
             renderDrugsList(); showToast(`${drug.name} added`);
         };
@@ -632,9 +655,15 @@
                                         <span>${d.name}</span><span style="color:#0F766E;">${d.dose}${d.unit} ${d.freq}</span>
                                     </div>
                                     <div style="font-size:10pt; color:#5A6872; text-align:left;">${d.method}</div>
-                                    ${d.name === 'Dopamine' ? `<table style="width:100%; margin-top:1mm; font-size:8pt; border-collapse:collapse;">
-                                        <tr style="background:#0F766E; color:white;"><th>Rate</th><th>Dose</th></tr>
-                                        ${[5,10,15,20].map(ds => `<tr><td>${((ds*p.weight*60)/4000).toFixed(1)} ml/hr</td><td>${ds} mcg</td></tr>`).join('')}
+                                    ${d.name === 'Dopamine' ? `<table style="width:100%; margin-top:3mm; font-size:8pt; border-collapse:collapse; border: 1px solid #D1DEDD;">
+                                        <tr style="background:#0F766E; color:white;">
+                                            <th style="border: 1px solid #D1DEDD; padding:2mm;">Rate</th>
+                                            <th style="border: 1px solid #D1DEDD; padding:2mm;">Dose</th>
+                                        </tr>
+                                        ${[5,10,15,20].map(ds => `<tr>
+                                            <td style="border: 1px solid #D1DEDD; padding:1.5mm; text-align:center;">${((ds*p.weight*60)/4000).toFixed(1)} ml/hr</td>
+                                            <td style="border: 1px solid #D1DEDD; padding:1.5mm; text-align:center;">${ds} mcg</td>
+                                        </tr>`).join('')}
                                     </table>` : ''}
                                 </div>
                             `).join('')}
