@@ -184,9 +184,9 @@
                     </div>
                     <div class="space-y-2">
                         <label class="block text-sm font-semibold text-[var(--fg)]">Weight (kg)</label>
-                        <input type="text" id="inputWeight" inputmode="decimal" oninput="this.value = this.value.replace(/،/g, '.').replace(/,/g, '.')"
+                        <input type="text" id="inputWeight" inputmode="decimal" oninput="this.value = this.value.replace(/[،,٫]/g, '.')"
                             class="input-field w-full px-4 py-3 rounded-xl border border-[var(--border)]"
-                            placeholder="e.g., 2.35 or ٢،٣٥">
+                            placeholder="e.g., 2.35">
                     </div>
                     <div class="space-y-2">
                         <label class="block text-sm font-semibold text-[var(--fg)]">Postnatal Age (Days)</label>
@@ -218,7 +218,7 @@
                         </div>
                         <div class="space-y-2 lg:col-span-1">
                             <label class="block text-sm font-semibold text-[var(--fg)]">Total Dose</label>
-                            <input type="text" id="inputDose" inputmode="decimal"
+                            <input type="text" id="inputDose" inputmode="decimal" oninput="this.value = this.value.replace(/[،,٫]/g, '.')"
                                 class="input-field w-full px-4 py-3 rounded-xl border border-[var(--border)]"
                                 placeholder="Auto or Manual">
                         </div>
@@ -229,6 +229,8 @@
                                 <option value="2">Twice daily (x 2)</option>
                                 <option value="3">Three times (x 3)</option>
                                 <option value="4">Four times (x 4)</option>
+                                <option value="q36hr">q36hr (كل ٣٦ ساعة)</option>
+                                <option value="q48hr">q48hr (كل ٤٨ ساعة)</option>
                             </select>
                         </div>
                         <div class="space-y-2 lg:col-span-1 hidden" id="targetVolContainer">
@@ -257,7 +259,7 @@
                             </div>
                             <div class="flex-1">
                                 <p class="text-xs font-semibold text-[var(--accent)] uppercase tracking-wide mb-1">Method of Administration</p>
-                                <p id="previewMethod" class="text-[var(--fg)] arabic-text text-sm leading-relaxed font-bold">-</p>
+                                <p id="previewMethod" class="text-[var(--fg)] text-sm leading-relaxed font-bold" style="direction: ltr; text-align: left;">-</p>
                                 <p id="warningMessage" class="hidden text-sm text-[var(--danger)] font-bold mt-2 arabic-text"></p>
                             </div>
                         </div>
@@ -303,13 +305,6 @@
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                     </svg>
                     Generate PDF
-                </button>
-                <button id="btnTelegram" disabled
-                    class="px-5 py-2.5 rounded-xl bg-[#229ED9] text-white font-medium hover:bg-[#1a8bc4] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .37z"/>
-                    </svg>
-                    Send to Telegram
                 </button>
                 <button id="btnClearAll" 
                     class="px-5 py-2.5 rounded-xl border border-[var(--danger)]/30 text-[var(--danger)] font-medium hover:bg-[var(--danger)]/5 transition-colors flex items-center gap-2">
@@ -359,18 +354,13 @@
             { 
                 id: 8, name: 'Meropenem', dosePerKg: 40, unit: 'mg', factor: 50, methodIndex: 3, defaultFreq: 3,
                 warning_rule: (ga, age, freq) => {
-                    return (ga >= 32 && age > 14 && freq >< 3) 
+                    return (ga >= 32 && age > 14 && (freq !== '3' && freq !== 3)) 
                         ? "⚠️ تنبيه: الجرعة المقترحة هي 3 مرات يومياً بناءً على عمر الطفل." 
                         : null;
                 }
             },
             { id: 9, name: 'Dopamine', isDopamine: true, defaultFreq: 1 }
         ];
-
-        const TELEGRAM_CONFIG = {
-            token: '8554444620:AAEKG5brSd0RFQ-NftjIHp7OJtqJRhQuJog',
-            chatId: '-1002141194993'
-        };
 
         const STORAGE_KEY = 'nicu_patient_queue';
 
@@ -396,7 +386,6 @@
         const patientCounter = $('patientCounter');
         const counterText = $('counterText');
         const btnPdf = $('btnPdf');
-        const btnTelegram = $('btnTelegram');
         const btnClearAll = $('btnClearAll');
         const btnSavePatient = $('btnSavePatient');
         const btnAddDrug = $('btnAddDrug');
@@ -409,8 +398,8 @@
         // ==================== UTILITIES ====================
         const cleanInputNumber = (str) => {
             if (!str) return 0;
+            let cleaned = str.toString().replace(/[،,٫]/g, '.');
             const arabicNumerals = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
-            let cleaned = str.toString().replace(/،/g, '.');
             arabicNumerals.forEach((num, i) => {
                 cleaned = cleaned.replace(new RegExp(num, 'g'), i);
             });
@@ -441,7 +430,7 @@
         const checkClinicalAlerts = (drug) => {
             const ga = parseInt(inputGA.value) || 0;
             const age = parseInt(inputAge.value) || 0;
-            const freq = parseInt(inputFreq.value) || 1;
+            const freq = inputFreq.value; // string
 
             if (drug.warning_rule) {
                 const alert = drug.warning_rule(ga, age, freq);
@@ -461,14 +450,12 @@
             let drawn_volume = finalDoseMg / drug.factor;
             let unitStr = (drug.unit.toUpperCase() === 'IU' || drug.unit.toUpperCase() === 'UNITS') ? ' وحدة انسولين' : ' مل';
 
-            // Method 3 Multiplier Logic
             if (drug.methodIndex === 3) {
                 const targetVol = parseInt(inputTargetVol.value);
                 if (targetVol === 10) drawn_volume *= 2;
                 else if (targetVol === 5) drawn_volume *= 3;
             }
 
-            // Diluent logic (##)
             let diluent_volume = 20;
             if (unitStr.includes('انسولين')) {
                 diluent_volume = 20 - (drawn_volume / 100);
@@ -493,7 +480,6 @@
 
             if (!drug) return;
 
-            // UI adjustments based on method
             if (drug.methodIndex === 3) {
                 targetVolContainer.classList.remove('hidden');
             } else {
@@ -516,7 +502,6 @@
             }
 
             if (weight > 0) {
-                // Here we can place logic for weight < 1kg if needed in the future
                 let calculatedDose = weight * drug.dosePerKg;
                 
                 inputDose.value = calculatedDose.toFixed(1);
@@ -584,7 +569,6 @@
             counterText.textContent = `${c} Patient${c !== 1 ? 's' : ''}`;
             patientCounter.classList.toggle('hidden', c === 0);
             btnPdf.disabled = c === 0;
-            btnTelegram.disabled = c === 0;
             emptyState.classList.toggle('hidden', c > 0);
             updateSelectAllCheckbox();
         };
@@ -604,10 +588,10 @@
                         <div class="flex items-center gap-2 mb-1">
                             <p class="font-bold text-[var(--fg)]">${d.name}</p>
                             <span class="px-2 py-0.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-xs font-semibold">
-                                ${d.dose}${d.unit} x ${d.freq}
+                                ${d.dose}${d.unit} ${d.freq}
                             </span>
                         </div>
-                        <p class="text-sm text-[var(--fg)] arabic-text leading-relaxed">${d.method}</p>
+                        <p class="text-sm text-[var(--fg)] leading-relaxed" style="direction: ltr; text-align: left;">${d.method}</p>
                     </div>
                     <button onclick="removeDrug(${i})" class="ml-3 p-2 hover:bg-red-100 rounded-lg transition-colors group flex-shrink-0">
                         <svg class="w-5 h-5 text-[var(--muted)] group-hover:text-[var(--danger)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -630,18 +614,23 @@
                             onchange="togglePatientSelection('${p.id}')">
                     </div>
                     
-                    <div class="bg-gradient-to-r from-[var(--accent)] to-[var(--accent-light)] px-4 py-3 pl-10">
-                        <h3 class="text-white font-bold text-lg truncate">${p.name}</h3>
-                        <p class="text-white/80 text-sm">Day ${p.age} | ${p.ga}w GA | ${p.weight}kg</p>
-                    </div>
+                    <div class="bg-gradient-to-r from-[var(--accent)] to-[var(--accent-light)] px-4 py-3 flex justify-between items-center">
+                     <div class="text-white/90 text-sm font-medium">
+                      ${p.weight}kg | GA: ${p.ga}w | D${p.age}
+                     </div>
+                      <h3 class="text-white font-bold text-lg arabic-text" style="direction: rtl;">
+                       ${p.name}
+                      </h3>
+                     </div>
+
                     <div class="p-4 space-y-3 max-h-64 overflow-y-auto">
                         ${p.drugs.map(d => `
                             <div class="border-b border-[var(--border)] pb-2 last:border-0 last:pb-0">
                                 <div class="flex justify-between items-center mb-1">
                                     <span class="font-bold text-[var(--fg)]">${d.name}</span>
-                                    <span class="text-[var(--accent)] font-semibold text-sm">${d.dose}${d.unit} x ${d.freq}</span>
+                                    <span class="text-[var(--accent)] font-semibold text-sm">${d.dose}${d.unit} ${d.freq}</span>
                                 </div>
-                                <p class="text-xs text-[var(--muted)] arabic-text leading-relaxed">${d.method}</p>
+                                <p class="text-xs text-[var(--muted)] leading-relaxed" style="direction: ltr; text-align: left;">${d.method}</p>
                             </div>
                         `).join('')}
                     </div>
@@ -661,9 +650,14 @@
             
             const drugId = parseInt(selectDrug.value);
             const drug = DRUG_CONFIG.find(d => d.id === drugId);
-            const freq = inputFreq.value;
+            const freqVal = inputFreq.value;
 
             if (!drug) return;
+
+            let freqDisplay = "";
+            if (freqVal === 'q36hr') freqDisplay = 'كل ٣٦ ساعة';
+            else if (freqVal === 'q48hr') freqDisplay = 'كل ٤٨ ساعة';
+            else freqDisplay = `x ${freqVal}`;
 
             if (drug.isDopamine) {
                 currentDrugs.push({
@@ -672,7 +666,7 @@
                     name: drug.name,
                     dose: 'Infusion',
                     unit: '',
-                    freq: '1',
+                    freq: '', // الدوبامين عبارة عن Infusion مابيه تكرار يومي
                     method: 'يبدأ بمعدل 5 مكغ/كغ/د ويزداد تدريجياً حسب الاستجابة'
                 });
                 renderDrugsList();
@@ -691,7 +685,7 @@
                 name: drug.name,
                 dose: dose,
                 unit: drug.unit,
-                freq: freq,
+                freq: freqDisplay,
                 method: method
             });
 
@@ -792,7 +786,8 @@
             let cells = Array(6).fill(null); 
 
             const placePatient = (patient) => {
-                const needsMerge = patient.drugs.length > 3;
+                // نكبر مساحة المريض إذا أدوية هواي أو إذا يحتوي دوبامين حتى يكفي الجدول
+                const needsMerge = patient.drugs.length > 3 || patient.drugs.some(d => d.name === 'Dopamine');
                 let placed = false;
                 
                 for (let i = 0; i < 6; i++) {
@@ -867,18 +862,47 @@
 
                     el.innerHTML = `
                         <div class="pdf-cell-header">
-                            <div style="font-weight: 700; color: #0F766E; font-size: 11pt;">${p.name}  ${p.weight}kg  ${p.ga}wk</div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="font-weight: 600; color: #5A6872; font-size: 10pt; text-align: left;">
+                                    ${p.weight}kg | GA: ${p.ga}w | D${p.age}
+                                </div>
+                                <div style="font-weight: 700; color: #0F766E; font-size: 12pt; text-align: right; direction: rtl; font-family: 'Noto Sans Arabic', sans-serif;">
+                                    ${p.name}
+                                </div>
+                            </div>
                         </div>
                         <div style="flex: 1; overflow: hidden;">
                             ${p.drugs.map(d => `
                                 <div class="pdf-drug-item">
                                     <div style="display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 1mm;">
                                         <span style="color: #1C2526;">${d.name}</span>
-                                        <span style="color: #0F766E;">${d.dose}${d.unit} x ${d.freq}</span>
+                                        <span style="color: #0F766E;">${d.dose}${d.unit} ${d.freq}</span>
                                     </div>
-                                    <div style="font-size: 10pt; color: #5A6872; text-align: right; direction: rtl; font-family: 'Noto Sans Arabic', sans-serif;">
+                                    <div style="font-size: 10pt; color: #5A6872; text-align: left; direction: ltr; font-family: 'Inter', 'Noto Sans Arabic', sans-serif;">
                                         ${d.method}
                                     </div>
+                                    
+                                    ${d.name === 'Dopamine' ? `
+                                        <table style="width: 100%; border-collapse: collapse; margin-top: 2mm; font-size: 8pt; text-align: left; direction: ltr;">
+                                            <thead>
+                                                <tr style="background-color: #0F766E; color: white;">
+                                                    <th style="padding: 1mm; border: 1px solid #D1DEDD;">Rate (ml/hr)</th>
+                                                    <th style="padding: 1mm; border: 1px solid #D1DEDD;">Dose (mcg/kg/min)</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                            ${[5, 10, 15, 20].map(dose => {
+                                                const rate = ((dose * p.weight * 60) / 4000).toFixed(1);
+                                                return `
+                                                    <tr>
+                                                        <td style="padding: 1mm; border: 1px solid #D1DEDD; font-weight: bold; color: #0F766E;">${rate} ml/hr</td>
+                                                        <td style="padding: 1mm; border: 1px solid #D1DEDD;">${dose} mcg/kg/min</td>
+                                                    </tr>
+                                                `;
+                                            }).join('')}
+                                            </tbody>
+                                        </table>
+                                    ` : ''}
                                 </div>
                             `).join('')}
                         </div>
@@ -902,42 +926,10 @@
             showToast('PDF Generated Successfully');
         };
 
-        const sendToTelegram = async () => {
-            const selectedPatients = patients.filter(p => selectedPatientIds.has(p.id));
-            if (selectedPatients.length === 0) {
-                showToast('No patients selected to send', 'error');
-                return;
-            }
-
-            let msg = `*Baghdad Teaching Hospital - NICU Report*\nDate: ${new Date().toLocaleDateString('en-GB')}\n\n`;
-            selectedPatients.forEach((p, i) => {
-                msg += `*${i + 1}. ${p.name}*\nWeight: ${p.weight}kg | GA: ${p.ga}w\n`;
-                p.drugs.forEach(d => {
-                    msg += `  - ${d.name}: ${d.dose}${d.unit} x ${d.freq}\n`;
-                    msg += `    ${d.method}\n`;
-                });
-                msg += `\n`;
-            });
-
-            try {
-                const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_CONFIG.token}/sendMessage`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ chat_id: TELEGRAM_CONFIG.chatId, text: msg, parse_mode: 'Markdown' })
-                });
-                const data = await res.json();
-                if (data.ok) showToast('Sent to Telegram');
-                else showToast(`Error: ${data.description}`, 'error');
-            } catch (e) {
-                showToast('Failed to send', 'error');
-            }
-        };
-
         // ==================== EVENT LISTENERS ====================
         btnAddDrug.addEventListener('click', addDrug);
         btnSavePatient.addEventListener('click', savePatient);
         btnPdf.addEventListener('click', generatePDF);
-        btnTelegram.addEventListener('click', sendToTelegram);
         btnClearAll.addEventListener('click', () => {
             if (confirm('Clear all patients?')) { 
                 patients = []; selectedPatientIds.clear();
