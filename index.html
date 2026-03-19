@@ -443,6 +443,7 @@
             let display_volume = drawn_volume_ml;
             let unitStr = (drug.unit.toUpperCase() === 'IU' || drug.unit.toUpperCase() === 'UNITS') ? ' unit' : ' ml';
             
+            // تحويل أي حجم أقل من 1 مل إلى وحدات أنسولين
             if (drawn_volume_ml < 1 && unitStr === ' ml') {
                 display_volume = drawn_volume_ml * 100;
                 unitStr = ' units';
