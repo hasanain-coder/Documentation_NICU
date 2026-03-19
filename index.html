@@ -101,23 +101,12 @@
             page-break-after: always;
         }
 
-        .pdf-header {
-            background: #0F766E;
-            color: white;
-            padding: 4mm;
-            text-align: center;
-            font-size: 14pt;
-            font-weight: bold;
-            margin-bottom: 5mm;
-            border-radius: 3mm;
-        }
-
         .pdf-grid {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
             grid-template-rows: 1fr 1fr;
             gap: 4mm;
-            height: calc(100% - 20mm);
+            height: 100%; /* Changed to 100% to fill the page after removing header */
         }
 
         .pdf-cell {
@@ -201,10 +190,11 @@
                         <h3 class="text-lg font-semibold text-[var(--fg)]">Medication & Dosage</h3>
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-4 items-end">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-4 items-start">
                         <div class="space-y-2 lg:col-span-1">
                             <label class="block text-sm font-semibold text-[var(--fg)]">Drug</label>
                             <select id="selectDrug" class="input-field w-full px-4 py-3 rounded-xl border border-[var(--border)]"></select>
+                            <input type="text" id="inputCustomDrug" class="hidden input-field w-full px-4 py-3 rounded-xl border border-[var(--border)] mt-2" placeholder="Enter custom drug name">
                         </div>
                         <div class="space-y-2 lg:col-span-1">
                             <label class="block text-sm font-semibold text-[var(--fg)]">Total Dose</label>
@@ -228,8 +218,8 @@
                                 <option value="5">5 ml (Multiplier x3)</option>
                             </select>
                         </div>
-                        <div class="space-y-2 lg:col-span-1">
-                            <button id="btnAddDrug" class="btn-primary w-full py-3 rounded-xl text-white font-semibold flex items-center justify-center gap-2 h-[50px]">
+                        <div class="space-y-2 lg:col-span-1 flex items-end h-full">
+                            <button id="btnAddDrug" class="btn-primary w-full py-3 rounded-xl text-white font-semibold flex items-center justify-center gap-2 h-[50px] mt-auto">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                                 </svg>
@@ -358,6 +348,7 @@
         const inputDose = $('inputDose');
         const inputFreq = $('inputFreq');
         const selectDrug = $('selectDrug');
+        const inputCustomDrug = $('inputCustomDrug');
         const inputTargetVol = $('inputTargetVol');
         const targetVolContainer = $('targetVolContainer');
         const drugsList = $('drugsList');
@@ -459,8 +450,32 @@
         };
 
         const handleDrugSelectionChange = () => {
+            const val = selectDrug.value;
+            
+            if (val === '') {
+                inputDose.value = '';
+                inputDose.disabled = false;
+                methodPreviewContainer.classList.add('hidden');
+                inputCustomDrug.classList.add('hidden');
+                targetVolContainer.classList.add('hidden');
+                dopamineTable.classList.add('hidden');
+                return;
+            }
+
+            if (val === 'other') {
+                inputCustomDrug.classList.remove('hidden');
+                inputDose.disabled = false;
+                inputDose.placeholder = 'Manual Dose';
+                inputDose.value = '';
+                methodPreviewContainer.classList.add('hidden');
+                targetVolContainer.classList.add('hidden');
+                dopamineTable.classList.add('hidden');
+                return;
+            }
+            
+            inputCustomDrug.classList.add('hidden');
             const weight = cleanInputNumber(inputWeight.value);
-            const drugId = parseInt(selectDrug.value);
+            const drugId = parseInt(val);
             const drug = DRUG_CONFIG.find(d => d.id === drugId);
             if (!drug) return;
             
@@ -484,7 +499,10 @@
         };
 
         const handleManualDoseChange = () => {
-            const drugId = parseInt(selectDrug.value);
+            const val = selectDrug.value;
+            if (val === 'other' || val === '') return;
+            
+            const drugId = parseInt(val);
             const drug = DRUG_CONFIG.find(d => d.id === drugId);
             const manualDose = cleanInputNumber(inputDose.value);
             if (drug && manualDose > 0 && !drug.isDopamine) updateMethodPreview(drug, manualDose);
@@ -514,7 +532,11 @@
         const populateDropdowns = () => {
             const ageOpts = Array.from({ length: 30 }, (_, i) => `<option value="${i + 1}">Day ${i + 1}</option>`).join('');
             inputAge.innerHTML = '<option value="">Select day</option>' + ageOpts + '<option value=">30">More than 30 days</option>';
-            selectDrug.innerHTML = DRUG_CONFIG.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+            
+            let drugOpts = '<option value="">-- Select Drug / اختيار العلاج --</option>';
+            drugOpts += DRUG_CONFIG.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+            drugOpts += '<option value="other">Other+ (علاج آخر)</option>';
+            selectDrug.innerHTML = drugOpts;
         };
 
         const updateCounter = () => {
@@ -577,22 +599,49 @@
         const addDrug = () => {
             const weight = cleanInputNumber(inputWeight.value);
             if (!weight || weight <= 0) { showToast('Please enter a valid weight', 'error'); return; }
-            const drugId = parseInt(selectDrug.value);
-            const drug = DRUG_CONFIG.find(d => d.id === drugId);
-            if (!drug) return;
+            
+            const val = selectDrug.value;
+            if (!val) { showToast('Please select a drug', 'error'); return; }
             
             const freqVal = inputFreq.value;
             let freqDisplay = freqVal === 'q36hr' ? 'q36hr' : freqVal === 'q48hr' ? 'q48hr' : `x ${freqVal}`;
             
+            if (val === 'other') {
+                const customName = inputCustomDrug.value.trim();
+                if (!customName) { showToast('Please enter drug name', 'error'); return; }
+                const dose = cleanInputNumber(inputDose.value);
+                if (!dose || dose <= 0) { showToast('Please enter a valid dose', 'error'); return; }
+                
+                currentDrugs.push({ id: generateId(), drugId: 'other', name: customName, dose, unit: 'mg', freq: freqDisplay, method: 'Manual Administration' });
+                renderDrugsList(); showToast(`${customName} added`);
+                
+                selectDrug.value = '';
+                handleDrugSelectionChange();
+                inputCustomDrug.value = '';
+                return;
+            }
+
+            const drugId = parseInt(val);
+            const drug = DRUG_CONFIG.find(d => d.id === drugId);
+            if (!drug) return;
+
             if (drug.isDopamine) {
                 currentDrugs.push({ id: generateId(), drugId: drug.id, name: drug.name, dose: 'Infusion', unit: '', freq: '', method: '1 ml dopamin + 39 ml GW' });
-                renderDrugsList(); showToast('Dopamine added'); return;
+                renderDrugsList(); showToast('Dopamine added'); 
+                
+                selectDrug.value = '';
+                handleDrugSelectionChange();
+                return;
             }
+            
             const dose = cleanInputNumber(inputDose.value);
             if (!dose || dose <= 0) { showToast('Please enter a valid dose', 'error'); return; }
             
             currentDrugs.push({ id: generateId(), drugId: drug.id, name: drug.name, dose, unit: drug.unit, freq: freqDisplay, method: generateMethodString(drug, dose) });
             renderDrugsList(); showToast(`${drug.name} added`);
+
+            selectDrug.value = '';
+            handleDrugSelectionChange();
         };
 
         window.removeDrug = (index) => { currentDrugs.splice(index, 1); renderDrugsList(); };
@@ -648,7 +697,7 @@
             for (let i = 0; i < pages.length; i++) {
                 const pageDiv = document.createElement('div');
                 pageDiv.className = 'pdf-page';
-                pageDiv.innerHTML = `<div class="pdf-header">Baghdad Teaching Hospital | NICU Report</div><div class="pdf-grid"></div>`;
+                pageDiv.innerHTML = `<div class="pdf-grid"></div>`;
                 const grid = pageDiv.querySelector('.pdf-grid');
 
                 pages[i].forEach((cellData, index) => {
@@ -711,7 +760,9 @@
         inputTargetVol.addEventListener('change', handleManualDoseChange);
         
         const triggerWarningsUpdate = () => {
-            const drugId = parseInt(selectDrug.value);
+            const val = selectDrug.value;
+            if (val === 'other' || val === '') return;
+            const drugId = parseInt(val);
             const drug = DRUG_CONFIG.find(d => d.id === drugId);
             if (drug) checkClinicalAlerts(drug);
         };
