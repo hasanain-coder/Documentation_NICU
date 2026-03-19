@@ -106,11 +106,12 @@
             grid-template-columns: 1fr 1fr 1fr;
             grid-template-rows: 1fr 1fr;
             gap: 4mm;
-            height: 100%; /* Changed to 100% to fill the page after removing header */
+            height: 100%;
         }
 
+        /* Updated Print Styles for Darker Borders */
         .pdf-cell {
-            border: 1px solid #D1DEDD;
+            border: 2px solid #000000;
             border-radius: 3mm;
             padding: 3mm;
             background: #FFFFFF;
@@ -120,17 +121,18 @@
         }
 
         .pdf-cell-header {
-            background: #F0F4F3;
+            background: #FFFFFF;
             margin: -3mm -3mm 2mm -3mm;
             padding: 2mm 3mm;
             border-radius: 3mm 3mm 0 0;
-            border-bottom: 1px solid #D1DEDD;
+            border-bottom: 2px solid #000000;
         }
 
         .pdf-drug-item {
             margin-bottom: 2mm;
             padding-bottom: 2mm;
-            border-bottom: 1px dashed #E8EFEE;
+            border-bottom: 1px dashed #000000;
+            color: #000000;
         }
         .pdf-drug-item:last-child { border-bottom: none; }
     </style>
@@ -194,7 +196,9 @@
                         <div class="space-y-2 lg:col-span-1">
                             <label class="block text-sm font-semibold text-[var(--fg)]">Drug</label>
                             <select id="selectDrug" class="input-field w-full px-4 py-3 rounded-xl border border-[var(--border)]"></select>
-                            <input type="text" id="inputCustomDrug" class="hidden input-field w-full px-4 py-3 rounded-xl border border-[var(--border)] mt-2" placeholder="Enter custom drug name">
+                            
+                            <input type="text" id="inputCustomDrug" class="hidden input-field w-full px-4 py-3 rounded-xl border border-[var(--border)] mt-2" placeholder="اسم العلاج (مثال: Paracetamol)">
+                            <input type="text" id="inputCustomMethod" class="hidden input-field w-full px-4 py-3 rounded-xl border border-[var(--border)] mt-2" placeholder="طريقة الإعطاء (اختياري)">
                         </div>
                         <div class="space-y-2 lg:col-span-1">
                             <label class="block text-sm font-semibold text-[var(--fg)]">Total Dose</label>
@@ -349,6 +353,7 @@
         const inputFreq = $('inputFreq');
         const selectDrug = $('selectDrug');
         const inputCustomDrug = $('inputCustomDrug');
+        const inputCustomMethod = $('inputCustomMethod'); // حقل جديد
         const inputTargetVol = $('inputTargetVol');
         const targetVolContainer = $('targetVolContainer');
         const drugsList = $('drugsList');
@@ -389,6 +394,12 @@
         };
 
         const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
+
+        // وظيفة لتغليظ الأرقام في الطباعة فقط
+        const boldNumbersInText = (text) => {
+            if(!text) return '';
+            return text.toString().replace(/\d+(\.\d+)?/g, '<strong style="font-weight: 900;">$&</strong>');
+        };
 
         const checkClinicalAlerts = (drug) => {
             const ga = parseInt(inputGA.value) || 0;
@@ -457,6 +468,7 @@
                 inputDose.disabled = false;
                 methodPreviewContainer.classList.add('hidden');
                 inputCustomDrug.classList.add('hidden');
+                inputCustomMethod.classList.add('hidden');
                 targetVolContainer.classList.add('hidden');
                 dopamineTable.classList.add('hidden');
                 return;
@@ -464,6 +476,7 @@
 
             if (val === 'other') {
                 inputCustomDrug.classList.remove('hidden');
+                inputCustomMethod.classList.remove('hidden');
                 inputDose.disabled = false;
                 inputDose.placeholder = 'Manual Dose';
                 inputDose.value = '';
@@ -474,6 +487,7 @@
             }
             
             inputCustomDrug.classList.add('hidden');
+            inputCustomMethod.classList.add('hidden');
             const weight = cleanInputNumber(inputWeight.value);
             const drugId = parseInt(val);
             const drug = DRUG_CONFIG.find(d => d.id === drugId);
@@ -571,31 +585,6 @@
             `).join('');
         };
 
-        const renderQueue = () => {
-            patientQueue.innerHTML = patients.map((p, idx) => `
-                <div class="patient-card bg-white rounded-xl shadow-md border border-[var(--border)] overflow-hidden card-hover relative">
-                    <div class="absolute top-3 left-3 z-10"><input type="checkbox" class="w-5 h-5 rounded" ${selectedPatientIds.has(p.id) ? 'checked' : ''} onchange="togglePatientSelection('${p.id}')"></div>
-                    <div class="bg-gradient-to-r from-[var(--accent)] to-[var(--accent-light)] px-4 py-3 flex justify-between items-center">
-                        <div class="text-white/90 text-sm font-medium">${p.weight}kg | GA: ${p.ga}w | D${p.age}</div>
-                        <h3 class="text-white font-bold text-lg arabic-text">${p.name}</h3>
-                    </div>
-                    <div class="p-4 space-y-3 max-h-64 overflow-y-auto">
-                        ${p.drugs.map(d => `
-                            <div class="border-b border-[var(--border)] pb-2 last:border-0 last:pb-0">
-                                <div class="flex justify-between items-center mb-1"><span class="font-bold text-[var(--fg)]">${d.name}</span><span class="text-[var(--accent)] font-semibold text-sm">${d.dose}${d.unit} ${d.freq}</span></div>
-                                <p class="text-xs text-[var(--muted)] leading-relaxed" style="direction: ltr; text-align: left;">${d.method}</p>
-                            </div>
-                        `).join('')}
-                    </div>
-                    <div class="p-4 pt-0 flex gap-2">
-                         <button onclick="editPatient('${p.id}')" class="flex-1 py-2 rounded-lg border border-[var(--accent)]/30 text-[var(--accent)] text-sm">Edit</button>
-                         <button onclick="deletePatient('${p.id}')" class="flex-1 py-2 rounded-lg border border-[var(--danger)]/30 text-[var(--danger)] text-sm">Delete</button>
-                    </div>
-                </div>
-            `).join('');
-            updateCounter();
-        };
-
         const addDrug = () => {
             const weight = cleanInputNumber(inputWeight.value);
             if (!weight || weight <= 0) { showToast('Please enter a valid weight', 'error'); return; }
@@ -609,15 +598,17 @@
             if (val === 'other') {
                 const customName = inputCustomDrug.value.trim();
                 if (!customName) { showToast('Please enter drug name', 'error'); return; }
+                const customMethod = inputCustomMethod.value.trim() || 'Manual Administration';
                 const dose = cleanInputNumber(inputDose.value);
                 if (!dose || dose <= 0) { showToast('Please enter a valid dose', 'error'); return; }
                 
-                currentDrugs.push({ id: generateId(), drugId: 'other', name: customName, dose, unit: 'mg', freq: freqDisplay, method: 'Manual Administration' });
+                currentDrugs.push({ id: generateId(), drugId: 'other', name: customName, dose, unit: 'mg', freq: freqDisplay, method: customMethod });
                 renderDrugsList(); showToast(`${customName} added`);
                 
                 selectDrug.value = '';
                 handleDrugSelectionChange();
                 inputCustomDrug.value = '';
+                inputCustomMethod.value = '';
                 return;
             }
 
@@ -676,8 +667,13 @@
             container.innerHTML = ''; 
 
             let pages = [], cells = Array(6).fill(null);
+            
             const placePatient = (patient) => {
-                const needsMerge = patient.drugs.length > 3 || patient.drugs.some(d => d.name === 'Dopamine');
+                // شروط الدمج الجديدة (تأخذ مساحة مضاعفة)
+                const hasDopamine = patient.drugs.some(d => d.name === 'Dopamine');
+                const nonDopCount = patient.drugs.filter(d => d.name !== 'Dopamine').length;
+                const needsMerge = (nonDopCount > 5) || (hasDopamine && nonDopCount > 1);
+                
                 for (let i = 0; i < 6; i++) {
                     if (cells[i] === null) {
                         if (needsMerge) {
@@ -708,28 +704,32 @@
                     const p = cellData.patient;
                     if (cellData.span === 2) el.style.gridRow = `${Math.floor(index/3)+1} / span 2`;
                     
+                    // تحويل كل الألوان إلى الأسود (#000000) للطباعة وتغليظ الأرقام
                     el.innerHTML = `
                         <div class="pdf-cell-header">
                             <div style="display:flex; justify-content:space-between; align-items:center;">
-                                <div style="font-size:10pt; color:#5A6872;">${p.weight}kg | GA:${p.ga}w | D${p.age}</div>
-                                <div style="font-weight:700; color:#0F766E; direction:rtl; font-family:'Noto Sans Arabic';">${p.name}</div>
+                                <div style="font-size:10pt; color:#000000; font-weight: bold;">${p.weight}kg | GA:${p.ga}w | D${p.age}</div>
+                                <div style="font-weight:900; color:#000000; direction:rtl; font-family:'Noto Sans Arabic';">${p.name}</div>
                             </div>
                         </div>
                         <div style="flex:1;">
                             ${p.drugs.map(d => `
                                 <div class="pdf-drug-item">
-                                    <div style="display:flex; justify-content:space-between; font-weight:600;">
-                                        <span>${d.name}</span><span style="color:#0F766E;">${d.dose}${d.unit} ${d.freq}</span>
+                                    <div style="display:flex; justify-content:space-between; font-weight:bold;">
+                                        <span style="color:#000000;">${d.name}</span>
+                                        <span style="color:#000000;">${d.dose}${d.unit} ${d.freq}</span>
                                     </div>
-                                    <div style="font-size:10pt; color:#5A6872; text-align:left;">${d.method}</div>
-                                    ${d.name === 'Dopamine' ? `<table style="width:100%; margin-top:3mm; font-size:8pt; border-collapse:collapse; border: 1px solid #D1DEDD;">
-                                        <tr style="background:#0F766E; color:white;">
-                                            <th style="border: 1px solid #D1DEDD; padding:2mm;">Rate</th>
-                                            <th style="border: 1px solid #D1DEDD; padding:2mm;">Dose</th>
+                                    <div style="font-size:10pt; color:#000000; text-align:left; margin-top:2px;">
+                                        ${boldNumbersInText(d.method)}
+                                    </div>
+                                    ${d.name === 'Dopamine' ? `<table style="width:100%; margin-top:3mm; font-size:8pt; border-collapse:collapse; border: 2px solid #000000;">
+                                        <tr style="color:#000000;">
+                                            <th style="border: 1px solid #000000; padding:2mm;">Rate</th>
+                                            <th style="border: 1px solid #000000; padding:2mm;">Dose</th>
                                         </tr>
                                         ${[5,10,15,20].map(ds => `<tr>
-                                            <td style="border: 1px solid #D1DEDD; padding:1.5mm; text-align:center;">${((ds*p.weight*1440)/4000).toFixed(1)} ml/24hr</td>
-                                            <td style="border: 1px solid #D1DEDD; padding:1.5mm; text-align:center;">${ds} mcg/kg/min</td>
+                                            <td style="border: 1px solid #000000; padding:1.5mm; text-align:center;"><strong>${((ds*p.weight*1440)/4000).toFixed(1)}</strong> ml/24hr</td>
+                                            <td style="border: 1px solid #000000; padding:1.5mm; text-align:center;"><strong>${ds}</strong> mcg/kg/min</td>
                                         </tr>`).join('')}
                                     </table>` : ''}
                                 </div>
