@@ -109,7 +109,6 @@
             height: 100%;
         }
 
-        /* Updated Print Styles for Darker Borders */
         .pdf-cell {
             border: 2px solid #000000;
             border-radius: 3mm;
@@ -353,7 +352,7 @@
         const inputFreq = $('inputFreq');
         const selectDrug = $('selectDrug');
         const inputCustomDrug = $('inputCustomDrug');
-        const inputCustomMethod = $('inputCustomMethod'); // حقل جديد
+        const inputCustomMethod = $('inputCustomMethod');
         const inputTargetVol = $('inputTargetVol');
         const targetVolContainer = $('targetVolContainer');
         const drugsList = $('drugsList');
@@ -395,7 +394,6 @@
 
         const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
 
-        // وظيفة لتغليظ الأرقام في الطباعة فقط
         const boldNumbersInText = (text) => {
             if(!text) return '';
             return text.toString().replace(/\d+(\.\d+)?/g, '<strong style="font-weight: 900;">$&</strong>');
@@ -462,10 +460,8 @@
 
         const handleDrugSelectionChange = () => {
             const val = selectDrug.value;
-            
             if (val === '') {
-                inputDose.value = '';
-                inputDose.disabled = false;
+                inputDose.value = ''; inputDose.disabled = false;
                 methodPreviewContainer.classList.add('hidden');
                 inputCustomDrug.classList.add('hidden');
                 inputCustomMethod.classList.add('hidden');
@@ -473,37 +469,29 @@
                 dopamineTable.classList.add('hidden');
                 return;
             }
-
             if (val === 'other') {
                 inputCustomDrug.classList.remove('hidden');
                 inputCustomMethod.classList.remove('hidden');
-                inputDose.disabled = false;
-                inputDose.placeholder = 'Manual Dose';
-                inputDose.value = '';
+                inputDose.disabled = false; inputDose.placeholder = 'Manual Dose'; inputDose.value = '';
                 methodPreviewContainer.classList.add('hidden');
                 targetVolContainer.classList.add('hidden');
                 dopamineTable.classList.add('hidden');
                 return;
             }
-            
             inputCustomDrug.classList.add('hidden');
             inputCustomMethod.classList.add('hidden');
             const weight = cleanInputNumber(inputWeight.value);
             const drugId = parseInt(val);
             const drug = DRUG_CONFIG.find(d => d.id === drugId);
             if (!drug) return;
-            
             targetVolContainer.classList.toggle('hidden', drug.methodIndex !== 3);
-            
             if (drug.isDopamine) {
                 inputDose.value = ''; inputDose.placeholder = 'See table below'; inputDose.disabled = true;
                 dopamineTable.classList.remove('hidden'); methodPreviewContainer.classList.add('hidden');
                 renderDopamineTable(weight); return;
             }
-            
             inputDose.disabled = false; inputDose.placeholder = 'Auto or Manual';
             dopamineTable.classList.add('hidden'); methodPreviewContainer.classList.remove('hidden');
-            
             if (weight > 0) {
                 inputDose.value = (weight * drug.dosePerKg).toFixed(1);
                 inputFreq.value = drug.defaultFreq || 1;
@@ -515,7 +503,6 @@
         const handleManualDoseChange = () => {
             const val = selectDrug.value;
             if (val === 'other' || val === '') return;
-            
             const drugId = parseInt(val);
             const drug = DRUG_CONFIG.find(d => d.id === drugId);
             const manualDose = cleanInputNumber(inputDose.value);
@@ -541,13 +528,54 @@
         };
 
         const saveToStorage = () => { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(patients)); } catch (e) {} };
+        
+        // --- MISSING renderQueue FUNCTION ADDED HERE ---
+        const renderQueue = () => {
+            patientQueue.innerHTML = patients.map(p => {
+                const isSelected = selectedPatientIds.has(p.id);
+                return `
+                <div class="patient-card bg-white rounded-2xl border border-[var(--border)] shadow-sm overflow-hidden card-hover">
+                    <div class="p-4 border-b border-[var(--border)] bg-[var(--surface)]/50 flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <input type="checkbox" ${isSelected ? 'checked' : ''} 
+                                onclick="togglePatientSelection('${p.id}')" 
+                                class="w-5 h-5 rounded border-[var(--border)] text-[var(--accent)] focus:ring-[var(--accent)]">
+                            <div>
+                                <h3 class="font-bold text-[var(--fg)]">${p.name}</h3>
+                                <p class="text-xs text-[var(--muted)]">${p.weight}kg | GA:${p.ga}w | Day ${p.age}</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-1">
+                            <button onclick="editPatient('${p.id}')" class="p-2 hover:bg-[var(--accent)]/10 rounded-lg text-[var(--accent)] transition-colors">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                            </button>
+                            <button onclick="deletePatient('${p.id}')" class="p-2 hover:bg-red-50 rounded-lg text-[var(--danger)] transition-colors">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="p-4 space-y-3">
+                        ${p.drugs.map(d => `
+                            <div class="text-sm border-b border-dashed border-[var(--border)] last:border-0 pb-2">
+                                <div class="flex justify-between font-bold text-[var(--fg)]">
+                                    <span>${d.name}</span>
+                                    <span>${d.dose}${d.unit} ${d.freq}</span>
+                                </div>
+                                <p class="text-xs text-[var(--muted)] mt-1" style="direction: ltr; text-align: left;">${d.method}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>`;
+            }).join('');
+            updateCounter();
+        };
+
         const loadFromStorage = () => { try { const data = localStorage.getItem(STORAGE_KEY); if (data) { patients = JSON.parse(data); renderQueue(); } } catch (e) {} };
 
         const populateDropdowns = () => {
             const ageOpts = Array.from({ length: 30 }, (_, i) => `<option value="${i + 1}">Day ${i + 1}</option>`).join('');
             inputAge.innerHTML = '<option value="">Select day</option>' + ageOpts + '<option value=">30">More than 30 days</option>';
-            
-            let drugOpts = '<option value="">-- Select Drug / اختيار العلاج --</option>';
+            let drugOpts = '<option value="">-- Select Drug --</option>';
             drugOpts += DRUG_CONFIG.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
             drugOpts += '<option value="other">Other+ (علاج آخر)</option>';
             selectDrug.innerHTML = drugOpts;
@@ -559,10 +587,6 @@
             patientCounter.classList.toggle('hidden', c === 0);
             btnPdf.disabled = c === 0;
             emptyState.classList.toggle('hidden', c > 0);
-            updateSelectAllCheckbox();
-        };
-
-        const updateSelectAllCheckbox = () => {
             const total = patients.length;
             const selected = selectedPatientIds.size;
             selectAllCheckbox.checked = total > 0 && total === selected;
@@ -579,72 +603,47 @@
                         <p class="text-sm text-[var(--fg)] leading-relaxed" style="direction: ltr; text-align: left;">${d.method}</p>
                     </div>
                     <button onclick="removeDrug(${i})" class="ml-3 p-2 hover:bg-red-100 rounded-lg group flex-shrink-0">
-                        <svg class="w-5 h-5 text-[var(--muted)] group-hover:text-[var(--danger)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                        <svg class="w-5 h-5 text-[var(--muted)] group-hover:text-[var(--danger)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
-                </div>
-            `).join('');
+                </div>`).join('');
         };
 
         const addDrug = () => {
             const weight = cleanInputNumber(inputWeight.value);
-            if (!weight || weight <= 0) { showToast('Please enter a valid weight', 'error'); return; }
-            
+            if (!weight || weight <= 0) { showToast('Please enter weight', 'error'); return; }
             const val = selectDrug.value;
-            if (!val) { showToast('Please select a drug', 'error'); return; }
-            
+            if (!val) { showToast('Select a drug', 'error'); return; }
             const freqVal = inputFreq.value;
             let freqDisplay = freqVal === 'q36hr' ? 'q36hr' : freqVal === 'q48hr' ? 'q48hr' : `x ${freqVal}`;
-            
             if (val === 'other') {
                 const customName = inputCustomDrug.value.trim();
-                if (!customName) { showToast('Please enter drug name', 'error'); return; }
-                const customMethod = inputCustomMethod.value.trim() || 'Manual Administration';
+                if (!customName) { showToast('Drug name missing', 'error'); return; }
+                const customMethod = inputCustomMethod.value.trim() || 'Manual';
                 const dose = cleanInputNumber(inputDose.value);
-                if (!dose || dose <= 0) { showToast('Please enter a valid dose', 'error'); return; }
-                
                 currentDrugs.push({ id: generateId(), drugId: 'other', name: customName, dose, unit: 'mg', freq: freqDisplay, method: customMethod });
-                renderDrugsList(); showToast(`${customName} added`);
-                
-                selectDrug.value = '';
-                handleDrugSelectionChange();
-                inputCustomDrug.value = '';
-                inputCustomMethod.value = '';
-                return;
+            } else {
+                const drug = DRUG_CONFIG.find(d => d.id === parseInt(val));
+                if (drug.isDopamine) {
+                    currentDrugs.push({ id: generateId(), drugId: drug.id, name: drug.name, dose: 'Infusion', unit: '', freq: '', method: '1 ml dopamin + 39 ml GW' });
+                } else {
+                    const dose = cleanInputNumber(inputDose.value);
+                    currentDrugs.push({ id: generateId(), drugId: drug.id, name: drug.name, dose, unit: drug.unit, freq: freqDisplay, method: generateMethodString(drug, dose) });
+                }
             }
-
-            const drugId = parseInt(val);
-            const drug = DRUG_CONFIG.find(d => d.id === drugId);
-            if (!drug) return;
-
-            if (drug.isDopamine) {
-                currentDrugs.push({ id: generateId(), drugId: drug.id, name: drug.name, dose: 'Infusion', unit: '', freq: '', method: '1 ml dopamin + 39 ml GW' });
-                renderDrugsList(); showToast('Dopamine added'); 
-                
-                selectDrug.value = '';
-                handleDrugSelectionChange();
-                return;
-            }
-            
-            const dose = cleanInputNumber(inputDose.value);
-            if (!dose || dose <= 0) { showToast('Please enter a valid dose', 'error'); return; }
-            
-            currentDrugs.push({ id: generateId(), drugId: drug.id, name: drug.name, dose, unit: drug.unit, freq: freqDisplay, method: generateMethodString(drug, dose) });
-            renderDrugsList(); showToast(`${drug.name} added`);
-
-            selectDrug.value = '';
-            handleDrugSelectionChange();
+            renderDrugsList(); showToast('Added');
+            selectDrug.value = ''; handleDrugSelectionChange();
         };
 
         window.removeDrug = (index) => { currentDrugs.splice(index, 1); renderDrugsList(); };
 
         const savePatient = () => {
-            const name = inputName.value.trim(), weight = cleanInputNumber(inputWeight.value), age = inputAge.value, ga = inputGA.value;
-            if (!name || !weight || currentDrugs.length === 0) { showToast('Missing information', 'error'); return; }
-            patients.push({ id: generateId(), name, weight, age, ga, drugs: [...currentDrugs] });
+            const name = inputName.value.trim(), weight = cleanInputNumber(inputWeight.value);
+            if (!name || !weight || currentDrugs.length === 0) { showToast('Missing info', 'error'); return; }
+            patients.push({ id: generateId(), name, weight, age: inputAge.value, ga: inputGA.value, drugs: [...currentDrugs] });
             saveToStorage(); renderQueue();
             inputName.value = ''; inputWeight.value = ''; inputGA.value = ''; inputAge.value = '';
             currentDrugs = []; renderDrugsList();
-            methodPreviewContainer.classList.add('hidden'); dopamineTable.classList.add('hidden'); inputDose.value = '';
+            methodPreviewContainer.classList.add('hidden'); dopamineTable.classList.add('hidden');
             showToast('Patient saved');
         };
 
@@ -656,24 +655,30 @@
             deletePatient(id); window.scrollTo({ top: 0, behavior: 'smooth' });
         };
 
-        window.togglePatientSelection = (id) => { if (selectedPatientIds.has(id)) selectedPatientIds.delete(id); else selectedPatientIds.add(id); updateSelectAllCheckbox(); };
-        const toggleSelectAll = (e) => { if (e.target.checked) patients.forEach(p => selectedPatientIds.add(p.id)); else selectedPatientIds.clear(); renderQueue(); };
+        window.togglePatientSelection = (id) => { 
+            if (selectedPatientIds.has(id)) selectedPatientIds.delete(id); 
+            else selectedPatientIds.add(id); 
+            updateCounter();
+        };
+
+        const toggleSelectAll = (e) => { 
+            if (e.target.checked) patients.forEach(p => selectedPatientIds.add(p.id)); 
+            else selectedPatientIds.clear(); 
+            renderQueue(); 
+        };
 
         const generatePDF = async () => {
             const selectedPatients = patients.filter(p => selectedPatientIds.has(p.id));
             if (selectedPatients.length === 0) { showToast('No patients selected', 'error'); return; }
-            showToast('Generating PDF...', 'info');
+            showToast('Generating...', 'info');
             const container = $('pdf-render-container');
             container.innerHTML = ''; 
-
             let pages = [], cells = Array(6).fill(null);
             
             const placePatient = (patient) => {
-                // شروط الدمج الجديدة (تأخذ مساحة مضاعفة)
                 const hasDopamine = patient.drugs.some(d => d.name === 'Dopamine');
                 const nonDopCount = patient.drugs.filter(d => d.name !== 'Dopamine').length;
                 const needsMerge = (nonDopCount > 5) || (hasDopamine && nonDopCount > 1);
-                
                 for (let i = 0; i < 6; i++) {
                     if (cells[i] === null) {
                         if (needsMerge) {
@@ -695,58 +700,44 @@
                 pageDiv.className = 'pdf-page';
                 pageDiv.innerHTML = `<div class="pdf-grid"></div>`;
                 const grid = pageDiv.querySelector('.pdf-grid');
-
                 pages[i].forEach((cellData, index) => {
                     if (!cellData || cellData === 'blocked') return; 
-                    
                     const el = document.createElement('div');
                     el.className = 'pdf-cell';
                     const p = cellData.patient;
                     if (cellData.span === 2) el.style.gridRow = `${Math.floor(index/3)+1} / span 2`;
-                    
-                    // تحويل كل الألوان إلى الأسود (#000000) للطباعة وتغليظ الأرقام
                     el.innerHTML = `
                         <div class="pdf-cell-header">
                             <div style="display:flex; justify-content:space-between; align-items:center;">
                                 <div style="font-size:10pt; color:#000000; font-weight: bold;">${p.weight}kg | GA:${p.ga}w | D${p.age}</div>
-                                <div style="font-weight:900; color:#000000; direction:rtl; font-family:'Noto Sans Arabic';">${p.name}</div>
+                                <div style="font-weight:900; color:#000000; direction:rtl;">${p.name}</div>
                             </div>
                         </div>
                         <div style="flex:1;">
                             ${p.drugs.map(d => `
                                 <div class="pdf-drug-item">
                                     <div style="display:flex; justify-content:space-between; font-weight:bold;">
-                                        <span style="color:#000000;">${d.name}</span>
-                                        <span style="color:#000000;">${d.dose}${d.unit} ${d.freq}</span>
+                                        <span>${d.name}</span>
+                                        <span>${d.dose}${d.unit} ${d.freq}</span>
                                     </div>
-                                    <div style="font-size:10pt; color:#000000; text-align:left; margin-top:2px;">
-                                        ${boldNumbersInText(d.method)}
-                                    </div>
-                                    ${d.name === 'Dopamine' ? `<table style="width:100%; margin-top:3mm; font-size:8pt; border-collapse:collapse; border: 2px solid #000000;">
-                                        <tr style="color:#000000;">
-                                            <th style="border: 1px solid #000000; padding:2mm;">Rate</th>
-                                            <th style="border: 1px solid #000000; padding:2mm;">Dose</th>
-                                        </tr>
-                                        ${[5,10,15,20].map(ds => `<tr>
-                                            <td style="border: 1px solid #000000; padding:1.5mm; text-align:center;"><strong>${((ds*p.weight*1440)/4000).toFixed(1)}</strong> ml/24hr</td>
-                                            <td style="border: 1px solid #000000; padding:1.5mm; text-align:center;"><strong>${ds}</strong> mcg/kg/min</td>
-                                        </tr>`).join('')}
-                                    </table>` : ''}
-                                </div>
-                            `).join('')}
+                                    <div style="font-size:10pt; text-align:left; margin-top:2px;">${boldNumbersInText(d.method)}</div>
+                                    ${d.name === 'Dopamine' ? `
+                                        <table style="width:100%; margin-top:3mm; font-size:8pt; border-collapse:collapse; border: 2px solid #000; text-align:center;">
+                                            <tr style="background:#eee;"><th>Rate</th><th>Dose</th></tr>
+                                            ${[5,10,15,20].map(ds => `<tr><td>${((ds*p.weight*1440)/4000).toFixed(1)}</td><td>${ds}</td></tr>`).join('')}
+                                        </table>` : ''}
+                                </div>`).join('')}
                         </div>`;
                     grid.appendChild(el);
                 });
-
                 container.appendChild(pageDiv);
                 await document.fonts.ready;
-                const canvas = await html2canvas(pageDiv, { scale: 2, useCORS: true });
-                const imgData = canvas.toDataURL('image/jpeg', 0.95);
-                if (i > 0) doc.addPage();
-                doc.addImage(imgData, 'JPEG', 0, 0, 297, 210);
+                const canvas = await html2canvas(pageDiv, { scale: 2 });
+                doc.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, 297, 210);
+                if (i < pages.length - 1) doc.addPage();
                 container.removeChild(pageDiv);
             }
-            doc.save('NICU_Report.pdf'); showToast('PDF Saved');
+            doc.save('NICU_Report.pdf'); showToast('Saved');
         };
 
         btnAddDrug.addEventListener('click', addDrug);
@@ -758,21 +749,7 @@
         inputWeight.addEventListener('input', handleDrugSelectionChange);
         inputDose.addEventListener('input', handleManualDoseChange);
         inputTargetVol.addEventListener('change', handleManualDoseChange);
-        
-        const triggerWarningsUpdate = () => {
-            const val = selectDrug.value;
-            if (val === 'other' || val === '') return;
-            const drugId = parseInt(val);
-            const drug = DRUG_CONFIG.find(d => d.id === drugId);
-            if (drug) checkClinicalAlerts(drug);
-        };
-
-        inputGA.addEventListener('input', triggerWarningsUpdate);
-        inputAge.addEventListener('change', triggerWarningsUpdate);
-        inputFreq.addEventListener('change', triggerWarningsUpdate);
-
-        populateDropdowns();
-        loadFromStorage();
+        populateDropdowns(); loadFromStorage();
     </script>
 </body>
 </html>
