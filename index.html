@@ -723,7 +723,7 @@
                                     <div style="font-size:10pt; text-align:left; margin-top:2px;">${boldNumbersInText(d.method)}</div>
                                     ${d.name === 'Dopamine' ? `
                                         <table style="width:100%; margin-top:3mm; font-size:8pt; border-collapse:collapse; border: 2px solid #000; text-align:center;">
-                                            <tr style="background:#eee;"><th>Rate</th><th>Dose</th></tr>
+                                            <tr style="background:#eee;"><th>Rate ml/24hr</th><th>Dose mcg/kg/min</th></tr>
                                             ${[5,10,15,20].map(ds => `<tr><td>${((ds*p.weight*1440)/4000).toFixed(1)}</td><td>${ds}</td></tr>`).join('')}
                                         </table>` : ''}
                                 </div>`).join('')}
