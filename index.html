@@ -179,7 +179,7 @@
                     </div>
                     <div class="space-y-2">
                         <label class="block text-sm font-semibold text-[var(--fg)]">Gestational Age (weeks)</label>
-                        <input type="number" id="inputGA" min="24" max="42" class="input-field w-full px-4 py-3 rounded-xl border border-[var(--border)]" placeholder="e.g., 34">
+                        <input type="text" id="inputGA" oninput="this.value = this.value.replace(/[،,٫]/g, '.')" class="input-field w-full px-4 py-3 rounded-xl border border-[var(--border)]" placeholder="e.g., 34">
                     </div>
                 </div>
 
@@ -344,31 +344,6 @@
         let selectedPatientIds = new Set(); 
 
         const $ = id => document.getElementById(id);
-        const inputName = $('inputName');
-        const inputWeight = $('inputWeight');
-        const inputAge = $('inputAge');
-        const inputGA = $('inputGA');
-        const inputDose = $('inputDose');
-        const inputFreq = $('inputFreq');
-        const selectDrug = $('selectDrug');
-        const inputCustomDrug = $('inputCustomDrug');
-        const inputCustomMethod = $('inputCustomMethod');
-        const inputTargetVol = $('inputTargetVol');
-        const targetVolContainer = $('targetVolContainer');
-        const drugsList = $('drugsList');
-        const patientQueue = $('patientQueue');
-        const emptyState = $('emptyState');
-        const patientCounter = $('patientCounter');
-        const counterText = $('counterText');
-        const btnPdf = $('btnPdf');
-        const btnClearAll = $('btnClearAll');
-        const btnSavePatient = $('btnSavePatient');
-        const btnAddDrug = $('btnAddDrug');
-        const methodPreview = $('previewMethod');
-        const warningMessage = $('warningMessage');
-        const methodPreviewContainer = $('methodPreviewContainer');
-        const dopamineTable = $('dopamineTableContainer');
-        const selectAllCheckbox = $('selectAllCheckbox');
 
         const cleanInputNumber = (str) => {
             if (!str) return 0;
@@ -400,20 +375,20 @@
         };
 
         const checkClinicalAlerts = (drug) => {
-            const ga = parseInt(inputGA.value) || 0;
-            let ageVal = inputAge.value;
+            const ga = cleanInputNumber($('inputGA').value); // استخدام الدالة الجديدة
+            let ageVal = $('inputAge').value;
             const age = ageVal === '>30' ? 31 : parseInt(ageVal) || 0; 
-            const freq = inputFreq.value;
+            const freq = $('inputFreq').value;
             
             if (drug.warning_rule) {
                 const alert = drug.warning_rule(ga, age, freq);
                 if (alert) { 
-                    warningMessage.textContent = alert; 
-                    warningMessage.classList.remove('hidden'); 
+                    $('warningMessage').textContent = alert; 
+                    $('warningMessage').classList.remove('hidden'); 
                     return; 
                 }
             }
-            warningMessage.classList.add('hidden');
+            $('warningMessage').classList.add('hidden');
         };
 
         const generateMethodString = (drug, finalDoseMg) => {
@@ -424,8 +399,9 @@
             let methodStr = METHODS[drug.methodIndex];
             let diluent_volume;
 
+            // الحساب دائمًا يتم بالـ ml لتجنب خطأ الضرب بـ 100 في التخفيف
             if (drug.methodIndex === 3) {
-                const targetVol = parseInt(inputTargetVol.value);
+                const targetVol = parseInt($('inputTargetVol').value);
                 if (targetVol === 10) {
                     drawn_volume_ml *= 2;
                     diluent_volume = 20 - drawn_volume_ml;
@@ -436,15 +412,14 @@
                     methodStr = methodStr.replace('^^', '5');
                 }
             } else {
-                let vol_to_subtract = (drug.unit.toUpperCase() === 'IU' || drug.unit.toUpperCase() === 'UNITS') ? (drawn_volume_ml / 100) : drawn_volume_ml;
-                diluent_volume = 20 - vol_to_subtract;
+                diluent_volume = 20 - drawn_volume_ml;
             }
 
             let display_volume = drawn_volume_ml;
-            let unitStr = (drug.unit.toUpperCase() === 'IU' || drug.unit.toUpperCase() === 'UNITS') ? ' unit' : ' ml';
+            let unitStr = ' ml';
             
-            // تحويل أي حجم أقل من 1 مل إلى وحدات أنسولين
-            if (drawn_volume_ml < 1 && unitStr === ' ml') {
+            // التحويل لليونت فقط عند العرض إذا كان الحجم أقل من 1 مل
+            if (drawn_volume_ml < 1) {
                 display_volume = drawn_volume_ml * 100;
                 unitStr = ' units';
             }
@@ -460,59 +435,59 @@
         };
 
         const handleDrugSelectionChange = () => {
-            const val = selectDrug.value;
+            const val = $('selectDrug').value;
             if (val === '') {
-                inputDose.value = ''; inputDose.disabled = false;
-                methodPreviewContainer.classList.add('hidden');
-                inputCustomDrug.classList.add('hidden');
-                inputCustomMethod.classList.add('hidden');
-                targetVolContainer.classList.add('hidden');
-                dopamineTable.classList.add('hidden');
+                $('inputDose').value = ''; $('inputDose').disabled = false;
+                $('methodPreviewContainer').classList.add('hidden');
+                $('inputCustomDrug').classList.add('hidden');
+                $('inputCustomMethod').classList.add('hidden');
+                $('targetVolContainer').classList.add('hidden');
+                $('dopamineTableContainer').classList.add('hidden');
                 return;
             }
             if (val === 'other') {
-                inputCustomDrug.classList.remove('hidden');
-                inputCustomMethod.classList.remove('hidden');
-                inputDose.disabled = false; inputDose.placeholder = 'Manual Dose'; inputDose.value = '';
-                methodPreviewContainer.classList.add('hidden');
-                targetVolContainer.classList.add('hidden');
-                dopamineTable.classList.add('hidden');
+                $('inputCustomDrug').classList.remove('hidden');
+                $('inputCustomMethod').classList.remove('hidden');
+                $('inputDose').disabled = false; $('inputDose').placeholder = 'Manual Dose'; $('inputDose').value = '';
+                $('methodPreviewContainer').classList.add('hidden');
+                $('targetVolContainer').classList.add('hidden');
+                $('dopamineTableContainer').classList.add('hidden');
                 return;
             }
-            inputCustomDrug.classList.add('hidden');
-            inputCustomMethod.classList.add('hidden');
-            const weight = cleanInputNumber(inputWeight.value);
+            $('inputCustomDrug').classList.add('hidden');
+            $('inputCustomMethod').classList.add('hidden');
+            const weight = cleanInputNumber($('inputWeight').value);
             const drugId = parseInt(val);
             const drug = DRUG_CONFIG.find(d => d.id === drugId);
             if (!drug) return;
-            targetVolContainer.classList.toggle('hidden', drug.methodIndex !== 3);
+            $('targetVolContainer').classList.toggle('hidden', drug.methodIndex !== 3);
             if (drug.isDopamine) {
-                inputDose.value = ''; inputDose.placeholder = 'See table below'; inputDose.disabled = true;
-                dopamineTable.classList.remove('hidden'); methodPreviewContainer.classList.add('hidden');
+                $('inputDose').value = ''; $('inputDose').placeholder = 'See table below'; $('inputDose').disabled = true;
+                $('dopamineTableContainer').classList.remove('hidden'); $('methodPreviewContainer').classList.add('hidden');
                 renderDopamineTable(weight); return;
             }
-            inputDose.disabled = false; inputDose.placeholder = 'Auto or Manual';
-            dopamineTable.classList.add('hidden'); methodPreviewContainer.classList.remove('hidden');
+            $('inputDose').disabled = false; $('inputDose').placeholder = 'Auto or Manual';
+            $('dopamineTableContainer').classList.add('hidden'); $('methodPreviewContainer').classList.remove('hidden');
             if (weight > 0) {
-                inputDose.value = (weight * drug.dosePerKg).toFixed(1);
-                inputFreq.value = drug.defaultFreq || 1;
+                $('inputDose').value = (weight * drug.dosePerKg).toFixed(1);
+                $('inputFreq').value = drug.defaultFreq || 1;
                 checkClinicalAlerts(drug);
-                updateMethodPreview(drug, parseFloat(inputDose.value));
+                updateMethodPreview(drug, parseFloat($('inputDose').value));
             }
         };
 
         const handleManualDoseChange = () => {
-            const val = selectDrug.value;
+            const val = $('selectDrug').value;
             if (val === 'other' || val === '') return;
             const drugId = parseInt(val);
             const drug = DRUG_CONFIG.find(d => d.id === drugId);
-            const manualDose = cleanInputNumber(inputDose.value);
+            const manualDose = cleanInputNumber($('inputDose').value);
             if (drug && manualDose > 0 && !drug.isDopamine) updateMethodPreview(drug, manualDose);
         };
 
         const updateMethodPreview = (drug, dose) => {
-            methodPreview.textContent = generateMethodString(drug, dose);
-            methodPreviewContainer.classList.remove('hidden');
+            $('previewMethod').textContent = generateMethodString(drug, dose);
+            $('methodPreviewContainer').classList.remove('hidden');
         };
 
         const renderDopamineTable = (weight) => {
@@ -531,7 +506,7 @@
         const saveToStorage = () => { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(patients)); } catch (e) {} };
         
         const renderQueue = () => {
-            patientQueue.innerHTML = patients.map(p => {
+            $('patientQueue').innerHTML = patients.map(p => {
                 const isSelected = selectedPatientIds.has(p.id);
                 return `
                 <div class="patient-card bg-white rounded-2xl border border-[var(--border)] shadow-sm overflow-hidden card-hover">
@@ -574,26 +549,26 @@
 
         const populateDropdowns = () => {
             const ageOpts = Array.from({ length: 30 }, (_, i) => `<option value="${i + 1}">Day ${i + 1}</option>`).join('');
-            inputAge.innerHTML = '<option value="">Select day</option>' + ageOpts + '<option value=">30">More than 30 days</option>';
+            $('inputAge').innerHTML = '<option value="">Select day</option>' + ageOpts + '<option value=">30">More than 30 days</option>';
             let drugOpts = '<option value="">-- Select Drug --</option>';
             drugOpts += DRUG_CONFIG.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
             drugOpts += '<option value="other">Other+ (علاج آخر)</option>';
-            selectDrug.innerHTML = drugOpts;
+            $('selectDrug').innerHTML = drugOpts;
         };
 
         const updateCounter = () => {
             const c = patients.length;
-            counterText.textContent = `${c} Patient${c !== 1 ? 's' : ''}`;
-            patientCounter.classList.toggle('hidden', c === 0);
-            btnPdf.disabled = c === 0;
-            emptyState.classList.toggle('hidden', c > 0);
+            $('counterText').textContent = `${c} Patient${c !== 1 ? 's' : ''}`;
+            $('patientCounter').classList.toggle('hidden', c === 0);
+            $('btnPdf').disabled = c === 0;
+            $('emptyState').classList.toggle('hidden', c > 0);
             const total = patients.length;
             const selected = selectedPatientIds.size;
-            selectAllCheckbox.checked = total > 0 && total === selected;
+            $('selectAllCheckbox').checked = total > 0 && total === selected;
         };
 
         const renderDrugsList = () => {
-            drugsList.innerHTML = currentDrugs.map((d, i) => `
+            $('drugsList').innerHTML = currentDrugs.map((d, i) => `
                 <div class="animate-slide-in bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4 flex items-start justify-between">
                     <div class="flex-1">
                         <div class="flex items-center gap-2 mb-1">
@@ -609,48 +584,48 @@
         };
 
         const addDrug = () => {
-            const weight = cleanInputNumber(inputWeight.value);
+            const weight = cleanInputNumber($('inputWeight').value);
             if (!weight || weight <= 0) { showToast('Please enter weight', 'error'); return; }
-            const val = selectDrug.value;
+            const val = $('selectDrug').value;
             if (!val) { showToast('Select a drug', 'error'); return; }
-            const freqVal = inputFreq.value;
+            const freqVal = $('inputFreq').value;
             let freqDisplay = freqVal === 'q36hr' ? 'q36hr' : freqVal === 'q48hr' ? 'q48hr' : `x ${freqVal}`;
             if (val === 'other') {
-                const customName = inputCustomDrug.value.trim();
+                const customName = $('inputCustomDrug').value.trim();
                 if (!customName) { showToast('Drug name missing', 'error'); return; }
-                const customMethod = inputCustomMethod.value.trim() || 'Manual';
-                const dose = cleanInputNumber(inputDose.value);
+                const customMethod = $('inputCustomMethod').value.trim() || 'Manual';
+                const dose = cleanInputNumber($('inputDose').value);
                 currentDrugs.push({ id: generateId(), drugId: 'other', name: customName, dose, unit: 'mg', freq: freqDisplay, method: customMethod });
             } else {
                 const drug = DRUG_CONFIG.find(d => d.id === parseInt(val));
                 if (drug.isDopamine) {
                     currentDrugs.push({ id: generateId(), drugId: drug.id, name: drug.name, dose: 'Infusion', unit: '', freq: '', method: '1 ml dopamin + 39 ml GW' });
                 } else {
-                    const dose = cleanInputNumber(inputDose.value);
+                    const dose = cleanInputNumber($('inputDose').value);
                     currentDrugs.push({ id: generateId(), drugId: drug.id, name: drug.name, dose, unit: drug.unit, freq: freqDisplay, method: generateMethodString(drug, dose) });
                 }
             }
             renderDrugsList(); showToast('Added');
-            selectDrug.value = ''; handleDrugSelectionChange();
+            $('selectDrug').value = ''; handleDrugSelectionChange();
         };
 
         window.removeDrug = (index) => { currentDrugs.splice(index, 1); renderDrugsList(); };
 
         const savePatient = () => {
-            const name = inputName.value.trim(), weight = cleanInputNumber(inputWeight.value);
+            const name = $('inputName').value.trim(), weight = cleanInputNumber($('inputWeight').value);
             if (!name || !weight || currentDrugs.length === 0) { showToast('Missing info', 'error'); return; }
-            patients.push({ id: generateId(), name, weight, age: inputAge.value, ga: inputGA.value, drugs: [...currentDrugs] });
+            patients.push({ id: generateId(), name, weight, age: $('inputAge').value, ga: $('inputGA').value, drugs: [...currentDrugs] });
             saveToStorage(); renderQueue();
-            inputName.value = ''; inputWeight.value = ''; inputGA.value = ''; inputAge.value = '';
+            $('inputName').value = ''; $('inputWeight').value = ''; $('inputGA').value = ''; $('inputAge').value = '';
             currentDrugs = []; renderDrugsList();
-            methodPreviewContainer.classList.add('hidden'); dopamineTable.classList.add('hidden');
+            $('methodPreviewContainer').classList.add('hidden'); $('dopamineTableContainer').classList.add('hidden');
             showToast('Patient saved');
         };
 
         window.deletePatient = (id) => { patients = patients.filter(p => p.id !== id); selectedPatientIds.delete(id); saveToStorage(); renderQueue(); };
         window.editPatient = (id) => {
             const p = patients.find(px => px.id === id); if (!p) return;
-            inputName.value = p.name; inputWeight.value = p.weight; inputAge.value = p.age; inputGA.value = p.ga;
+            $('inputName').value = p.name; $('inputWeight').value = p.weight; $('inputAge').value = p.age; $('inputGA').value = p.ga;
             currentDrugs = [...p.drugs]; renderDrugsList();
             deletePatient(id); window.scrollTo({ top: 0, behavior: 'smooth' });
         };
@@ -724,13 +699,13 @@
                                     ${d.name === 'Dopamine' ? `
                                         <table style="width:100%; margin-top:3mm; font-size:9pt; border-collapse:collapse; border: 1.5px solid #000; text-align:center;">
                                             <tr style="background:#f3f4f6;">
-                                                <th style="border: 1px solid #000; padding: 4px; vertical-align: middle;">Rate ml/24hr</th>
-                                                <th style="border: 1px solid #000; padding: 4px; vertical-align: middle;">Dose mcg/kg/min</th>
+                                                <th style="border: 1px solid #000; padding: 6px 4px; vertical-align: middle;">Rate ml/24hr</th>
+                                                <th style="border: 1px solid #000; padding: 6px 4px; vertical-align: middle;">Dose mcg/kg/min</th>
                                             </tr>
                                             ${[5,10,15,20].map(ds => `
                                                 <tr>
-                                                    <td style="border: 1px solid #000; padding: 4px; vertical-align: middle; font-weight: bold;">${((ds*p.weight*1440)/4000).toFixed(0)}</td>
-                                                    <td style="border: 1px solid #000; padding: 4px; vertical-align: middle;">${ds}</td>
+                                                    <td style="border: 1px solid #000; padding: 6px 4px; vertical-align: middle; font-weight: bold;">${((ds*p.weight*1440)/4000).toFixed(0)}</td>
+                                                    <td style="border: 1px solid #000; padding: 6px 4px; vertical-align: middle;">${ds}</td>
                                                 </tr>`).join('')}
                                         </table>` : ''}
                                 </div>`).join('')}
@@ -747,15 +722,15 @@
             doc.save('NICU_Report.pdf'); showToast('Saved');
         };
 
-        btnAddDrug.addEventListener('click', addDrug);
-        btnSavePatient.addEventListener('click', savePatient);
-        btnPdf.addEventListener('click', generatePDF);
-        btnClearAll.addEventListener('click', () => { if (confirm('Clear all?')) { patients = []; selectedPatientIds.clear(); saveToStorage(); renderQueue(); } });
-        selectAllCheckbox.addEventListener('change', toggleSelectAll);
-        selectDrug.addEventListener('change', handleDrugSelectionChange);
-        inputWeight.addEventListener('input', handleDrugSelectionChange);
-        inputDose.addEventListener('input', handleManualDoseChange);
-        inputTargetVol.addEventListener('change', handleManualDoseChange);
+        $('btnAddDrug').addEventListener('click', addDrug);
+        $('btnSavePatient').addEventListener('click', savePatient);
+        $('btnPdf').addEventListener('click', generatePDF);
+        $('btnClearAll').addEventListener('click', () => { if (confirm('Clear all?')) { patients = []; selectedPatientIds.clear(); saveToStorage(); renderQueue(); } });
+        $('selectAllCheckbox').addEventListener('change', toggleSelectAll);
+        $('selectDrug').addEventListener('change', handleDrugSelectionChange);
+        $('inputWeight').addEventListener('input', handleDrugSelectionChange);
+        $('inputDose').addEventListener('input', handleManualDoseChange);
+        $('inputTargetVol').addEventListener('change', handleManualDoseChange);
         populateDropdowns(); loadFromStorage();
     </script>
 </body>
