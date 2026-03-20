@@ -92,45 +92,48 @@
             background: white;
         }
         
+        /* Modified for Portrait A4 (210x297) */
         .pdf-page {
-            width: 297mm;
-            height: 210mm;
-            padding: 10mm;
+            width: 210mm;
+            height: 297mm;
+            padding: 8mm;
             background: white;
             box-sizing: border-box;
             page-break-after: always;
         }
 
+        /* 2 Columns, 3 Rows Grid */
         .pdf-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            grid-template-rows: 1fr 1fr;
-            gap: 4mm;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: repeat(3, 1fr);
+            gap: 3mm;
             height: 100%;
         }
 
         .pdf-cell {
             border: 2px solid #000000;
-            border-radius: 3mm;
+            border-radius: 2mm;
             padding: 3mm;
             background: #FFFFFF;
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            position: relative;
         }
 
         .pdf-cell-header {
             background: #FFFFFF;
             margin: -3mm -3mm 2mm -3mm;
             padding: 2mm 3mm;
-            border-radius: 3mm 3mm 0 0;
+            border-radius: 2mm 2mm 0 0;
             border-bottom: 2px solid #000000;
         }
 
         .pdf-drug-item {
-            margin-bottom: 2mm;
-            padding-bottom: 2mm;
-            border-bottom: 1px dashed #000000;
+            margin-bottom: 1.5mm;
+            padding-bottom: 1.5mm;
+            border-bottom: 1px dashed #999;
             color: #000000;
         }
         .pdf-drug-item:last-child { border-bottom: none; }
@@ -403,62 +406,30 @@
 
         const generateMethodString = (drug, finalDoseMg) => {
             if (drug.isDopamine) return '1 ml dopamin + 39 ml GW';
-            
-            // Special Logic for Nutrients
             if (drug.isNutrient) {
                 if (drug.noPrep) return " ";
-                
                 let totalVol = finalDoseMg;
                 let calcVol = totalVol;
                 let suffix = "";
-                if (totalVol > 160) {
-                    calcVol = totalVol / 2;
-                    suffix = " X2";
-                }
-                
-                if (drug.name === '1/5 GS') {
-                    return `(5% GW ${(calcVol * 0.8).toFixed(0)} + ${(calcVol * 0.2).toFixed(0)} ml NS)${suffix}`;
-                } else if (drug.name === '10% GW') {
-                    return `(5% GW ${(calcVol * 0.9).toFixed(0)} + ${(calcVol * 0.1).toFixed(0)} ml HT)${suffix}`;
-                }
+                if (totalVol > 160) { calcVol = totalVol / 2; suffix = " X2"; }
+                if (drug.name === '1/5 GS') return `(5% GW ${(calcVol * 0.8).toFixed(0)} + ${(calcVol * 0.2).toFixed(0)} ml NS)${suffix}`;
+                else if (drug.name === '10% GW') return `(5% GW ${(calcVol * 0.9).toFixed(0)} + ${(calcVol * 0.1).toFixed(0)} ml HT)${suffix}`;
             }
-
             if (!METHODS[drug.methodIndex]) return '-';
-            
             let drawn_volume_ml = finalDoseMg / drug.factor;
             let methodStr = METHODS[drug.methodIndex];
             let diluent_volume;
-
             if (drug.methodIndex === 3) {
                 const targetVol = parseInt($('inputTargetVol').value);
-                if (targetVol === 10) {
-                    drawn_volume_ml *= 2;
-                    diluent_volume = 20 - drawn_volume_ml;
-                    methodStr = methodStr.replace('^^', '10');
-                } else if (targetVol === 5) {
-                    drawn_volume_ml *= 3;
-                    diluent_volume = 15 - drawn_volume_ml;
-                    methodStr = methodStr.replace('^^', '5');
-                }
-            } else {
-                diluent_volume = 20 - drawn_volume_ml;
-            }
-
+                if (targetVol === 10) { drawn_volume_ml *= 2; diluent_volume = 20 - drawn_volume_ml; methodStr = methodStr.replace('^^', '10'); }
+                else if (targetVol === 5) { drawn_volume_ml *= 3; diluent_volume = 15 - drawn_volume_ml; methodStr = methodStr.replace('^^', '5'); }
+            } else { diluent_volume = 20 - drawn_volume_ml; }
             let display_volume = drawn_volume_ml;
             let unitStr = ' ml';
-            
-            if (drawn_volume_ml < 1) {
-                display_volume = drawn_volume_ml * 100;
-                unitStr = ' units';
-            }
-
+            if (drawn_volume_ml < 1) { display_volume = drawn_volume_ml * 100; unitStr = ' units'; }
             let display_drawn_str = unitStr === ' units' ? Math.round(display_volume) : display_volume.toFixed(1);
             methodStr = methodStr.replace('**', `${display_drawn_str}${unitStr}`);
-            
-            if (methodStr.includes('##')) {
-                methodStr = methodStr.replace('##', diluent_volume.toFixed(0));
-            }
-            
+            if (methodStr.includes('##')) methodStr = methodStr.replace('##', diluent_volume.toFixed(0));
             return methodStr;
         };
 
@@ -496,19 +467,9 @@
             }
             $('inputDose').disabled = false; $('inputDose').placeholder = 'Auto or Manual';
             $('dopamineTableContainer').classList.add('hidden'); $('methodPreviewContainer').classList.remove('hidden');
-            
-            if (drug.isNutrient || drug.name === 'TPN') {
-                $('inputDose').value = '';
-                $('inputDose').placeholder = 'Total Volume (ml)';
-                return;
-            }
-
+            if (drug.isNutrient || drug.name === 'TPN') { $('inputDose').value = ''; $('inputDose').placeholder = 'Total Volume (ml)'; return; }
             if (weight > 0) {
-                if(drug.dosePerKg) {
-                    $('inputDose').value = (weight * drug.dosePerKg).toFixed(1);
-                } else {
-                    $('inputDose').value = '';
-                }
+                if(drug.dosePerKg) { $('inputDose').value = (weight * drug.dosePerKg).toFixed(1); } else { $('inputDose').value = ''; }
                 $('inputFreq').value = drug.defaultFreq || 1;
                 checkClinicalAlerts(drug);
                 updateMethodPreview(drug, parseFloat($('inputDose').value) || 0);
@@ -629,8 +590,6 @@
             if (!val) { showToast('Select a drug', 'error'); return; }
             const freqVal = $('inputFreq').value;
             let freqDisplay = freqVal === 'q36hr' ? 'q36hr' : freqVal === 'q48hr' ? 'q48hr' : `x ${freqVal}`;
-
-            // --- الإضافة: شرط منع تكرار العلاج ---
             let drugNameToCheck = '';
             if (val === 'other') {
                 drugNameToCheck = $('inputCustomDrug').value.trim();
@@ -639,14 +598,8 @@
                 const drug = DRUG_CONFIG.find(d => d.id === parseInt(val));
                 drugNameToCheck = drug.name;
             }
-
             const isDuplicate = currentDrugs.some(d => d.name.trim().toLowerCase() === drugNameToCheck.toLowerCase());
-            if (isDuplicate) {
-                showToast('هذا العلاج مضاف مسبقاً!', 'error');
-                return;
-            }
-            // --------------------------------------
-
+            if (isDuplicate) { showToast('هذا العلاج مضاف مسبقاً!', 'error'); return; }
             if (val === 'other') {
                 const customName = $('inputCustomDrug').value.trim();
                 const customMethod = $('inputCustomMethod').value.trim() || 'Manual';
@@ -658,17 +611,7 @@
                     currentDrugs.push({ id: generateId(), drugId: drug.id, name: drug.name, dose: 'Infusion', unit: '', freq: '', method: '1 ml dopamin + 39 ml GW', hideDetails: false, isNutrient: false });
                 } else {
                     const dose = cleanInputNumber($('inputDose').value);
-                    currentDrugs.push({ 
-                        id: generateId(), 
-                        drugId: drug.id, 
-                        name: drug.name, 
-                        dose, 
-                        unit: drug.unit || '', 
-                        freq: drug.hideDetails ? '' : freqDisplay, 
-                        method: generateMethodString(drug, dose),
-                        hideDetails: drug.hideDetails || false,
-                        isNutrient: drug.isNutrient || false
-                    });
+                    currentDrugs.push({ id: generateId(), drugId: drug.id, name: drug.name, dose, unit: drug.unit || '', freq: drug.hideDetails ? '' : freqDisplay, method: generateMethodString(drug, dose), hideDetails: drug.hideDetails || false, isNutrient: drug.isNutrient || false });
                 }
             }
             renderDrugsList(); showToast('Added');
@@ -697,15 +640,11 @@
         };
 
         window.togglePatientSelection = (id) => { 
-            if (selectedPatientIds.has(id)) selectedPatientIds.delete(id); 
-            else selectedPatientIds.add(id); 
-            updateCounter();
+            if (selectedPatientIds.has(id)) selectedPatientIds.delete(id); else selectedPatientIds.add(id); updateCounter();
         };
 
         const toggleSelectAll = (e) => { 
-            if (e.target.checked) patients.forEach(p => selectedPatientIds.add(p.id)); 
-            else selectedPatientIds.clear(); 
-            renderQueue(); 
+            if (e.target.checked) patients.forEach(p => selectedPatientIds.add(p.id)); else selectedPatientIds.clear(); renderQueue(); 
         };
 
         const generatePDF = async () => {
@@ -714,62 +653,68 @@
             showToast('Generating...', 'info');
             const container = $('pdf-render-container');
             container.innerHTML = ''; 
-            let pages = [], cells = Array(6).fill(null);
-            
-            // --- الإضافة: شرط فصل العلاجات إذا تجاوزت الحد الأقصى ---
+
             let processedPatients = [];
             selectedPatients.forEach(p => {
                 let remainingDrugs = [...p.drugs];
                 let chunks = [];
-                
                 while(remainingDrugs.length > 0) {
                     let chunk = [];
                     let hasDopamineInChunk = false;
                     for(let i = 0; i < remainingDrugs.length; i++) {
-                        if(remainingDrugs[i].name === 'Dopamine') {
-                            hasDopamineInChunk = true;
-                        }
+                        if(remainingDrugs[i].name === 'Dopamine') hasDopamineInChunk = true;
                         chunk.push(remainingDrugs[i]);
-                        // الحد 8 إذا اكو دوبامين، و 11 إذا ماكو
-                        let limit = hasDopamineInChunk ? 8 : 11; 
-                        if(chunk.length === limit || i === remainingDrugs.length - 1) {
+                        // الحد الأقصى للخلية المندمجة بالكامل (Span 3) لتقليل الحاجة للقص
+                        let maxLimit = hasDopamineInChunk ? 15 : 20; 
+                        if(chunk.length === maxLimit || i === remainingDrugs.length - 1) {
                             chunks.push(chunk);
                             remainingDrugs = remainingDrugs.slice(i + 1);
                             break;
                         }
                     }
                 }
-                
                 chunks.forEach((chunk, index) => {
-                    processedPatients.push({
-                        ...p,
-                        name: index === 0 ? p.name : p.name + ' (تابع)',
-                        drugs: chunk
-                    });
+                    processedPatients.push({ ...p, name: index === 0 ? p.name : p.name + ' (تابع)', drugs: chunk });
                 });
             });
-            // ---------------------------------------------------------
 
+            let pages = [], cells = Array(6).fill(null);
+            
             const placePatient = (patient) => {
                 const hasDopamine = patient.drugs.some(d => d.name === 'Dopamine');
                 const nonDopCount = patient.drugs.filter(d => d.name !== 'Dopamine').length;
-                const needsMerge = (nonDopCount > 5) || (hasDopamine && nonDopCount > 1);
+                
+                // تحديد عدد الخلايا المطلوبة بناءً على الشروط الجديدة
+                let span = 1;
+                if (nonDopCount > 11 || (hasDopamine && nonDopCount > 8)) span = 3;
+                else if (nonDopCount > 5 || (hasDopamine && nonDopCount > 1)) span = 2;
+
                 for (let i = 0; i < 6; i++) {
                     if (cells[i] === null) {
-                        if (needsMerge) {
-                            if (i < 3 && cells[i+3] === null) { cells[i] = { patient, span: 2 }; cells[i+3] = 'blocked'; return true; }
-                        } else { cells[i] = { patient, span: 1 }; return true; }
+                        if (span === 3) {
+                            // يحتاج عمود كامل (0,2,4 أو 1,3,5)
+                            if (i < 2 && cells[i] === null && cells[i+2] === null && cells[i+4] === null) {
+                                cells[i] = { patient, span: 3 }; cells[i+2] = 'blocked'; cells[i+4] = 'blocked'; return true;
+                            }
+                        } else if (span === 2) {
+                            // يحتاج خليتين متتاليتين عمودياً (0,2 أو 1,3 أو 2,4 أو 3,5)
+                            if (i < 4 && cells[i] === null && cells[i+2] === null) {
+                                cells[i] = { patient, span: 2 }; cells[i+2] = 'blocked'; return true;
+                            }
+                        } else {
+                            // خلية واحدة
+                            cells[i] = { patient, span: 1 }; return true;
+                        }
                     }
                 }
                 return false;
             };
 
-            // استخدام المرضى بعد المعالجة (processedPatients) بدل selectedPatients
             processedPatients.forEach(p => { if (!placePatient(p)) { pages.push([...cells]); cells = Array(6).fill(null); placePatient(p); } });
             if (cells.some(c => c !== null)) pages.push([...cells]);
 
             const { jsPDF } = window.jspdf;
-            const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+            const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
 
             for (let i = 0; i < pages.length; i++) {
                 const pageDiv = document.createElement('div');
@@ -781,7 +726,9 @@
                     const el = document.createElement('div');
                     el.className = 'pdf-cell';
                     const p = cellData.patient;
-                    if (cellData.span === 2) el.style.gridRow = `${Math.floor(index/3)+1} / span 2`;
+                    // تعديل الجريد بناءً على الدمج العمودي (Vertical Span)
+                    if (cellData.span > 1) el.style.gridRow = `span ${cellData.span}`;
+                    
                     el.innerHTML = `
                         <div class="pdf-cell-header">
                             <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -792,21 +739,21 @@
                         <div style="flex:1;">
                             ${p.drugs.map(d => `
                                 <div class="pdf-drug-item">
-                                    <div style="display:flex; justify-content:space-between; font-weight:bold;">
+                                    <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:10pt;">
                                         <span>${d.name}</span>
-                                        ${d.isNutrient ? `<span>${d.dose}ml / 24 hr</span>` : (d.hideDetails ? '' : `<span>${d.dose}${d.unit} ${d.freq}</span>`)}
+                                        ${d.isNutrient ? `<span>${d.dose}ml</span>` : (d.hideDetails ? '' : `<span>${d.dose}${d.unit} ${d.freq}</span>`)}
                                     </div>
-                                    <div style="font-size:10pt; text-align:left; margin-top:2px;">${boldNumbersInText(d.method)}</div>
+                                    <div style="font-size:9.5pt; text-align:left; margin-top:1px;">${boldNumbersInText(d.method)}</div>
                                     ${d.name === 'Dopamine' ? `
-                                        <table style="width:100%; margin-top:3mm; font-size:9pt; border-collapse:collapse; border: 1.5px solid #000; text-align:center;">
-                                            <tr style="background:#f3f4f6;">
-                                                <th style="border: 1px solid #000; padding: 6px 4px; vertical-align: middle;">Rate ml/24hr</th>
-                                                <th style="border: 1px solid #000; padding: 6px 4px; vertical-align: middle;">Dose mcg/kg/min</th>
+                                        <table style="width:100%; margin-top:2mm; font-size:8.5pt; border-collapse:collapse; border: 1.5px solid #000; text-align:center;">
+                                            <tr style="background:#f0f0f0;">
+                                                <th style="border: 1px solid #000; padding: 4px;">Rate (24h)</th>
+                                                <th style="border: 1px solid #000; padding: 4px;">mcg/kg/min</th>
                                             </tr>
                                             ${[5,10,15,20].map(ds => `
                                                 <tr>
-                                                    <td style="border: 1px solid #000; padding: 6px 4px; vertical-align: middle; font-weight: bold;">${((ds*p.weight*1440)/4000).toFixed(0)}</td>
-                                                    <td style="border: 1px solid #000; padding: 6px 4px; vertical-align: middle;">${ds}</td>
+                                                    <td style="border: 1px solid #000; padding: 3px; font-weight: bold;">${((ds*p.weight*1440)/4000).toFixed(0)} ml</td>
+                                                    <td style="border: 1px solid #000; padding: 3px;">${ds}</td>
                                                 </tr>`).join('')}
                                         </table>` : ''}
                                 </div>`).join('')}
@@ -816,11 +763,11 @@
                 container.appendChild(pageDiv);
                 await document.fonts.ready;
                 const canvas = await html2canvas(pageDiv, { scale: 2 });
-                doc.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, 297, 210);
+                doc.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, 210, 297);
                 if (i < pages.length - 1) doc.addPage();
                 container.removeChild(pageDiv);
             }
-            doc.save('NICU_Report.pdf'); showToast('Saved');
+            doc.save('NICU_Portrait_Report.pdf'); showToast('Saved');
         };
 
         $('btnAddDrug').addEventListener('click', addDrug);
