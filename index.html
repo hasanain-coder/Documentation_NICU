@@ -629,9 +629,26 @@
             if (!val) { showToast('Select a drug', 'error'); return; }
             const freqVal = $('inputFreq').value;
             let freqDisplay = freqVal === 'q36hr' ? 'q36hr' : freqVal === 'q48hr' ? 'q48hr' : `x ${freqVal}`;
+
+            // --- الإضافة: شرط منع تكرار العلاج ---
+            let drugNameToCheck = '';
+            if (val === 'other') {
+                drugNameToCheck = $('inputCustomDrug').value.trim();
+                if (!drugNameToCheck) { showToast('Drug name missing', 'error'); return; }
+            } else {
+                const drug = DRUG_CONFIG.find(d => d.id === parseInt(val));
+                drugNameToCheck = drug.name;
+            }
+
+            const isDuplicate = currentDrugs.some(d => d.name.trim().toLowerCase() === drugNameToCheck.toLowerCase());
+            if (isDuplicate) {
+                showToast('هذا العلاج مضاف مسبقاً!', 'error');
+                return;
+            }
+            // --------------------------------------
+
             if (val === 'other') {
                 const customName = $('inputCustomDrug').value.trim();
-                if (!customName) { showToast('Drug name missing', 'error'); return; }
                 const customMethod = $('inputCustomMethod').value.trim() || 'Manual';
                 const dose = cleanInputNumber($('inputDose').value);
                 currentDrugs.push({ id: generateId(), drugId: 'other', name: customName, dose, unit: 'mg', freq: freqDisplay, method: customMethod, hideDetails: false, isNutrient: false });
@@ -699,6 +716,40 @@
             container.innerHTML = ''; 
             let pages = [], cells = Array(6).fill(null);
             
+            // --- الإضافة: شرط فصل العلاجات إذا تجاوزت الحد الأقصى ---
+            let processedPatients = [];
+            selectedPatients.forEach(p => {
+                let remainingDrugs = [...p.drugs];
+                let chunks = [];
+                
+                while(remainingDrugs.length > 0) {
+                    let chunk = [];
+                    let hasDopamineInChunk = false;
+                    for(let i = 0; i < remainingDrugs.length; i++) {
+                        if(remainingDrugs[i].name === 'Dopamine') {
+                            hasDopamineInChunk = true;
+                        }
+                        chunk.push(remainingDrugs[i]);
+                        // الحد 8 إذا اكو دوبامين، و 11 إذا ماكو
+                        let limit = hasDopamineInChunk ? 8 : 11; 
+                        if(chunk.length === limit || i === remainingDrugs.length - 1) {
+                            chunks.push(chunk);
+                            remainingDrugs = remainingDrugs.slice(i + 1);
+                            break;
+                        }
+                    }
+                }
+                
+                chunks.forEach((chunk, index) => {
+                    processedPatients.push({
+                        ...p,
+                        name: index === 0 ? p.name : p.name + ' (تابع)',
+                        drugs: chunk
+                    });
+                });
+            });
+            // ---------------------------------------------------------
+
             const placePatient = (patient) => {
                 const hasDopamine = patient.drugs.some(d => d.name === 'Dopamine');
                 const nonDopCount = patient.drugs.filter(d => d.name !== 'Dopamine').length;
@@ -713,8 +764,9 @@
                 return false;
             };
 
-            selectedPatients.forEach(p => { if (!placePatient(p)) { pages.push(cells); cells = Array(6).fill(null); placePatient(p); } });
-            if (cells.some(c => c !== null)) pages.push(cells);
+            // استخدام المرضى بعد المعالجة (processedPatients) بدل selectedPatients
+            processedPatients.forEach(p => { if (!placePatient(p)) { pages.push([...cells]); cells = Array(6).fill(null); placePatient(p); } });
+            if (cells.some(c => c !== null)) pages.push([...cells]);
 
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
