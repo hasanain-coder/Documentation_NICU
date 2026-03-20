@@ -320,6 +320,7 @@
             4: '** + 3 ml GW / 3 min',
             5: '** / 60 min',
             6: 'over 24 hr',
+            7: 'Special Nutrients'
         };
 
         const DRUG_CONFIG = [
@@ -341,7 +342,9 @@
             { id: 9, name: 'Dopamine', isDopamine: true, defaultFreq: 1 },
             { id: 10, name: 'Vit k', dosePerKg: 1, unit: 'mg', factor: 10, methodIndex: 4, defaultFreq: 1 },
             { id: 11, name: 'Vancomycin', dosePerKg: 20, unit: 'mg', factor: 2, methodIndex: 5, defaultFreq: 5 },
-            { id: 12, name: 'TPN', methodIndex: 6, defaultFreq: 1, hideDetails: true }, // تمت إضافة خاصية الإخفاء هنا
+            { id: 12, name: 'TPN', methodIndex: 6, defaultFreq: 1, hideDetails: true },
+            { id: 13, name: '1/5 GS', methodIndex: 7, defaultFreq: 1, hideDetails: true, isNutrient: true },
+            { id: 14, name: '10% GW', methodIndex: 7, defaultFreq: 1, hideDetails: true, isNutrient: true }
         ];
 
         const STORAGE_KEY = 'nicu_patient_queue';
@@ -399,6 +402,24 @@
 
         const generateMethodString = (drug, finalDoseMg) => {
             if (drug.isDopamine) return '1 ml dopamin + 39 ml GW';
+            
+            // Special Logic for Nutrients
+            if (drug.isNutrient) {
+                let totalVol = finalDoseMg;
+                let calcVol = totalVol;
+                let suffix = "";
+                if (totalVol > 160) {
+                    calcVol = totalVol / 2;
+                    suffix = " X2";
+                }
+                
+                if (drug.name === '1/5 GS') {
+                    return `(5% GW ${(calcVol * 0.8).toFixed(1)} + ${(calcVol * 0.2).toFixed(1)} ml NS)${suffix}`;
+                } else if (drug.name === '10% GW') {
+                    return `(5% GW ${(calcVol * 0.9).toFixed(1)} + ${(calcVol * 0.1).toFixed(1)} ml HT)${suffix}`;
+                }
+            }
+
             if (!METHODS[drug.methodIndex]) return '-';
             
             let drawn_volume_ml = finalDoseMg / drug.factor;
@@ -472,8 +493,14 @@
             }
             $('inputDose').disabled = false; $('inputDose').placeholder = 'Auto or Manual';
             $('dopamineTableContainer').classList.add('hidden'); $('methodPreviewContainer').classList.remove('hidden');
+            
+            if (drug.isNutrient || drug.name === 'TPN') {
+                $('inputDose').value = '';
+                $('inputDose').placeholder = 'Total Volume (ml)';
+                return;
+            }
+
             if (weight > 0) {
-                // للـ TPN، قد لا نحتاج حساب جرعة تلقائية بناءً على weight*dosePerKg إذا كانت مجرد اسم
                 if(drug.dosePerKg) {
                     $('inputDose').value = (weight * drug.dosePerKg).toFixed(1);
                 } else {
@@ -616,10 +643,10 @@
                         drugId: drug.id, 
                         name: drug.name, 
                         dose, 
-                        unit: drug.unit, 
-                        freq: freqDisplay, 
+                        unit: drug.unit || '', 
+                        freq: drug.hideDetails ? '' : freqDisplay, 
                         method: generateMethodString(drug, dose),
-                        hideDetails: drug.hideDetails || false // جلب الخاصية من الإعدادات
+                        hideDetails: drug.hideDetails || false 
                     });
                 }
             }
