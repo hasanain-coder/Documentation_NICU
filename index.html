@@ -414,9 +414,9 @@
                 }
                 
                 if (drug.name === '1/5 GS') {
-                    return `(5% GW ${(calcVol * 0.8).toFixed(1)} + ${(calcVol * 0.2).toFixed(1)} ml NS)${suffix}`;
+                    return `(5% GW ${(calcVol * 0.8).toFixed(0)} + ${(calcVol * 0.2).toFixed(0)} ml NS)${suffix}`;
                 } else if (drug.name === '10% GW') {
-                    return `(5% GW ${(calcVol * 0.9).toFixed(1)} + ${(calcVol * 0.1).toFixed(1)} ml HT)${suffix}`;
+                    return `(5% GW ${(calcVol * 0.9).toFixed(0)} + ${(calcVol * 0.1).toFixed(0)} ml HT)${suffix}`;
                 }
             }
 
@@ -453,7 +453,7 @@
             methodStr = methodStr.replace('**', `${display_drawn_str}${unitStr}`);
             
             if (methodStr.includes('##')) {
-                methodStr = methodStr.replace('##', diluent_volume.toFixed(1));
+                methodStr = methodStr.replace('##', diluent_volume.toFixed(0));
             }
             
             return methodStr;
