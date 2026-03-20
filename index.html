@@ -317,12 +317,14 @@
             1: '** / 5min',
             2: '** + 5 ml GW / 10 min',
             3: '** + ## ml GW >> ^^ ml /30 min',
-            4: '** + 3 ml GW / 3 min', 
+            4: '** + 3 ml GW / 3 min',
+            5: '** / 60 min',
+            6: 'over 24 hr',
         };
 
         const DRUG_CONFIG = [
-            { id: 2, name: 'Amoxicillin', dosePerKg: 50, unit: 'mg', factor: 50, methodIndex: 1, defaultFreq: 2 },
-            { id: 1, name: 'Gentamicin', dosePerKg: 5, unit: 'mg', factor: 40, methodIndex: 2, defaultFreq: 1 },
+            { id: 1, name: 'Amoxicillin', dosePerKg: 50, unit: 'mg', factor: 50, methodIndex: 1, defaultFreq: 2 },
+            { id: 2, name: 'Gentamicin', dosePerKg: 5, unit: 'mg', factor: 40, methodIndex: 2, defaultFreq: 1 },
             { id: 3, name: 'Caffeine Loading', dosePerKg: 20, unit: 'mg', factor: 20, methodIndex: 3, defaultFreq: 1 },
             { id: 4, name: 'Caffeine Maint.', dosePerKg: 10, unit: 'mg', factor: 20, methodIndex: 2, defaultFreq: 1 },
             { id: 5, name: 'Colistin Loading', dosePerKg: 150000, unit: 'IU', factor: 500000, methodIndex: 2, defaultFreq: 1 },
@@ -338,6 +340,8 @@
             },
             { id: 9, name: 'Dopamine', isDopamine: true, defaultFreq: 1 },
             { id: 10, name: 'Vit k', dosePerKg: 1, unit: 'mg', factor: 10, methodIndex: 4, defaultFreq: 1 },
+            { id: 11, name: 'Vancomycin', dosePerKg: 20, unit: 'mg', factor: 2, methodIndex: 5, defaultFreq: 5 },
+            { id: 12, name: 'TPN', methodIndex: 6, defaultFreq: 1 },
         ];
 
         const STORAGE_KEY = 'nicu_patient_queue';
