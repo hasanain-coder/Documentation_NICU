@@ -92,7 +92,6 @@
             background: white;
         }
         
-        /* Modified for Portrait A4 (210x297) */
         .pdf-page {
             width: 210mm;
             height: 297mm;
@@ -102,7 +101,6 @@
             page-break-after: always;
         }
 
-        /* 2 Columns, 3 Rows Grid */
         .pdf-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -331,14 +329,36 @@
         const DRUG_CONFIG = [
             { id: 1, name: 'Amoxicillin', dosePerKg: 50, unit: 'mg', factor: 50, methodIndex: 1, defaultFreq: 2 },
             { id: 16, name: 'Amikacin', dosePerKg: 15, unit: 'mg', factor: 8, methodIndex: 2, defaultFreq: 1 },
-            { id: 2, name: 'Gentamicin', dosePerKg: 5, unit: 'mg', factor: 40, methodIndex: 2, defaultFreq: 1,
+            { 
+                id: 2, name: 'Gentamicin', dosePerKg: 5, unit: 'mg', factor: 40, methodIndex: 2, 
+                // وظيفة لاقتراح التردد بناءً على GA و PNA
+                getRecommendedFreq: (ga, pna) => {
+                    if (ga <= 30) {
+                        return (pna <= 14) ? 'q48hr' : 'q36hr';
+                    } else if (ga <= 34) {
+                        return 'q36hr';
+                    } else if (ga >= 35) {
+                        return '1'; // 24 hours
+                    }
+                    return '1';
+                },
                 warning_rule: (ga, age, freq) => {
-        if (ga <= 30 && age < 14 && freq !== 'q48hr') {
-            return "⚠️ تنبيه: الجرعة المقترحة هي كل ٤٨ ساعة!";
-        }
-        return null;
-    }
-},
+                    let recommended;
+                    if (ga <= 30) {
+                        recommended = (age <= 14) ? 'q48hr' : 'q36hr';
+                    } else if (ga <= 34) {
+                        recommended = 'q36hr';
+                    } else if (ga >= 35) {
+                        recommended = '1';
+                    }
+                    
+                    if (recommended && freq !== recommended) {
+                        let msg = (recommended === '1') ? 'مرة يومياً (كل ٢٤ ساعة)' : recommended;
+                        return `⚠️ تنبيه: الجرعة المقترحة بناءً على GA و PNA هي ${msg}!`;
+                    }
+                    return null;
+                }
+            },
             { id: 3, name: 'Caffeine Loading', dosePerKg: 20, unit: 'mg', factor: 20, methodIndex: 3, defaultFreq: 1 },
             { id: 4, name: 'Caffeine Maint.', dosePerKg: 10, unit: 'mg', factor: 20, methodIndex: 2, defaultFreq: 1 },
             { id: 5, name: 'Colistin Loading', dosePerKg: 150000, unit: 'IU', factor: 500000, methodIndex: 2, defaultFreq: 1 },
@@ -408,7 +428,7 @@
             const age = ageVal === '>30' ? 31 : parseInt(ageVal) || 0; 
             const freq = $('inputFreq').value;
             
-            if (drug.warning_rule) {
+            if (drug && drug.warning_rule) {
                 const alert = drug.warning_rule(ga, age, freq);
                 if (alert) { 
                     $('warningMessage').textContent = alert; 
@@ -450,6 +470,10 @@
 
         const handleDrugSelectionChange = () => {
             const val = $('selectDrug').value;
+            const ga = cleanInputNumber($('inputGA').value);
+            let ageVal = $('inputAge').value;
+            const pna = ageVal === '>30' ? 31 : parseInt(ageVal) || 0;
+
             if (val === '') {
                 $('inputDose').value = ''; $('inputDose').disabled = false;
                 $('methodPreviewContainer').classList.add('hidden');
@@ -474,18 +498,30 @@
             const drugId = parseInt(val);
             const drug = DRUG_CONFIG.find(d => d.id === drugId);
             if (!drug) return;
+            
             $('targetVolContainer').classList.toggle('hidden', drug.methodIndex !== 3);
+            
             if (drug.isDopamine) {
                 $('inputDose').value = ''; $('inputDose').placeholder = 'See table below'; $('inputDose').disabled = true;
                 $('dopamineTableContainer').classList.remove('hidden'); $('methodPreviewContainer').classList.add('hidden');
                 renderDopamineTable(weight); return;
             }
+            
             $('inputDose').disabled = false; $('inputDose').placeholder = 'Auto or Manual';
             $('dopamineTableContainer').classList.add('hidden'); $('methodPreviewContainer').classList.remove('hidden');
+            
             if (drug.isNutrient || drug.name === 'TPN') { $('inputDose').value = ''; $('inputDose').placeholder = 'Total Volume (ml)'; return; }
+            
             if (weight > 0) {
                 if(drug.dosePerKg) { $('inputDose').value = (weight * drug.dosePerKg).toFixed(1); } else { $('inputDose').value = ''; }
-                $('inputFreq').value = drug.defaultFreq || 1;
+                
+                // تعديل التردد تلقائياً للجنتاميسين بناءً على الشروط الجديدة
+                if (drug.getRecommendedFreq) {
+                    $('inputFreq').value = drug.getRecommendedFreq(ga, pna);
+                } else {
+                    $('inputFreq').value = drug.defaultFreq || 1;
+                }
+                
                 checkClinicalAlerts(drug);
                 updateMethodPreview(drug, parseFloat($('inputDose').value) || 0);
             }
@@ -497,7 +533,10 @@
             const drugId = parseInt(val);
             const drug = DRUG_CONFIG.find(d => d.id === drugId);
             const manualDose = cleanInputNumber($('inputDose').value);
-            if (drug && !drug.isDopamine) updateMethodPreview(drug, manualDose);
+            if (drug && !drug.isDopamine) {
+                checkClinicalAlerts(drug);
+                updateMethodPreview(drug, manualDose);
+            }
         };
 
         const updateMethodPreview = (drug, dose) => {
@@ -510,9 +549,10 @@
             let rows = '';
             for (let dose = 5; dose <= 20; dose += 5) {
                 const rate = ((dose * weight * 1440) / 4000).toFixed(0);
+                // تم إضافة pb-3 لمسافة تحت الأرقام
                 rows += `<tr>
-                    <td class="p-2 text-center font-bold text-[var(--accent)] border border-[var(--border)]">${rate} ml/24hr</td>
-                    <td class="p-2 text-center border border-[var(--border)]">${dose} mcg/kg/min</td>
+                    <td class="p-2 pb-3 text-center font-bold text-[var(--accent)] border border-[var(--border)]">${rate} ml/24hr</td>
+                    <td class="p-2 pb-3 text-center border border-[var(--border)]">${dose} mcg/kg/min</td>
                 </tr>`;
             }
             tbody.innerHTML = rows;
@@ -679,7 +719,6 @@
                     for(let i = 0; i < remainingDrugs.length; i++) {
                         if(remainingDrugs[i].name === 'Dopamine') hasDopamineInChunk = true;
                         chunk.push(remainingDrugs[i]);
-                        // الحد الأقصى للخلية المندمجة بالكامل (Span 3) لتقليل الحاجة للقص
                         let maxLimit = hasDopamineInChunk ? 15 : 20; 
                         if(chunk.length === maxLimit || i === remainingDrugs.length - 1) {
                             chunks.push(chunk);
@@ -699,7 +738,6 @@
                 const hasDopamine = patient.drugs.some(d => d.name === 'Dopamine');
                 const nonDopCount = patient.drugs.filter(d => d.name !== 'Dopamine').length;
                 
-                // تحديد عدد الخلايا المطلوبة بناءً على الشروط الجديدة
                 let span = 1;
                 if (nonDopCount > 11 || (hasDopamine && nonDopCount > 8)) span = 3;
                 else if (nonDopCount > 5 || (hasDopamine && nonDopCount > 1)) span = 2;
@@ -707,17 +745,14 @@
                 for (let i = 0; i < 6; i++) {
                     if (cells[i] === null) {
                         if (span === 3) {
-                            // يحتاج عمود كامل (0,2,4 أو 1,3,5)
                             if (i < 2 && cells[i] === null && cells[i+2] === null && cells[i+4] === null) {
                                 cells[i] = { patient, span: 3 }; cells[i+2] = 'blocked'; cells[i+4] = 'blocked'; return true;
                             }
                         } else if (span === 2) {
-                            // يحتاج خليتين متتاليتين عمودياً (0,2 أو 1,3 أو 2,4 أو 3,5)
                             if (i < 4 && cells[i] === null && cells[i+2] === null) {
                                 cells[i] = { patient, span: 2 }; cells[i+2] = 'blocked'; return true;
                             }
                         } else {
-                            // خلية واحدة
                             cells[i] = { patient, span: 1 }; return true;
                         }
                     }
@@ -741,7 +776,6 @@
                     const el = document.createElement('div');
                     el.className = 'pdf-cell';
                     const p = cellData.patient;
-                    // تعديل الجريد بناءً على الدمج العمودي (Vertical Span)
                     if (cellData.span > 1) el.style.gridRow = `span ${cellData.span}`;
                     
                     el.innerHTML = `
@@ -767,8 +801,8 @@
                                             </tr>
                                             ${[5,10,15,20].map(ds => `
                                                 <tr>
-                                                    <td style="border: 1px solid #000; padding: 3px; font-weight: bold;">${((ds*p.weight*1440)/4000).toFixed(0)} ml</td>
-                                                    <td style="border: 1px solid #000; padding: 3px;">${ds}</td>
+                                                    <td style="border: 1px solid #000; padding: 3px; padding-bottom:6px; font-weight: bold;">${((ds*p.weight*1440)/4000).toFixed(0)} ml</td>
+                                                    <td style="border: 1px solid #000; padding: 3px; padding-bottom:6px;">${ds}</td>
                                                 </tr>`).join('')}
                                         </table>` : ''}
                                 </div>`).join('')}
@@ -790,11 +824,17 @@
         $('btnPdf').addEventListener('click', generatePDF);
         $('btnClearAll').addEventListener('click', () => { if (confirm('Clear all?')) { patients = []; selectedPatientIds.clear(); saveToStorage(); renderQueue(); } });
         $('selectAllCheckbox').addEventListener('change', toggleSelectAll);
+        
+        // ربط التغييرات في GA و PNA بتحديث الدواء المختار حالياً
         $('selectDrug').addEventListener('change', handleDrugSelectionChange);
         $('inputWeight').addEventListener('input', handleDrugSelectionChange);
         $('inputGA').addEventListener('input', handleDrugSelectionChange);
+        $('inputAge').addEventListener('change', handleDrugSelectionChange);
+        
         $('inputDose').addEventListener('input', handleManualDoseChange);
+        $('inputFreq').addEventListener('change', handleManualDoseChange); // مراقبة تغيير التردد يدوياً
         $('inputTargetVol').addEventListener('change', handleManualDoseChange);
+        
         populateDropdowns(); loadFromStorage();
     </script>
 </body>
