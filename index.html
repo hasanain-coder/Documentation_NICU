@@ -317,6 +317,7 @@
             1: '** / 5min',
             2: '** + 5 ml GW / 10 min',
             3: '** + ## ml GW >> ^^ ml /30 min',
+            4: '** + 3 ml GW / 3 min', 
         };
 
         const DRUG_CONFIG = [
@@ -335,7 +336,8 @@
                         : null;
                 }
             },
-            { id: 9, name: 'Dopamine', isDopamine: true, defaultFreq: 1 }
+            { id: 9, name: 'Dopamine', isDopamine: true, defaultFreq: 1 },
+            { id: 10, name: 'Vit k', dosePerKg: 1, unit: 'mg', factor: 10, methodIndex: 4, defaultFreq: 1 },
         ];
 
         const STORAGE_KEY = 'nicu_patient_queue';
