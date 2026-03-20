@@ -92,6 +92,7 @@
             background: white;
         }
         
+        /* Modified for Portrait A4 (210x297) */
         .pdf-page {
             width: 210mm;
             height: 297mm;
@@ -101,6 +102,7 @@
             page-break-after: always;
         }
 
+        /* 2 Columns, 3 Rows Grid */
         .pdf-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -240,8 +242,8 @@
                                 </svg>
                             </div>
                             <div class="flex-1">
-                                <p class="text-xs font-semibold text-[var(--accent)] uppercase tracking-wide mb-1">Method of Administration & Preparation</p>
-                                <p id="previewMethod" class="text-[var(--fg)] text-lg sm:text-xl leading-relaxed font-bold" style="direction: ltr; text-align: left;">-</p>
+                                <p class="text-xs font-semibold text-[var(--accent)] uppercase tracking-wide mb-1">Method of Administration</p>
+                                <p id="previewMethod" class="text-[var(--fg)] text-sm leading-relaxed font-bold" style="direction: ltr; text-align: left;">-</p>
                                 <p id="warningMessage" class="hidden text-sm text-[var(--danger)] font-bold mt-2 arabic-text"></p>
                             </div>
                         </div>
@@ -327,16 +329,12 @@
         const DRUG_CONFIG = [
             { id: 1, name: 'Amoxicillin', dosePerKg: 50, unit: 'mg', factor: 50, methodIndex: 1, defaultFreq: 2 },
             { id: 2, name: 'Gentamicin', dosePerKg: 5, unit: 'mg', factor: 40, methodIndex: 2, defaultFreq: 1,
-    warning_rule: (ga, age, freq) => {
-        // إذا كان العمر الجنيني 30 أسبوع أو أقل والعمر الأيام أقل من 14
-        // ولم يتم اختيار q48hr، يظهر التنبيه
-        if (ga <= 30 && age < 14 && freq !== 'q48hr') {
+                if (ga <= 30 && age < 14 && freq !== 'q48hr') {
             return "⚠️ تنبيه: الجرعة المقترحة هي كل ٤٨ ساعة!";
         }
         return null;
     }
 },
-
             { id: 3, name: 'Caffeine Loading', dosePerKg: 20, unit: 'mg', factor: 20, methodIndex: 3, defaultFreq: 1 },
             { id: 4, name: 'Caffeine Maint.', dosePerKg: 10, unit: 'mg', factor: 20, methodIndex: 2, defaultFreq: 1 },
             { id: 5, name: 'Colistin Loading', dosePerKg: 150000, unit: 'IU', factor: 500000, methodIndex: 2, defaultFreq: 1 },
@@ -345,7 +343,7 @@
             { 
                 id: 8, name: 'Meropenem', dosePerKg: 40, unit: 'mg', factor: 50, methodIndex: 3, defaultFreq: 3,
                 warning_rule: (ga, age, freq) => {
-                    return (ga >= 32 && age > 14 && freq !== '3') 
+                    return (ga >= 32 && age > 14 && (freq !== '3' && freq !== 3)) 
                         ? "⚠️ تنبيه: الجرعة المقترحة هي 3 مرات يومياً بناءً على عمر الطفل." 
                         : null;
                 }
@@ -397,30 +395,22 @@
 
         const checkClinicalAlerts = (drug) => {
             const ga = cleanInputNumber($('inputGA').value);
-            const weight = cleanInputNumber($('inputWeight').value);
             let ageVal = $('inputAge').value;
             const age = ageVal === '>30' ? 31 : parseInt(ageVal) || 0; 
             const freq = $('inputFreq').value;
             
-            let message = "";
-            if (weight < 1) message = "⚠️ تنبيه: وزن الطفل أقل من 1 كجم - يرجى توخي الحذر الشديد في الدقة. ";
-
             if (drug.warning_rule) {
                 const alert = drug.warning_rule(ga, age, freq);
-                if (alert) message += alert;
+                if (alert) { 
+                    $('warningMessage').textContent = alert; 
+                    $('warningMessage').classList.remove('hidden'); 
+                    return; 
+                }
             }
-
-            if (message) {
-                $('warningMessage').textContent = message;
-                $('warningMessage').classList.remove('hidden');
-            } else {
-                $('warningMessage').classList.add('hidden');
-            }
+            $('warningMessage').classList.add('hidden');
         };
 
         const generateMethodString = (drug, finalDoseMg) => {
-            const weight = cleanInputNumber($('inputWeight').value);
-            
             if (drug.isDopamine) return '1 ml dopamin + 39 ml GW';
             if (drug.isNutrient) {
                 if (drug.noPrep) return " ";
@@ -432,28 +422,20 @@
                 else if (drug.name === '10% GW') return `(5% GW ${(calcVol * 0.9).toFixed(0)} + ${(calcVol * 0.1).toFixed(0)} ml HT)${suffix}`;
             }
             if (!METHODS[drug.methodIndex]) return '-';
-            
             let drawn_volume_ml = finalDoseMg / drug.factor;
             let methodStr = METHODS[drug.methodIndex];
             let diluent_volume;
-            
             if (drug.methodIndex === 3) {
                 const targetVol = parseInt($('inputTargetVol').value);
                 if (targetVol === 10) { drawn_volume_ml *= 2; diluent_volume = 20 - drawn_volume_ml; methodStr = methodStr.replace('^^', '10'); }
                 else if (targetVol === 5) { drawn_volume_ml *= 3; diluent_volume = 15 - drawn_volume_ml; methodStr = methodStr.replace('^^', '5'); }
             } else { diluent_volume = 20 - drawn_volume_ml; }
-            
             let display_volume = drawn_volume_ml;
             let unitStr = ' ml';
             if (drawn_volume_ml < 1) { display_volume = drawn_volume_ml * 100; unitStr = ' units'; }
-            let display_drawn_str = unitStr === ' units' ? Math.round(display_volume) : display_volume.toFixed(2); // Increased precision for low weight
-            
+            let display_drawn_str = unitStr === ' units' ? Math.round(display_volume) : display_volume.toFixed(1);
             methodStr = methodStr.replace('**', `${display_drawn_str}${unitStr}`);
             if (methodStr.includes('##')) methodStr = methodStr.replace('##', diluent_volume.toFixed(0));
-            
-            // ELBW Note
-            if (weight < 1) methodStr += " [High Precision Required]";
-            
             return methodStr;
         };
 
@@ -493,7 +475,7 @@
             $('dopamineTableContainer').classList.add('hidden'); $('methodPreviewContainer').classList.remove('hidden');
             if (drug.isNutrient || drug.name === 'TPN') { $('inputDose').value = ''; $('inputDose').placeholder = 'Total Volume (ml)'; return; }
             if (weight > 0) {
-                if(drug.dosePerKg) { $('inputDose').value = (weight * drug.dosePerKg).toFixed(2); } else { $('inputDose').value = ''; }
+                if(drug.dosePerKg) { $('inputDose').value = (weight * drug.dosePerKg).toFixed(1); } else { $('inputDose').value = ''; }
                 $('inputFreq').value = drug.defaultFreq || 1;
                 checkClinicalAlerts(drug);
                 updateMethodPreview(drug, parseFloat($('inputDose').value) || 0);
@@ -510,7 +492,7 @@
         };
 
         const updateMethodPreview = (drug, dose) => {
-            $('previewMethod').innerHTML = boldNumbersInText(generateMethodString(drug, dose));
+            $('previewMethod').textContent = generateMethodString(drug, dose);
             $('methodPreviewContainer').classList.remove('hidden');
         };
 
@@ -518,7 +500,7 @@
             const tbody = $('dopamineTableBody');
             let rows = '';
             for (let dose = 5; dose <= 20; dose += 5) {
-                const rate = ((dose * weight * 1440) / 4000).toFixed(1);
+                const rate = ((dose * weight * 1440) / 4000).toFixed(0);
                 rows += `<tr>
                     <td class="p-2 text-center font-bold text-[var(--accent)] border border-[var(--border)]">${rate} ml/24hr</td>
                     <td class="p-2 text-center border border-[var(--border)]">${dose} mcg/kg/min</td>
@@ -560,7 +542,7 @@
                                     <span>${d.name}</span>
                                     ${d.isNutrient ? `<span class="text-[var(--accent)]">${d.dose}ml / 24 hr</span>` : (d.hideDetails ? '' : `<span>${d.dose}${d.unit} ${d.freq}</span>`)}
                                 </div>
-                                <p class="text-base text-[var(--fg)] mt-1 font-semibold" style="direction: ltr; text-align: left;">${boldNumbersInText(d.method)}</p>
+                                <p class="text-xs text-[var(--muted)] mt-1" style="direction: ltr; text-align: left;">${d.method}</p>
                             </div>
                         `).join('')}
                     </div>
@@ -599,7 +581,7 @@
                             <p class="font-bold text-[var(--fg)]">${d.name}</p>
                             ${d.isNutrient ? `<span class="px-2 py-0.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-xs font-semibold">${d.dose}ml / 24 hr</span>` : (d.hideDetails ? '' : `<span class="px-2 py-0.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-xs font-semibold">${d.dose}${d.unit} ${d.freq}</span>`)}
                         </div>
-                        <p class="text-lg text-[var(--fg)] leading-relaxed font-bold" style="direction: ltr; text-align: left;">${boldNumbersInText(d.method)}</p>
+                        <p class="text-sm text-[var(--fg)] leading-relaxed" style="direction: ltr; text-align: left;">${d.method}</p>
                     </div>
                     <button onclick="removeDrug(${i})" class="ml-3 p-2 hover:bg-red-100 rounded-lg group flex-shrink-0">
                         <svg class="w-5 h-5 text-[var(--muted)] group-hover:text-[var(--danger)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
@@ -615,7 +597,6 @@
             const freqVal = $('inputFreq').value;
             let freqDisplay = freqVal === 'q36hr' ? 'q36hr' : freqVal === 'q48hr' ? 'q48hr' : `x ${freqVal}`;
             let drugNameToCheck = '';
-            
             if (val === 'other') {
                 drugNameToCheck = $('inputCustomDrug').value.trim();
                 if (!drugNameToCheck) { showToast('Drug name missing', 'error'); return; }
@@ -623,10 +604,8 @@
                 const drug = DRUG_CONFIG.find(d => d.id === parseInt(val));
                 drugNameToCheck = drug.name;
             }
-            
             const isDuplicate = currentDrugs.some(d => d.name.trim().toLowerCase() === drugNameToCheck.toLowerCase());
             if (isDuplicate) { showToast('هذا العلاج مضاف مسبقاً!', 'error'); return; }
-            
             if (val === 'other') {
                 const customName = $('inputCustomDrug').value.trim();
                 const customMethod = $('inputCustomMethod').value.trim() || 'Manual';
@@ -691,6 +670,7 @@
                     for(let i = 0; i < remainingDrugs.length; i++) {
                         if(remainingDrugs[i].name === 'Dopamine') hasDopamineInChunk = true;
                         chunk.push(remainingDrugs[i]);
+                        // الحد الأقصى للخلية المندمجة بالكامل (Span 3) لتقليل الحاجة للقص
                         let maxLimit = hasDopamineInChunk ? 15 : 20; 
                         if(chunk.length === maxLimit || i === remainingDrugs.length - 1) {
                             chunks.push(chunk);
@@ -710,6 +690,7 @@
                 const hasDopamine = patient.drugs.some(d => d.name === 'Dopamine');
                 const nonDopCount = patient.drugs.filter(d => d.name !== 'Dopamine').length;
                 
+                // تحديد عدد الخلايا المطلوبة بناءً على الشروط الجديدة
                 let span = 1;
                 if (nonDopCount > 11 || (hasDopamine && nonDopCount > 8)) span = 3;
                 else if (nonDopCount > 5 || (hasDopamine && nonDopCount > 1)) span = 2;
@@ -717,14 +698,17 @@
                 for (let i = 0; i < 6; i++) {
                     if (cells[i] === null) {
                         if (span === 3) {
+                            // يحتاج عمود كامل (0,2,4 أو 1,3,5)
                             if (i < 2 && cells[i] === null && cells[i+2] === null && cells[i+4] === null) {
                                 cells[i] = { patient, span: 3 }; cells[i+2] = 'blocked'; cells[i+4] = 'blocked'; return true;
                             }
                         } else if (span === 2) {
+                            // يحتاج خليتين متتاليتين عمودياً (0,2 أو 1,3 أو 2,4 أو 3,5)
                             if (i < 4 && cells[i] === null && cells[i+2] === null) {
                                 cells[i] = { patient, span: 2 }; cells[i+2] = 'blocked'; return true;
                             }
                         } else {
+                            // خلية واحدة
                             cells[i] = { patient, span: 1 }; return true;
                         }
                     }
@@ -748,13 +732,14 @@
                     const el = document.createElement('div');
                     el.className = 'pdf-cell';
                     const p = cellData.patient;
+                    // تعديل الجريد بناءً على الدمج العمودي (Vertical Span)
                     if (cellData.span > 1) el.style.gridRow = `span ${cellData.span}`;
                     
                     el.innerHTML = `
                         <div class="pdf-cell-header">
                             <div style="display:flex; justify-content:space-between; align-items:center;">
                                 <div style="font-size:10pt; color:#000000; font-weight: bold;">${p.weight}kg | GA:${p.ga}w | D${p.age}</div>
-                                <div style="font-weight:900; color:#000000; direction:rtl; font-size:11pt;">${p.name}</div>
+                                <div style="font-weight:900; color:#000000; direction:rtl;">${p.name}</div>
                             </div>
                         </div>
                         <div style="flex:1;">
@@ -764,7 +749,7 @@
                                         <span>${d.name}</span>
                                         ${d.isNutrient ? `<span>${d.dose}ml</span>` : (d.hideDetails ? '' : `<span>${d.dose}${d.unit} ${d.freq}</span>`)}
                                     </div>
-                                    <div style="font-size:12pt; text-align:left; margin-top:2px; font-weight:700;">${boldNumbersInText(d.method)}</div>
+                                    <div style="font-size:9.5pt; text-align:left; margin-top:1px;">${boldNumbersInText(d.method)}</div>
                                     ${d.name === 'Dopamine' ? `
                                         <table style="width:100%; margin-top:2mm; font-size:8.5pt; border-collapse:collapse; border: 1.5px solid #000; text-align:center;">
                                             <tr style="background:#f0f0f0;">
@@ -773,7 +758,7 @@
                                             </tr>
                                             ${[5,10,15,20].map(ds => `
                                                 <tr>
-                                                    <td style="border: 1px solid #000; padding: 3px; font-weight: bold;">${((ds*p.weight*1440)/4000).toFixed(1)} ml</td>
+                                                    <td style="border: 1px solid #000; padding: 3px; font-weight: bold;">${((ds*p.weight*1440)/4000).toFixed(0)} ml</td>
                                                     <td style="border: 1px solid #000; padding: 3px;">${ds}</td>
                                                 </tr>`).join('')}
                                         </table>` : ''}
