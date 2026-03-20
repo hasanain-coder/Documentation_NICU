@@ -341,7 +341,7 @@
             { id: 9, name: 'Dopamine', isDopamine: true, defaultFreq: 1 },
             { id: 10, name: 'Vit k', dosePerKg: 1, unit: 'mg', factor: 10, methodIndex: 4, defaultFreq: 1 },
             { id: 11, name: 'Vancomycin', dosePerKg: 20, unit: 'mg', factor: 2, methodIndex: 5, defaultFreq: 5 },
-            { id: 12, name: 'TPN', methodIndex: 6, defaultFreq: 1 },
+            { id: 12, name: 'TPN', methodIndex: 6, defaultFreq: 1, hideDetails: true }, // تمت إضافة خاصية الإخفاء هنا
         ];
 
         const STORAGE_KEY = 'nicu_patient_queue';
@@ -381,7 +381,7 @@
         };
 
         const checkClinicalAlerts = (drug) => {
-            const ga = cleanInputNumber($('inputGA').value); // استخدام الدالة الجديدة
+            const ga = cleanInputNumber($('inputGA').value);
             let ageVal = $('inputAge').value;
             const age = ageVal === '>30' ? 31 : parseInt(ageVal) || 0; 
             const freq = $('inputFreq').value;
@@ -405,7 +405,6 @@
             let methodStr = METHODS[drug.methodIndex];
             let diluent_volume;
 
-            // الحساب دائمًا يتم بالـ ml لتجنب خطأ الضرب بـ 100 في التخفيف
             if (drug.methodIndex === 3) {
                 const targetVol = parseInt($('inputTargetVol').value);
                 if (targetVol === 10) {
@@ -424,7 +423,6 @@
             let display_volume = drawn_volume_ml;
             let unitStr = ' ml';
             
-            // التحويل لليونت فقط عند العرض إذا كان الحجم أقل من 1 مل
             if (drawn_volume_ml < 1) {
                 display_volume = drawn_volume_ml * 100;
                 unitStr = ' units';
@@ -475,10 +473,15 @@
             $('inputDose').disabled = false; $('inputDose').placeholder = 'Auto or Manual';
             $('dopamineTableContainer').classList.add('hidden'); $('methodPreviewContainer').classList.remove('hidden');
             if (weight > 0) {
-                $('inputDose').value = (weight * drug.dosePerKg).toFixed(1);
+                // للـ TPN، قد لا نحتاج حساب جرعة تلقائية بناءً على weight*dosePerKg إذا كانت مجرد اسم
+                if(drug.dosePerKg) {
+                    $('inputDose').value = (weight * drug.dosePerKg).toFixed(1);
+                } else {
+                    $('inputDose').value = '';
+                }
                 $('inputFreq').value = drug.defaultFreq || 1;
                 checkClinicalAlerts(drug);
-                updateMethodPreview(drug, parseFloat($('inputDose').value));
+                updateMethodPreview(drug, parseFloat($('inputDose').value) || 0);
             }
         };
 
@@ -488,7 +491,7 @@
             const drugId = parseInt(val);
             const drug = DRUG_CONFIG.find(d => d.id === drugId);
             const manualDose = cleanInputNumber($('inputDose').value);
-            if (drug && manualDose > 0 && !drug.isDopamine) updateMethodPreview(drug, manualDose);
+            if (drug && !drug.isDopamine) updateMethodPreview(drug, manualDose);
         };
 
         const updateMethodPreview = (drug, dose) => {
@@ -540,7 +543,7 @@
                             <div class="text-sm border-b border-dashed border-[var(--border)] last:border-0 pb-2">
                                 <div class="flex justify-between font-bold text-[var(--fg)]">
                                     <span>${d.name}</span>
-                                    <span>${d.dose}${d.unit} ${d.freq}</span>
+                                    ${d.hideDetails ? '' : `<span>${d.dose}${d.unit} ${d.freq}</span>`}
                                 </div>
                                 <p class="text-xs text-[var(--muted)] mt-1" style="direction: ltr; text-align: left;">${d.method}</p>
                             </div>
@@ -579,7 +582,7 @@
                     <div class="flex-1">
                         <div class="flex items-center gap-2 mb-1">
                             <p class="font-bold text-[var(--fg)]">${d.name}</p>
-                            <span class="px-2 py-0.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-xs font-semibold">${d.dose}${d.unit} ${d.freq}</span>
+                            ${d.hideDetails ? '' : `<span class="px-2 py-0.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-xs font-semibold">${d.dose}${d.unit} ${d.freq}</span>`}
                         </div>
                         <p class="text-sm text-[var(--fg)] leading-relaxed" style="direction: ltr; text-align: left;">${d.method}</p>
                     </div>
@@ -601,14 +604,23 @@
                 if (!customName) { showToast('Drug name missing', 'error'); return; }
                 const customMethod = $('inputCustomMethod').value.trim() || 'Manual';
                 const dose = cleanInputNumber($('inputDose').value);
-                currentDrugs.push({ id: generateId(), drugId: 'other', name: customName, dose, unit: 'mg', freq: freqDisplay, method: customMethod });
+                currentDrugs.push({ id: generateId(), drugId: 'other', name: customName, dose, unit: 'mg', freq: freqDisplay, method: customMethod, hideDetails: false });
             } else {
                 const drug = DRUG_CONFIG.find(d => d.id === parseInt(val));
                 if (drug.isDopamine) {
-                    currentDrugs.push({ id: generateId(), drugId: drug.id, name: drug.name, dose: 'Infusion', unit: '', freq: '', method: '1 ml dopamin + 39 ml GW' });
+                    currentDrugs.push({ id: generateId(), drugId: drug.id, name: drug.name, dose: 'Infusion', unit: '', freq: '', method: '1 ml dopamin + 39 ml GW', hideDetails: false });
                 } else {
                     const dose = cleanInputNumber($('inputDose').value);
-                    currentDrugs.push({ id: generateId(), drugId: drug.id, name: drug.name, dose, unit: drug.unit, freq: freqDisplay, method: generateMethodString(drug, dose) });
+                    currentDrugs.push({ 
+                        id: generateId(), 
+                        drugId: drug.id, 
+                        name: drug.name, 
+                        dose, 
+                        unit: drug.unit, 
+                        freq: freqDisplay, 
+                        method: generateMethodString(drug, dose),
+                        hideDetails: drug.hideDetails || false // جلب الخاصية من الإعدادات
+                    });
                 }
             }
             renderDrugsList(); showToast('Added');
@@ -699,7 +711,7 @@
                                 <div class="pdf-drug-item">
                                     <div style="display:flex; justify-content:space-between; font-weight:bold;">
                                         <span>${d.name}</span>
-                                        <span>${d.dose}${d.unit} ${d.freq}</span>
+                                        ${d.hideDetails ? '' : `<span>${d.dose}${d.unit} ${d.freq}</span>`}
                                     </div>
                                     <div style="font-size:10pt; text-align:left; margin-top:2px;">${boldNumbersInText(d.method)}</div>
                                     ${d.name === 'Dopamine' ? `
@@ -735,6 +747,7 @@
         $('selectAllCheckbox').addEventListener('change', toggleSelectAll);
         $('selectDrug').addEventListener('change', handleDrugSelectionChange);
         $('inputWeight').addEventListener('input', handleDrugSelectionChange);
+        $('inputGA').addEventListener('input', handleDrugSelectionChange);
         $('inputDose').addEventListener('input', handleManualDoseChange);
         $('inputTargetVol').addEventListener('change', handleManualDoseChange);
         populateDropdowns(); loadFromStorage();
