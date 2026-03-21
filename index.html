@@ -327,7 +327,28 @@
         };
 
         const DRUG_CONFIG = [
-            { id: 1, name: 'Amoxicillin', dosePerKg: 50, unit: 'mg', factor: 50, methodIndex: 1, defaultFreq: 2 },
+            { id: 1, name: 'Amoxicillin', dosePerKg: 50, unit: 'mg', factor: 50, methodIndex: 1, 
+                getRecommendedFreq: (ga, pna) => {
+                    if (ga < 100) {
+                        return (pna < 8) ? '2' : '3';
+                    } 
+                    return '3';
+                },
+                warning_rule: (ga, age, freq) => {
+                    let recommended;
+                    if (ga < 100) {
+                        recommended = (age < 8) ? '2' : '3';
+                    } else {
+                        recommended = '3';
+                    }
+                    
+                    if (freq !== recommended) {
+                        let msg = (recommended === '3') ? 'ثلاث مرات يومياً (كل ٨ ساعات)' : 'مرتان يومياً (كل ١٢ ساعة)';
+                        return `⚠️ تنبيه: التردد المقترح بناءً على PNA هو ${msg}!`;
+                    }
+                    return null;
+                }
+            },
             { id: 16, name: 'Amikacin', dosePerKg: 15, unit: 'mg', factor: 8, methodIndex: 2, defaultFreq: 1 },
             { 
                 id: 2, name: 'Gentamicin', dosePerKg: 5, unit: 'mg', factor: 40, methodIndex: 2, 
@@ -387,7 +408,42 @@
             },
             { id: 9, name: 'Dopamine', isDopamine: true, defaultFreq: 1 },
             { id: 10, name: 'Vit k', dosePerKg: 1, unit: 'mg', factor: 10, methodIndex: 4, defaultFreq: 1 },
-            { id: 11, name: 'Vancomycin', dosePerKg: 20, unit: 'mg', factor: 2, methodIndex: 5, defaultFreq: 5 },
+            { id: 11, name: 'Vancomycin', dosePerKg: 20, unit: 'mg', factor: 2, methodIndex: 5, 
+                GetRecommendedFreq: (weight, pna) => {
+    if (pna < 7) {
+        if (weight < 1.2) return '1';
+        if (weight <= 2) return '2';
+        return '3';
+    } else {
+        // PNA >= 7 days
+        if (weight < 1.2) return '1';
+        return '3'; // تغطي كلاً من 1.2-2kg و >2kg
+    }
+},
+warning_rule: (weight, pna, freq) => {
+    let recommended;
+    
+    // تطبيق نفس منطق GetRecommendedFreq للحصول على التوصية
+    if (pna < 7) {
+        if (weight < 1.2) recommended = '1';
+        else if (weight <= 2) recommended = '2';
+        else recommended = '3';
+    } else {
+        if (weight < 1.2) recommended = '1';
+        else recommended = '3';
+    }
+
+    if (freq !== recommended) {
+        let msg = '';
+        if (recommended === '1') msg = 'مرة واحدة يومياً (كل ٢٤ ساعة)';
+        else if (recommended === '2') msg = 'مرتان يومياً (كل ١٢ ساعة)';
+        else if (recommended === '3') msg = 'ثلاث مرات يومياً (كل ٨ ساعات)';
+        
+        return `⚠️ تنبيه: التردد المقترح بناءً على الوزن وPNA هو ${msg}!`;
+    }
+    return null;
+}
+            },
             { id: 17, name: 'Dexmedetomidine + fluid', dosePerKg: 7.2, unit: 'mcg', factor: 100, methodIndex: 8, defaultFreq: 1 },
             { id: 18, name: 'Dexmedetomidine Y-site', dosePerKg: 7.2, unit: 'mcg', factor: 100, methodIndex: 3, defaultFreq: 1 },
             { id: 19, name: 'Midazolam + fluid', dosePerKg: 0.72, unit: 'mg', factor: 5, methodIndex: 8, defaultFreq: 1 },
