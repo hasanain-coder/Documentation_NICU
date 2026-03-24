@@ -353,7 +353,7 @@
             { 
                 id: 2, name: 'Gentamicin', dosePerKg: 5, unit: 'mg', factor: 40, methodIndex: 2, 
                 getRecommendedFreq: (ga, pna) => {
-                    if (ga <= 30) {
+                    if (ga <= 29) {
                         return (pna <= 14) ? 'q48hr' : 'q36hr';
                     } else if (ga <= 34) {
                         return 'q36hr';
