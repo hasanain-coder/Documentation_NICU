@@ -406,7 +406,9 @@
                     return null;
                 }
             },
-            { id: 9, name: 'Dopamine', isDopamine: true, defaultFreq: 1 },
+            { id: 9, name: 'Dopamine syringe pump', isDopamine: true, defaultFreq: 1 },
+            { id: 22, name: 'Dopamine + fluid', dosePerKg: 7.2, unit: 'mcg', factor: 40, methodIndex: 8, defaultFreq: 1 },
+            { id: 23, name: 'Dopamine Y-site', dosePerKg: 7.2, unit: 'mcg', factor: 40, methodIndex: 3, defaultFreq: 1 },
             { id: 10, name: 'Vit k', dosePerKg: 1, unit: 'mg', factor: 10, methodIndex: 4, defaultFreq: 1 },
             { id: 11, name: 'Vancomycin', dosePerKg: 15, unit: 'mg', factor: 2, methodIndex: 5, 
                 getRecommendedFreq: (ga, pna) => {
