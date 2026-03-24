@@ -4,12 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NICU Dose Calculator | Baghdad Teaching Hospital</title>
-    
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
     <style>
         :root {
             --bg: #F0F4F3;
@@ -24,7 +22,7 @@
         }
 
         * { font-family: 'Inter', 'Noto Sans Arabic', sans-serif; }
-        h1, h2, h3 { font-family: 'Crimson Pro', serif; }
+        h1, h2, h3, .display-font { font-family: 'Crimson Pro', serif; }
 
         body {
             background: var(--bg);
@@ -37,21 +35,20 @@
         ::-webkit-scrollbar-track { background: var(--surface); }
         ::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 4px; }
 
-        /* Animations */
         @keyframes fadeUp {
             from { opacity: 0; transform: translateY(16px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-12px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
         .animate-fade-up { animation: fadeUp 0.5s ease-out forwards; }
+        .animate-slide-in { animation: slideIn 0.4s ease-out forwards; }
         .patient-card { opacity: 0; animation: fadeUp 0.5s ease-out forwards; }
 
-        /* Form Elements */
-        .input-field { 
-            transition: all 0.2s ease; 
-            background: var(--surface); 
-        }
-        .input-field:focus { 
-            background: var(--card);
+        input:focus, select:focus, textarea:focus {
             outline: none;
             border-color: var(--accent);
             box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
@@ -67,34 +64,95 @@
         }
         .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        .arabic-text { font-family: 'Noto Sans Arabic', sans-serif; direction: rtl; text-align: right; }
+        .card-hover { transition: all 0.3s ease; }
+        .card-hover:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+        }
 
-        /* PDF Render Styles (Hidden from screen) */
-        #pdf-render-container { position: absolute; left: -9999px; top: 0; background: white; }
-        .pdf-page { width: 297mm; height: 210mm; padding: 10mm; background: white; box-sizing: border-box; page-break-after: always; }
-        .pdf-header { background: #0F766E; color: white; padding: 4mm; text-align: center; font-size: 14pt; font-weight: bold; margin-bottom: 5mm; border-radius: 3mm; }
-        .pdf-grid { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); gap: 4mm; height: calc(100% - 20mm); }
-        .pdf-cell { border: 1px solid #D1DEDD; border-radius: 3mm; padding: 3mm; background: #FFFFFF; display: flex; flex-direction: column; overflow: hidden; }
-        .pdf-cell-header { background: #F0F4F3; margin: -3mm -3mm 2mm -3mm; padding: 2mm 3mm; border-radius: 3mm 3mm 0 0; border-bottom: 1px solid #D1DEDD; }
-        .pdf-drug-item { margin-bottom: 2mm; padding-bottom: 2mm; border-bottom: 1px dashed #E8EFEE; }
+        .input-field {
+            transition: all 0.2s ease;
+            background: var(--surface);
+        }
+        .input-field:focus { background: var(--card); }
+
+        .arabic-text {
+            font-family: 'Noto Sans Arabic', sans-serif;
+            direction: rtl;
+            text-align: right;
+        }
+
+        #pdf-render-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: -1000;
+            opacity: 0.01;
+            pointer-events: none;
+            background: white;
+        }
+        
+        .pdf-page {
+            width: 210mm;
+            height: 297mm;
+            padding: 8mm;
+            background: white;
+            box-sizing: border-box;
+            page-break-after: always;
+        }
+
+        .pdf-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: repeat(3, 1fr);
+            gap: 3mm;
+            height: 100%;
+        }
+
+        .pdf-cell {
+            border: 2px solid #000000;
+            border-radius: 2mm;
+            padding: 3mm;
+            background: #FFFFFF;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .pdf-cell-header {
+            background: #FFFFFF;
+            margin: -3mm -3mm 2mm -3mm;
+            padding: 2mm 3mm;
+            border-radius: 2mm 2mm 0 0;
+            border-bottom: 2px solid #000000;
+        }
+
+        .pdf-drug-item {
+            margin-bottom: 1.5mm;
+            padding-bottom: 1.5mm;
+            border-bottom: 1px dashed #999;
+            color: #000000;
+        }
         .pdf-drug-item:last-child { border-bottom: none; }
-        .pdf-dopa-table { width: 100%; border-collapse: collapse; margin-top: 1mm; font-size: 8pt; text-align: center; }
-        .pdf-dopa-table th { background: #0F766E; color: white; padding: 1mm; }
-        .pdf-dopa-table td { border: 1px solid #D1DEDD; padding: 1mm; }
     </style>
 </head>
-
 <body class="min-h-screen">
     <header class="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-[var(--border)] shadow-sm">
         <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
             <div class="flex items-center gap-3">
                 <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-[var(--accent)] to-[var(--accent-light)] flex items-center justify-center shadow-md">
-                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                    </svg>
                 </div>
                 <div>
-                    <h1 class="text-xl font-bold text-[var(--fg)] tracking-tight">NICU Dose Calculator</h1>
+                    <h1 class="text-xl md:text-2xl font-bold text-[var(--fg)] tracking-tight">NICU Dose Calculator</h1>
                     <p class="text-xs text-[var(--muted)]">Baghdad Teaching Hospital</p>
                 </div>
+            </div>
+            <div id="patientCounter" class="hidden px-4 py-2 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/20">
+                <span class="text-[var(--accent)] font-semibold text-sm" id="counterText">0 Patients</span>
             </div>
         </div>
     </header>
@@ -103,8 +161,9 @@
         <section id="inputSection" class="bg-white rounded-2xl shadow-lg border border-[var(--border)] overflow-hidden animate-fade-up">
             <div class="bg-gradient-to-r from-[var(--accent)] to-[var(--accent-light)] px-6 py-4">
                 <h2 class="text-xl text-white font-semibold">Patient Information</h2>
+                <p class="text-white/75 text-sm mt-1">Enter details to calculate precise dosages</p>
             </div>
-            
+
             <div class="p-6 space-y-6">
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div class="space-y-2">
@@ -113,539 +172,738 @@
                     </div>
                     <div class="space-y-2">
                         <label class="block text-sm font-semibold text-[var(--fg)]">Weight (kg)</label>
-                        <input type="text" id="inputWeight" inputmode="decimal" class="input-field w-full px-4 py-3 rounded-xl border border-[var(--border)]" placeholder="e.g., 2.35">
+                        <input type="text" id="inputWeight" inputmode="decimal" oninput="this.value = this.value.replace(/[،,٫]/g, '.')" class="input-field w-full px-4 py-3 rounded-xl border border-[var(--border)]" placeholder="e.g., 2.35">
                     </div>
                     <div class="space-y-2">
-                        <label class="block text-sm font-semibold text-[var(--fg)]">Postnatal Age</label>
+                        <label class="block text-sm font-semibold text-[var(--fg)]">Postnatal Age (Days)</label>
                         <select id="inputAge" class="input-field w-full px-4 py-3 rounded-xl border border-[var(--border)]"></select>
                     </div>
                     <div class="space-y-2">
-                        <label class="block text-sm font-semibold text-[var(--fg)]">Gestational Age</label>
-                        <input type="number" id="inputGA" class="input-field w-full px-4 py-3 rounded-xl border border-[var(--border)]" placeholder="e.g., 34">
+                        <label class="block text-sm font-semibold text-[var(--fg)]">Gestational Age (weeks)</label>
+                        <input type="text" id="inputGA" oninput="this.value = this.value.replace(/[،,٫]/g, '.')" class="input-field w-full px-4 py-3 rounded-xl border border-[var(--border)]" placeholder="e.g., 34">
                     </div>
                 </div>
 
                 <div class="border-t border-[var(--border)] pt-6">
-                    <h3 class="text-lg font-semibold text-[var(--fg)] mb-4">Medication & Dosage</h3>
-                    
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-                        <div class="space-y-2">
+                    <div class="flex items-center gap-2 mb-4">
+                        <svg class="w-5 h-5 text-[var(--accent)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+                        </svg>
+                        <h3 class="text-lg font-semibold text-[var(--fg)]">Medication & Dosage</h3>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-4 items-start">
+                        <div class="space-y-2 lg:col-span-1">
                             <label class="block text-sm font-semibold text-[var(--fg)]">Drug</label>
                             <select id="selectDrug" class="input-field w-full px-4 py-3 rounded-xl border border-[var(--border)]"></select>
+                            
+                            <input type="text" id="inputCustomDrug" class="hidden input-field w-full px-4 py-3 rounded-xl border border-[var(--border)] mt-2" placeholder="اسم العلاج (مثال: Paracetamol)">
+                            <input type="text" id="inputCustomMethod" class="hidden input-field w-full px-4 py-3 rounded-xl border border-[var(--border)] mt-2" placeholder="طريقة الإعطاء (اختياري)">
                         </div>
-                        <div class="space-y-2">
-                            <label class="block text-sm font-semibold text-[var(--fg)]">Dose (Calculated)</label>
-                            <input type="text" id="inputDose" disabled class="input-field w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-gray-50" placeholder="Auto">
+                        <div class="space-y-2 lg:col-span-1">
+                            <label class="block text-sm font-semibold text-[var(--fg)]">Total Dose</label>
+                            <input type="text" id="inputDose" inputmode="decimal" oninput="this.value = this.value.replace(/[،,٫]/g, '.')" class="input-field w-full px-4 py-3 rounded-xl border border-[var(--border)]" placeholder="Auto or Manual">
                         </div>
-                        <div class="space-y-2">
+                        <div class="space-y-2 lg:col-span-1">
                             <label class="block text-sm font-semibold text-[var(--fg)]">Frequency</label>
                             <select id="inputFreq" class="input-field w-full px-4 py-3 rounded-xl border border-[var(--border)]">
-                                <option value="1">1 time daily</option>
-                                <option value="2">2 times daily</option>
-                                <option value="3">3 times daily</option>
-                                <option value="4">4 times daily</option>
-                                <option value="q36h">Every 36 hours</option>
-                                <option value="q48h">Every 48 hours</option>
+                                <option value="1">Once daily (x 1)</option>
+                                <option value="2">Twice daily (x 2)</option>
+                                <option value="3">Three times (x 3)</option>
+                                <option value="4">Four times (x 4)</option>
+                                <option value="q36hr">q36hr</option>
+                                <option value="q48hr">q48hr</option>
                             </select>
                         </div>
-                        <div class="space-y-2">
-                            <label class="block text-sm font-semibold text-[var(--fg)]">Action</label>
-                            <button id="btnAddDrug" class="btn-primary w-full py-3 rounded-xl text-white font-semibold flex items-center justify-center gap-2">
-                                Add Drug
+                        <div class="space-y-2 lg:col-span-1 hidden" id="targetVolContainer">
+                            <label class="block text-sm font-semibold text-[var(--accent)]">Target Volume (M3)</label>
+                            <select id="inputTargetVol" class="input-field w-full px-4 py-3 rounded-xl border border-[var(--accent)] bg-[var(--accent)]/5">
+                                <option value="10">10 ml (Multiplier x2)</option>
+                                <option value="5">5 ml (Multiplier x3)</option>
+                            </select>
+                        </div>
+                        <div class="space-y-2 lg:col-span-1 flex items-end h-full">
+                            <button id="btnAddDrug" class="btn-primary w-full py-3 rounded-xl text-white font-semibold flex items-center justify-center gap-2 h-[50px] mt-auto">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                                </svg>
+                                Add
                             </button>
                         </div>
                     </div>
 
-                    <div id="methodPreviewContainer" class="hidden bg-[var(--surface)] rounded-xl p-4 mb-4">
-                        <p class="text-xs font-semibold text-[var(--accent)] mb-1">Method of Administration</p>
-                        <p id="previewMethod" class="text-[var(--fg)] arabic-text text-sm">-</p>
-                    </div>
-
-                    <div id="dopamineTableContainer" class="hidden overflow-x-auto mb-4">
-                        <table class="w-full text-sm border border-[var(--border)] rounded-xl overflow-hidden">
-                            <thead class="bg-[var(--accent)] text-white">
-                                <tr>
-                                    <th class="p-2">Rate (ml/hr)</th>
-                                    <th class="p-2">Dose (mcg/kg/min)</th>
-                                </tr>
-                            </thead>
-                            <tbody id="dopamineTableBody" class="bg-white"></tbody>
-                        </table>
+                    <div id="methodPreviewContainer" class="hidden bg-[var(--surface)] border border-[var(--accent)]/20 rounded-xl p-4 mb-4">
+                        <div class="flex items-start gap-3">
+                            <div class="p-2 rounded-lg bg-[var(--accent)]/10">
+                                <svg class="w-5 h-5 text-[var(--accent)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                </svg>
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-xs font-semibold text-[var(--accent)] uppercase tracking-wide mb-1">Method of Administration</p>
+                                <p id="previewMethod" class="text-[var(--fg)] text-sm leading-relaxed font-bold" style="direction: ltr; text-align: left;">-</p>
+                                <p id="warningMessage" class="hidden text-sm text-[var(--danger)] font-bold mt-2 arabic-text"></p>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
+                <div id="dopamineTableContainer" class="hidden mt-6 overflow-x-auto">
+                    <h4 class="text-lg font-bold text-[var(--accent)] mb-3">Dopamine Infusion Table</h4>
+                    <table class="w-full text-sm border-collapse border border-[var(--border)] rounded-xl overflow-hidden">
+                        <thead class="bg-[var(--accent)] text-white">
+                            <tr>
+                                <th class="p-2 border border-[#0F766E]">Rate (ml/24hr)</th>
+                                <th class="p-2 border border-[#0F766E]">Dose (mcg/kg/min)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dopamineTableBody" class="bg-white"></tbody>
+                    </table>
+                </div>
+
                 <div id="drugsList" class="mt-4 space-y-2"></div>
-                <button id="btnSavePatient" class="btn-primary w-full py-4 rounded-xl text-white font-bold text-lg mt-4">
+
+                <button id="btnSavePatient" class="btn-primary w-full py-4 rounded-xl text-white font-bold text-lg mt-6">
                     Save Patient to Queue
                 </button>
             </div>
         </section>
 
         <section class="space-y-4">
-            <div class="flex flex-col sm:flex-row justify-between gap-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <h2 class="text-2xl font-bold text-[var(--fg)]">Patient Queue</h2>
                 <div class="flex items-center gap-4">
-                    <h2 class="text-2xl font-bold text-[var(--fg)]">Patient Queue</h2>
-                    <label class="flex items-center gap-2 cursor-pointer bg-white px-3 py-1.5 rounded-lg border border-[var(--border)]">
-                        <input type="checkbox" id="selectAllCheckbox" class="w-4 h-4 text-[var(--accent)]">
-                        <span class="text-sm font-medium">Select All</span>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" id="selectAllCheckbox" class="w-5 h-5 rounded border-[var(--border)] text-[var(--accent)] focus:ring-[var(--accent)]">
+                        <span class="text-sm font-medium text-[var(--fg)]">Select All</span>
                     </label>
                 </div>
-                <div class="flex gap-2 flex-wrap">
-                    <button id="btnPdf" disabled class="btn-primary px-5 py-2.5 rounded-xl text-white font-medium">Generate PDF</button>
-                    <button id="btnClearAll" class="px-5 py-2.5 rounded-xl border border-[var(--danger)]/30 text-[var(--danger)] font-medium hover:bg-[var(--danger)]/5">Clear All</button>
-                </div>
             </div>
-            
+
+            <div class="flex gap-2 flex-wrap">
+                <button id="btnPdf" disabled class="btn-primary px-5 py-2.5 rounded-xl text-white font-medium flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    Generate PDF
+                </button>
+                <button id="btnClearAll" class="px-5 py-2.5 rounded-xl border border-[var(--danger)]/30 text-[var(--danger)] font-medium hover:bg-[var(--danger)]/5 transition-colors flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                    Clear All
+                </button>
+            </div>
+
             <div id="patientQueue" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+
+            <div id="emptyState" class="text-center py-20 bg-white rounded-2xl border-2 border-dashed border-[var(--border)]">
+                <svg class="w-20 h-20 mx-auto text-[var(--muted)]/30 mb-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656 0.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                </svg>
+                <p class="text-[var(--muted)] text-lg font-medium">No patients in queue</p>
+                <p class="text-[var(--muted)]/60 text-sm mt-1">Add patient information above to begin</p>
+            </div>
         </section>
     </main>
 
     <div id="pdf-render-container"></div>
-    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 rounded-xl font-medium shadow-xl z-50 opacity-0 transition-all duration-300 pointer-events-none text-white">
+
+    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 rounded-xl font-medium shadow-xl z-50 opacity-0 translate-y-4 transition-all duration-300 pointer-events-none">
         <span id="toastMsg">Message</span>
     </div>
 
     <script>
-        /**
-         * 1. CONFIGURATION & STATE
-         * ----------------------------------------
-         */
+        const METHODS = {
+            1: '** / 5min',
+            2: '** + 5 ml GW / 10 min',
+            3: '** + ## ml GW >> ^^ ml /30 min',
+            4: '** + 3 ml GW / 3 min',
+            5: '** / 60 min',
+            6: 'over 24 hr',
+            7: 'Special Nutrients',
+            9: 'كل اثنين وخميس',
+            8: '** مع المغذي'
+        };
+
         const DRUG_CONFIG = [
-            { id: 1, name: 'Amoxicillin', dosePerKg: 50, factor: 100, method: 'تخفف مع 3 ml كلوكوز وتر وتعطى خلال 5 دقائق', defaultFreq: '2' },
-            { id: 2, name: 'Gentamicin', dosePerKg: 5, factor: 40, method: 'تخفف بـ 5 ml كلوكوز وتر ويعطى خلال 10 دقائق', defaultFreq: '1' },
-            { id: 3, name: 'Cefotaxime', dosePerKg: 50, factor: 100, method: 'تعطى خلال 5 دقائق', defaultFreq: '2' },
-            { id: 8, name: 'Meropenem', dosePerKg: 40, factor: 50, method: 'تضاف إلى 10 ml كلوكوز وتر، تفرغ 10 ml وتعطى 10 خلال 30 دقيقة', defaultFreq: '3' },
-            { id: 9, name: 'Dopamine', isDopamine: true, method: 'يبدأ بمعدل 5 mcg/kg/min ويزداد تدريجياً حسب الاستجابة', defaultFreq: '1' },
-            { id: 14, name: 'Phenobarbital Load', dosePerKg: 20, factor: 200, method: 'تضاف إلى 10 ml كلوكوز وتر، وتعطى خلال 30 دقيقة', defaultFreq: '1' },
-            { id: 15, name: 'Phenobarbital Maint.', dosePerKg: 2.5, factor: 200, method: 'يعطى عن طريق الفم أو الحقن الوريدي البطيء', defaultFreq: '1' },
-            { id: 16, name: 'Colistin', dosePerKg: 150000, factor: 500000, method: 'تعطى وريدياً بشكل بطيء', defaultFreq: '3' }
+            { id: 1, name: 'Amoxicillin', dosePerKg: 50, unit: 'mg', factor: 50, methodIndex: 1, 
+                getRecommendedFreq: (ga, pna) => {
+                    if (ga < 100) {
+                        return (pna < 8) ? '2' : '3';
+                    } 
+                    return '3';
+                },
+                warning_rule: (ga, age, freq) => {
+                    let recommended;
+                    if (ga < 100) {
+                        recommended = (age < 8) ? '2' : '3';
+                    } else {
+                        recommended = '3';
+                    }
+                    
+                    if (freq !== recommended) {
+                        let msg = (recommended === '3') ? 'ثلاث مرات يومياً (كل ٨ ساعات)' : 'مرتان يومياً (كل ١٢ ساعة)';
+                        return `⚠️ تنبيه: التردد المقترح بناءً على PNA هو ${msg}!`;
+                    }
+                    return null;
+                }
+            },
+            { id: 16, name: 'Amikacin', dosePerKg: 15, unit: 'mg', factor: 8, methodIndex: 2, defaultFreq: 1 },
+            { 
+                id: 2, name: 'Gentamicin', dosePerKg: 5, unit: 'mg', factor: 40, methodIndex: 2, 
+                getRecommendedFreq: (ga, pna) => {
+                    if (ga <= 29) {
+                        return (pna <= 14) ? 'q48hr' : 'q36hr';
+                    } else if (ga <= 34) {
+                        return 'q36hr';
+                    } else if (ga >= 35) {
+                        return '1'; 
+                    }
+                    return '1';
+                },
+                warning_rule: (ga, age, freq) => {
+                    let recommended;
+                    if (ga <= 30) {
+                        recommended = (age <= 14) ? 'q48hr' : 'q36hr';
+                    } else if (ga <= 34) {
+                        recommended = 'q36hr';
+                    } else if (ga >= 35) {
+                        recommended = '1';
+                    }
+                    
+                    if (recommended && freq !== recommended) {
+                        let msg = (recommended === '1') ? 'مرة يومياً (كل ٢٤ ساعة)' : recommended;
+                        return `⚠️ تنبيه: التردد المقترح بناءً على GA و PNA هو ${msg}!`;
+                    }
+                    return null;
+                }
+            },
+            { id: 3, name: 'Caffeine Loading', dosePerKg: 20, unit: 'mg', factor: 20, methodIndex: 3, defaultFreq: 1 },
+            { id: 4, name: 'Caffeine Maint.', dosePerKg: 10, unit: 'mg', factor: 20, methodIndex: 2, defaultFreq: 1 },
+            { id: 5, name: 'Colistin Loading', dosePerKg: 150000, unit: 'IU', factor: 500000, methodIndex: 2, defaultFreq: 1 },
+            { id: 6, name: 'Colistin Maint.', dosePerKg: 37500, unit: 'IU', factor: 500000, methodIndex: 2, defaultFreq: 2 },
+            { id: 7, name: 'Tigecycline', dosePerKg: 2, unit: 'mg', factor: 2, methodIndex: 3, defaultFreq: 2 },
+            { id: 8, name: 'Meropenem', dosePerKg: 40, unit: 'mg', factor: 50, methodIndex: 3,
+                getRecommendedFreq: (ga, pna) => {
+                    if (ga < 32) {
+                        return (pna < 14) ? '2' : '3';
+                    } 
+                    return '3';
+                },
+                warning_rule: (ga, age, freq) => {
+                    let recommended;
+                    if (ga < 32) {
+                        recommended = (age < 14) ? '2' : '3';
+                    } else {
+                        recommended = '3';
+                    }
+                    
+                    if (freq !== recommended) {
+                        let msg = (recommended === '3') ? 'ثلاث مرات يومياً (كل ٨ ساعات)' : 'مرتان يومياً (كل ١٢ ساعة)';
+                        return `⚠️ تنبيه: التردد المقترح بناءً على GA و PNA هو ${msg}!`;
+                    }
+                    return null;
+                }
+            },
+            { id: 9, name: 'Dopamine', isDopamine: true, defaultFreq: 1 },
+            { id: 10, name: 'Vit k', dosePerKg: 1, unit: 'mg', factor: 10, methodIndex: 4, defaultFreq: 1 },
+            { id: 11, name: 'Vancomycin', dosePerKg: 15, unit: 'mg', factor: 2, methodIndex: 5, 
+                getRecommendedFreq: (ga, pna) => {
+                    const weight = cleanInputNumber($('inputWeight').value);
+                    if (pna < 7) {
+                        if (weight < 1.2) return '1';
+                        if (weight <= 2) return '2';
+                        return '3';
+                    } else {
+                        // PNA >= 7 days
+                        if (weight < 1.2) return '1';
+                        return '3'; // تغطي كلاً من 1.2-2kg و >2kg
+                    }
+                },
+                warning_rule: (ga, pna, freq) => {
+                    const weight = cleanInputNumber($('inputWeight').value);
+                    let recommended;
+                    
+                    // تطبيق نفس منطق getRecommendedFreq للحصول على التوصية
+                    if (pna < 7) {
+                        if (weight < 1.2) recommended = '1';
+                        else if (weight <= 2) recommended = '2';
+                        else recommended = '3';
+                    } else {
+                        if (weight < 1.2) recommended = '1';
+                        else recommended = '3';
+                    }
+
+                    if (freq !== recommended) {
+                        let msg = '';
+                        if (recommended === '1') msg = 'مرة واحدة يومياً (كل ٢٤ ساعة)';
+                        else if (recommended === '2') msg = 'مرتان يومياً (كل ١٢ ساعة)';
+                        else if (recommended === '3') msg = 'ثلاث مرات يومياً (كل ٨ ساعات)';
+                        
+                        return `⚠️ تنبيه: التردد المقترح بناءً على الوزن وPNA هو ${msg}!`;
+                    }
+                    return null;
+                }
+            },
+            { id: 17, name: 'Dexmedetomidine + fluid', dosePerKg: 7.2, unit: 'mcg', factor: 100, methodIndex: 8, defaultFreq: 1 },
+            { id: 18, name: 'Dexmedetomidine Y-site', dosePerKg: 7.2, unit: 'mcg', factor: 100, methodIndex: 3, defaultFreq: 1 },
+            { id: 19, name: 'Midazolam + fluid', dosePerKg: 0.72, unit: 'mg', factor: 5, methodIndex: 8, defaultFreq: 1 },
+            { id: 20, name: 'Midazolam Y-site', dosePerKg: 0.72, unit: 'mg', factor: 5, methodIndex: 3, defaultFreq: 1 },
+            { id: 21, name: 'Fluconazol cap', dosePerKg: 4, unit: 'mg', methodIndex: 9, defaultFreq: 1},
+            { id: 12, name: 'TPN', methodIndex: 6, defaultFreq: 1, hideDetails: true },
+            { id: 13, name: '1/5 GS', methodIndex: 7, defaultFreq: 1, hideDetails: true, isNutrient: true },
+            { id: 14, name: '10% GW', methodIndex: 7, defaultFreq: 1, hideDetails: true, isNutrient: true },
+            { id: 15, name: '5% GW', methodIndex: 7, defaultFreq: 1, hideDetails: true, isNutrient: true, noPrep: true }
         ];
 
-        let state = {
-            patients: JSON.parse(localStorage.getItem('nicu_queue')) || [],
-            currentDrugs: [],
-            selectedIds: new Set(),
-            currentEditingId: null
+        const STORAGE_KEY = 'nicu_patient_queue';
+        let patients = [];
+        let currentDrugs = [];
+        let selectedPatientIds = new Set(); 
+
+        const $ = id => document.getElementById(id);
+
+        const cleanInputNumber = (str) => {
+            if (!str) return 0;
+            let cleaned = str.toString().replace(/[،,٫]/g, '.');
+            const arabicNumerals = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
+            arabicNumerals.forEach((num, i) => cleaned = cleaned.replace(new RegExp(num, 'g'), i));
+            cleaned = cleaned.replace(/[^0-9.]/g, '');
+            return parseFloat(cleaned) || 0;
         };
 
-        const getEl = (id) => document.getElementById(id);
+        const showToast = (message, type = 'success') => {
+            const colors = { success: 'bg-[#047857] text-white', error: 'bg-[#B91C1C] text-white', info: 'bg-[var(--fg)] text-white' };
+            const toast = $('toast');
+            $('toastMsg').textContent = message;
+            toast.className = `fixed bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 rounded-xl font-medium shadow-xl z-50 transition-all duration-300 ${colors[type]}`;
+            toast.style.opacity = '1';
+            toast.style.transform = 'translateX(-50%) translateY(0)';
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(-50%) translateY(16px)';
+            }, 3000);
+        };
 
-        /**
-         * 2. UTILITY FUNCTIONS
-         * ----------------------------------------
-         */
-        const utils = {
-            // Converts Arabic numbers and commas to standard floats
-            cleanWeightInput: (inputString) => {
-                if (!inputString) return 0;
-                let val = inputString.toString().replace(/،/g, '.');
-                const arabicNumbers = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
-                arabicNumbers.forEach((char, index) => {
-                    val = val.replace(new RegExp(char, 'g'), index);
-                });
-                return parseFloat(val.replace(/[^0-9.]/g, '')) || 0;
-            },
+        const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
 
-            showToast: (message, isError = false) => {
-                const toastEl = getEl('toast');
-                getEl('toastMsg').textContent = message;
-                toastEl.className = `fixed bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 rounded-xl font-medium shadow-xl z-50 transition-all duration-300 ${isError ? 'bg-red-600' : 'bg-teal-700'} text-white`;
-                toastEl.style.opacity = '1'; 
-                toastEl.style.transform = 'translate(-50%, 0)';
-                
-                setTimeout(() => { 
-                    toastEl.style.opacity = '0'; 
-                    toastEl.style.transform = 'translate(-50%, 16px)'; 
-                }, 3000);
+        const boldNumbersInText = (text) => {
+            if(!text) return '';
+            return text.toString().replace(/\d+(\.\d+)?/g, '<strong style="font-weight: 900;">$&</strong>');
+        };
+
+        const checkClinicalAlerts = (drug) => {
+            const ga = cleanInputNumber($('inputGA').value);
+            let ageVal = $('inputAge').value;
+            const age = ageVal === '>30' ? 31 : parseInt(ageVal) || 0; 
+            const freq = $('inputFreq').value;
+            
+            if (drug && drug.warning_rule) {
+                const alert = drug.warning_rule(ga, age, freq);
+                if (alert) { 
+                    $('warningMessage').textContent = alert; 
+                    $('warningMessage').classList.remove('hidden'); 
+                    return; 
+                }
             }
+            $('warningMessage').classList.add('hidden');
         };
 
-        /**
-         * 3. CORE BUSINESS LOGIC
-         * ----------------------------------------
-         */
-        const logic = {
-            calculateDrugDose: (drug, weight) => {
-                if (drug.isDopamine) {
-                    return { method: drug.method, doseText: 'Infusion' };
-                }
+        const generateMethodString = (drug, finalDoseMg) => {
+            if (drug.isDopamine) return '1 ml dopamin + 39 ml GW';
+            if (drug.isNutrient) {
+                if (drug.noPrep) return " ";
+                let totalVol = finalDoseMg;
+                let calcVol = totalVol;
+                let suffix = "";
+                if (totalVol > 160) { calcVol = totalVol / 2; suffix = " X2"; }
+                if (drug.name === '1/5 GS') return `(5% GW ${(calcVol * 0.8).toFixed(0)} + ${(calcVol * 0.2).toFixed(0)} ml NS)${suffix}`;
+                else if (drug.name === '10% GW') return `(5% GW ${(calcVol * 0.9).toFixed(0)} + ${(calcVol * 0.1).toFixed(0)} ml HT)${suffix}`;
+            }
+            if (!METHODS[drug.methodIndex]) return '-';
+            let drawn_volume_ml = finalDoseMg / drug.factor;
+            let methodStr = METHODS[drug.methodIndex];
+            let diluent_volume;
+            if (drug.methodIndex === 3) {
+                const targetVol = parseInt($('inputTargetVol').value);
+                if (targetVol === 10) { drawn_volume_ml *= 2; diluent_volume = 20 - drawn_volume_ml; methodStr = methodStr.replace('^^', '10'); }
+                else if (targetVol === 5) { drawn_volume_ml *= 3; diluent_volume = 15 - drawn_volume_ml; methodStr = methodStr.replace('^^', '5'); }
+            } else { diluent_volume = 20 - drawn_volume_ml; }
+            let display_volume = drawn_volume_ml;
+            let unitStr = ' ml';
+            if (drawn_volume_ml < 1) { display_volume = drawn_volume_ml * 100; unitStr = ' units'; }
+            let display_drawn_str = unitStr === ' units' ? Math.round(display_volume) : display_volume.toFixed(1);
+            methodStr = methodStr.replace('**', `${display_drawn_str}${unitStr}`);
+            if (methodStr.includes('##')) methodStr = methodStr.replace('##', diluent_volume.toFixed(0));
+            return methodStr;
+        };
 
-                let dose = drug.dosePerKg * weight;
-                let factor = drug.factor;
-                let methodStr = drug.method;
+        const handleDrugSelectionChange = () => {
+            const val = $('selectDrug').value;
+            const ga = cleanInputNumber($('inputGA').value);
+            let ageVal = $('inputAge').value;
+            const pna = ageVal === '>30' ? 31 : parseInt(ageVal) || 0;
 
-                // Handle specific condition: weight under 1 kg
-                if (weight < 1) {
-                    if (drug.doseUnder1Kg) dose = drug.doseUnder1Kg * weight;
-                    if (drug.factorUnder1Kg) factor = drug.factorUnder1Kg;
-                    if (drug.methodUnder1Kg) methodStr = drug.methodUnder1Kg;
-                }
-
-                // Calculate volume and determine ml vs unit
-                const volumeInMl = dose / factor;
-                let drawText = '';
-
-                if (volumeInMl < 1) {
-                    // Convert to insulin units if less than 1 ml
-                    const units = Math.round(volumeInMl * 100);
-                    drawText = `${units} unit`;
+            if (val === '') {
+                $('inputDose').value = ''; $('inputDose').disabled = false;
+                $('methodPreviewContainer').classList.add('hidden');
+                $('inputCustomDrug').classList.add('hidden');
+                $('inputCustomMethod').classList.add('hidden');
+                $('targetVolContainer').classList.add('hidden');
+                $('dopamineTableContainer').classList.add('hidden');
+                return;
+            }
+            if (val === 'other') {
+                $('inputCustomDrug').classList.remove('hidden');
+                $('inputCustomMethod').classList.remove('hidden');
+                $('inputDose').disabled = false; $('inputDose').placeholder = 'Manual Dose'; $('inputDose').value = '';
+                $('methodPreviewContainer').classList.add('hidden');
+                $('targetVolContainer').classList.add('hidden');
+                $('dopamineTableContainer').classList.add('hidden');
+                return;
+            }
+            $('inputCustomDrug').classList.add('hidden');
+            $('inputCustomMethod').classList.add('hidden');
+            const weight = cleanInputNumber($('inputWeight').value);
+            const drugId = parseInt(val);
+            const drug = DRUG_CONFIG.find(d => d.id === drugId);
+            if (!drug) return;
+            
+            $('targetVolContainer').classList.toggle('hidden', drug.methodIndex !== 3);
+            
+            if (drug.isDopamine) {
+                $('inputDose').value = ''; $('inputDose').placeholder = 'See table below'; $('inputDose').disabled = true;
+                $('dopamineTableContainer').classList.remove('hidden'); $('methodPreviewContainer').classList.add('hidden');
+                renderDopamineTable(weight); return;
+            }
+            
+            $('inputDose').disabled = false; $('inputDose').placeholder = 'Auto or Manual';
+            $('dopamineTableContainer').classList.add('hidden'); $('methodPreviewContainer').classList.remove('hidden');
+            
+            if (drug.isNutrient || drug.name === 'TPN') { $('inputDose').value = ''; $('inputDose').placeholder = 'Total Volume (ml)'; return; }
+            
+            if (weight > 0) {
+                if(drug.dosePerKg) { $('inputDose').value = (weight * drug.dosePerKg).toFixed(1); } else { $('inputDose').value = ''; }
+                
+                if (drug.getRecommendedFreq) {
+                    $('inputFreq').value = drug.getRecommendedFreq(ga, pna);
                 } else {
-                    drawText = `${volumeInMl.toFixed(2)} ml`;
-                }
-
-                // Formatting special cases (like Colistin UI vs mg)
-                const doseDisplay = drug.id === 16 ? `${dose.toLocaleString()} IU` : `${dose.toFixed(1)} mg`;
-                const finalMethod = `تسحب ${drawText} و${methodStr}`;
-                
-                return { method: finalMethod, doseText: doseDisplay };
-            },
-
-            generateDopamineTableRows: (weight, isForPDF = false) => {
-                let rows = '';
-                for (let dose = 5; dose <= 20; dose += 5) {
-                    const rate = ((dose * weight * 60) / 4000).toFixed(1);
-                    if (isForPDF) {
-                        rows += `<tr><td>${rate} ml/hr</td><td>${dose} mcg</td></tr>`;
-                    } else {
-                        rows += `<tr class="border-b"><td class="p-2 text-center text-teal-700 font-bold">${rate} ml/hr</td><td class="p-2 text-center">${dose} mcg</td></tr>`;
-                    }
-                }
-                return rows;
-            }
-        };
-
-        /**
-         * 4. UI RENDERING & UPDATES
-         * ----------------------------------------
-         */
-        const ui = {
-            updatePatientQueue: () => {
-                const queueContainer = getEl('patientQueue');
-                
-                queueContainer.innerHTML = state.patients.map((patient, index) => `
-                    <div class="patient-card bg-white rounded-xl shadow-sm border border-[var(--border)] relative" style="animation-delay: ${index * 50}ms">
-                        <div class="absolute top-3 left-3 z-10">
-                            <input type="checkbox" onchange="togglePatientSelection('${patient.id}')" ${state.selectedIds.has(patient.id) ? 'checked' : ''} class="w-5 h-5 accent-[var(--accent)]">
-                        </div>
-                        <div class="bg-teal-600 px-4 py-2 pl-10 text-white rounded-t-xl">
-                            <h3 class="font-bold truncate">${patient.name}</h3>
-                            <p class="text-xs opacity-90">${patient.weight}kg | Day ${patient.age} | ${patient.ga}w</p>
-                        </div>
-                        <div class="p-4 space-y-2 max-h-48 overflow-y-auto">
-                            ${patient.drugs.map(drug => `
-                                <div class="border-b pb-2 last:border-0">
-                                    <div class="flex justify-between font-bold text-sm">
-                                        <span>${drug.name} (${drug.freq})</span>
-                                        <span class="text-teal-700">${drug.doseText}</span>
-                                    </div>
-                                    <div class="text-xs text-gray-500 arabic-text">${drug.method}</div>
-                                </div>
-                            `).join('')}
-                        </div>
-                        <div class="p-3 flex gap-2 border-t">
-                            <button onclick="editPatientData('${patient.id}')" class="flex-1 py-1.5 text-sm rounded bg-teal-50 text-teal-700 font-medium">Edit</button>
-                            <button onclick="deletePatientRecord('${patient.id}')" class="flex-1 py-1.5 text-sm rounded bg-red-50 text-red-600 font-medium">Delete</button>
-                        </div>
-                    </div>
-                `).join('');
-                
-                // Update button states
-                getEl('btnPdf').disabled = state.selectedIds.size === 0;
-                getEl('selectAllCheckbox').checked = state.patients.length > 0 && state.selectedIds.size === state.patients.length;
-                
-                // Persist state
-                localStorage.setItem('nicu_queue', JSON.stringify(state.patients));
-            },
-
-            updateActiveDrugsList: () => {
-                getEl('drugsList').innerHTML = state.currentDrugs.map((drug, index) => `
-                    <div class="bg-gray-50 border rounded-lg p-3 flex justify-between items-start">
-                        <div>
-                            <div class="font-bold">${drug.name} <span class="text-xs bg-teal-100 text-teal-800 px-2 rounded">${drug.freq}</span></div>
-                            <div class="text-sm text-teal-700">${drug.doseText}</div>
-                            <div class="text-xs text-gray-600 arabic-text mt-1">${drug.method}</div>
-                        </div>
-                        <button onclick="removeDrugFromList(${index})" class="text-red-500 text-xl px-2 hover:bg-red-50 rounded">&times;</button>
-                    </div>
-                `).join('');
-            },
-
-            handleDrugSelectionChange: () => {
-                const weight = utils.cleanWeightInput(getEl('inputWeight').value);
-                const selectedDrug = DRUG_CONFIG.find(drug => drug.id == getEl('selectDrug').value);
-                
-                getEl('inputFreq').value = selectedDrug.defaultFreq;
-                
-                if (selectedDrug.isDopamine) {
-                    getEl('dopamineTableContainer').classList.remove('hidden');
-                    getEl('methodPreviewContainer').classList.add('hidden');
-                    getEl('inputDose').value = 'Infusion Table';
-                    
-                    if (weight > 0) {
-                        getEl('dopamineTableBody').innerHTML = logic.generateDopamineTableRows(weight, false);
-                    }
-                } else {
-                    getEl('dopamineTableContainer').classList.add('hidden');
-                    getEl('methodPreviewContainer').classList.remove('hidden');
-                    
-                    if (weight > 0) {
-                        const calculation = logic.calculateDrugDose(selectedDrug, weight);
-                        getEl('inputDose').value = calculation.doseText;
-                        getEl('previewMethod').textContent = calculation.method;
-                    }
-                }
-            }
-        };
-
-        /**
-         * 5. EVENT LISTENERS & GLOBAL ACTIONS
-         * ----------------------------------------
-         */
-        // Initialization
-        const initApp = () => {
-            getEl('inputAge').innerHTML = '<option value="">Select</option>' + Array.from({length:30}, (_,i) => `<option value="${i+1}">Day ${i+1}</option>`).join('');
-            getEl('selectDrug').innerHTML = DRUG_CONFIG.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
-            
-            ui.updatePatientQueue();
-            ui.handleDrugSelectionChange();
-        };
-
-        // Inputs Triggers
-        getEl('selectDrug').addEventListener('change', ui.handleDrugSelectionChange);
-        getEl('inputWeight').addEventListener('input', ui.handleDrugSelectionChange);
-
-        // Add Drug to Current Patient
-        getEl('btnAddDrug').addEventListener('click', () => {
-            const weight = utils.cleanWeightInput(getEl('inputWeight').value);
-            if (weight <= 0) return utils.showToast('Please enter a valid weight', true);
-            
-            const selectedDrug = DRUG_CONFIG.find(d => d.id == getEl('selectDrug').value);
-            const freqSelector = getEl('inputFreq');
-            const freqText = freqSelector.options[freqSelector.selectedIndex].text;
-            
-            let doseData = { method: selectedDrug.method, doseText: 'Infusion' };
-            if (!selectedDrug.isDopamine) {
-                doseData = logic.calculateDrugDose(selectedDrug, weight);
-            }
-
-            state.currentDrugs.push({ 
-                ...selectedDrug, 
-                doseText: doseData.doseText, 
-                method: doseData.method, 
-                freq: freqText 
-            });
-            
-            ui.updateActiveDrugsList();
-            utils.showToast(`${selectedDrug.name} added successfully`);
-        });
-
-        // Save Patient
-        getEl('btnSavePatient').addEventListener('click', () => {
-            const name = getEl('inputName').value.trim();
-            const weight = utils.cleanWeightInput(getEl('inputWeight').value);
-            
-            if (!name || weight <= 0 || state.currentDrugs.length === 0) {
-                return utils.showToast('Please complete all fields and add at least one drug', true);
-            }
-
-            state.patients.push({
-                id: state.currentEditingId || Date.now().toString(),
-                name, weight, age: getEl('inputAge').value, ga: getEl('inputGA').value,
-                drugs: [...state.currentDrugs]
-            });
-
-            // Reset Form
-            state.currentEditingId = null;
-            getEl('inputName').value = ''; 
-            getEl('inputWeight').value = ''; 
-            state.currentDrugs = []; 
-            
-            ui.updateActiveDrugsList(); 
-            ui.updatePatientQueue();
-            
-            utils.showToast('Patient Saved to Queue');
-            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-        });
-
-        // Global Window Functions (for inline HTML onclick handlers)
-        window.removeDrugFromList = (index) => {
-            state.currentDrugs.splice(index, 1);
-            ui.updateActiveDrugsList();
-        };
-
-        window.deletePatientRecord = (id) => {
-            state.patients = state.patients.filter(p => p.id !== id);
-            state.selectedIds.delete(id);
-            ui.updatePatientQueue();
-        };
-
-        window.togglePatientSelection = (id) => {
-            state.selectedIds.has(id) ? state.selectedIds.delete(id) : state.selectedIds.add(id);
-            ui.updatePatientQueue();
-        };
-
-        window.editPatientData = (id) => {
-            const patient = state.patients.find(p => p.id === id);
-            if(!patient) return;
-            
-            getEl('inputName').value = patient.name; 
-            getEl('inputWeight').value = patient.weight;
-            getEl('inputAge').value = patient.age; 
-            getEl('inputGA').value = patient.ga;
-            
-            state.currentDrugs = [...patient.drugs]; 
-            state.currentEditingId = id;
-            
-            // Remove from queue while editing
-            state.patients = state.patients.filter(p => p.id !== id); 
-            state.selectedIds.delete(id);
-            
-            ui.updateActiveDrugsList(); 
-            ui.updatePatientQueue();
-            
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            utils.showToast('Ready to edit patient data', false);
-        };
-
-        // Mass Actions
-        getEl('selectAllCheckbox').addEventListener('change', (e) => {
-            if (e.target.checked) {
-                state.patients.forEach(p => state.selectedIds.add(p.id));
-            } else {
-                state.selectedIds.clear();
-            }
-            ui.updatePatientQueue();
-        });
-
-        getEl('btnClearAll').addEventListener('click', () => { 
-            if(confirm('Are you sure you want to clear all patients from the queue?')) { 
-                state.patients = []; 
-                state.selectedIds.clear(); 
-                ui.updatePatientQueue(); 
-            }
-        });
-
-        /**
-         * 6. PDF GENERATOR LOGIC
-         * ----------------------------------------
-         */
-        getEl('btnPdf').addEventListener('click', async () => {
-            utils.showToast('Generating PDF...');
-            const toPrint = state.patients.filter(p => state.selectedIds.has(p.id));
-            const container = getEl('pdf-render-container'); 
-            container.innerHTML = '';
-            
-            let pages = []; 
-            let grid = Array(6).fill(null);
-            
-            // Grid Placement Logic
-            toPrint.forEach(patient => {
-                const needsMerge = patient.drugs.length >= 4 || patient.drugs.some(d => d.isDopamine);
-                let placed = false;
-                
-                // Try to place merged cell first (span 2 vertically)
-                if (needsMerge) {
-                    for (let i = 0; i < 3; i++) {
-                        if (!grid[i] && !grid[i+3]) { 
-                            grid[i] = { patient, span: 2 }; 
-                            grid[i+3] = 'blocked'; 
-                            placed = true; 
-                            break; 
-                        }
-                    }
+                    $('inputFreq').value = drug.defaultFreq || 1;
                 }
                 
-                // If not merged or merged placement failed, place normally
-                if (!placed) {
-                    for (let i = 0; i < 6; i++) {
-                        if (!grid[i]) { 
-                            grid[i] = { patient, span: 1 }; 
-                            placed = true; 
-                            break; 
-                        }
-                    }
-                }
-                
-                // If grid is full, create new page
-                if (!placed) {
-                    pages.push([...grid]); 
-                    grid = Array(6).fill(null);
-                    if (needsMerge) { 
-                        grid[0] = { patient, span: 2 }; 
-                        grid[3] = 'blocked'; 
-                    } else { 
-                        grid[0] = { patient, span: 1 }; 
-                    }
-                }
-            });
-            
-            // Push remaining grid to pages
-            if (grid.some(cell => cell !== null)) {
-                pages.push(grid);
+                checkClinicalAlerts(drug);
+                updateMethodPreview(drug, parseFloat($('inputDose').value) || 0);
             }
+        };
 
-            // PDF Construction Setup
-            const { jsPDF } = window.jspdf;
-            const pdfDocument = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+        const handleManualDoseChange = () => {
+            const val = $('selectDrug').value;
+            if (val === 'other' || val === '') return;
+            const drugId = parseInt(val);
+            const drug = DRUG_CONFIG.find(d => d.id === drugId);
+            const manualDose = cleanInputNumber($('inputDose').value);
+            if (drug && !drug.isDopamine) {
+                checkClinicalAlerts(drug);
+                updateMethodPreview(drug, manualDose);
+            }
+        };
 
-            // Render Pages
-            for (let i = 0; i < pages.length; i++) {
-                const pageDiv = document.createElement('div'); 
-                pageDiv.className = 'pdf-page';
-                pageDiv.innerHTML = `
-                    <div class="pdf-header">Baghdad Teaching Hospital | NICU Medical Record</div>
-                    <div class="pdf-grid" id="pg-${i}"></div>
-                `;
-                
-                pages[i].forEach((cell, index) => {
-                    const cellEl = document.createElement('div');
-                    cellEl.style.gridColumn = (index % 3) + 1; 
-                    cellEl.style.gridRow = Math.floor(index / 3) + 1;
-                    
-                    if (!cell || cell === 'blocked') {
-                        return pageDiv.querySelector('.pdf-grid').appendChild(cellEl);
-                    }
-                    
-                    if (cell.span === 2) {
-                        cellEl.style.gridRow = `${Math.floor(index / 3) + 1} / span 2`;
-                    }
-                    cellEl.className = 'pdf-cell';
-                    
-                    let drugsHtml = cell.patient.drugs.map(drug => `
-                        <div class="pdf-drug-item">
-                            <div style="display:flex; justify-content:space-between; font-weight:bold;">
-                                <span>${drug.name} <span style="font-weight:normal; font-size:8pt">(${drug.freq})</span></span>
-                                <span>${drug.doseText}</span>
+        const updateMethodPreview = (drug, dose) => {
+            $('previewMethod').textContent = generateMethodString(drug, dose);
+            $('methodPreviewContainer').classList.remove('hidden');
+        };
+
+        const renderDopamineTable = (weight) => {
+            const tbody = $('dopamineTableBody');
+            let rows = '';
+            for (let dose = 5; dose <= 20; dose += 5) {
+                const rate = ((dose * weight * 1440) / 4000).toFixed(0);
+                rows += `<tr>
+                    <td class="p-2 pb-3 text-center font-bold text-[var(--accent)] border border-[var(--border)]">${rate} ml/24hr</td>
+                    <td class="p-2 pb-3 text-center border border-[var(--border)]">${dose} mcg/kg/min</td>
+                </tr>`;
+            }
+            tbody.innerHTML = rows;
+        };
+
+        const saveToStorage = () => { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(patients)); } catch (e) {} };
+        
+        const renderQueue = () => {
+            $('patientQueue').innerHTML = patients.map(p => {
+                const isSelected = selectedPatientIds.has(p.id);
+                return `
+                <div class="patient-card bg-white rounded-2xl border border-[var(--border)] shadow-sm overflow-hidden card-hover">
+                    <div class="p-4 border-b border-[var(--border)] bg-[var(--surface)]/50 flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <input type="checkbox" ${isSelected ? 'checked' : ''} 
+                                onclick="togglePatientSelection('${p.id}')" 
+                                class="w-5 h-5 rounded border-[var(--border)] text-[var(--accent)] focus:ring-[var(--accent)]">
+                            <div>
+                                <h3 class="font-bold text-[var(--fg)]">${p.name}</h3>
+                                <p class="text-xs text-[var(--muted)]">${p.weight}kg | GA:${p.ga}w | Day ${p.age}</p>
                             </div>
-                            <div style="font-size:9pt; text-align:right; direction:rtl; font-family:'Noto Sans Arabic',sans-serif; color:#555;">${drug.method}</div>
-                            ${drug.isDopamine ? `<table class="pdf-dopa-table"><thead><tr><th>Rate</th><th>Dose</th></tr></thead><tbody>${logic.generateDopamineTableRows(cell.patient.weight, true)}</tbody></table>` : ''}
                         </div>
-                    `).join('');
+                        <div class="flex gap-1">
+                            <button onclick="editPatient('${p.id}')" class="p-2 hover:bg-[var(--accent)]/10 rounded-lg text-[var(--accent)] transition-colors">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                            </button>
+                            <button onclick="deletePatient('${p.id}')" class="p-2 hover:bg-red-50 rounded-lg text-[var(--danger)] transition-colors">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="p-4 space-y-3">
+                        ${p.drugs.map(d => `
+                            <div class="text-sm border-b border-dashed border-[var(--border)] last:border-0 pb-2">
+                                <div class="flex justify-between font-bold text-[var(--fg)]">
+                                    <span>${d.name}</span>
+                                    ${d.isNutrient ? `<span class="text-[var(--accent)]">${d.dose}ml / 24 hr</span>` : (d.hideDetails ? '' : `<span>${d.dose}${d.unit} ${d.freq}</span>`)}
+                                </div>
+                                <p class="text-xs text-[var(--muted)] mt-1" style="direction: ltr; text-align: left;">${d.method}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>`;
+            }).join('');
+            updateCounter();
+        };
 
-                    cellEl.innerHTML = `
-                        <div class="pdf-cell-header">
-                            <div style="font-weight:bold; color:#0F766E; font-size:12pt;">${cell.patient.name}</div>
-                            <div style="font-size:9pt; color:#666;">Wt: ${cell.patient.weight}kg | GA: ${cell.patient.ga}w | Day: ${cell.patient.age}</div>
+        const loadFromStorage = () => { try { const data = localStorage.getItem(STORAGE_KEY); if (data) { patients = JSON.parse(data); renderQueue(); } } catch (e) {} };
+
+        const populateDropdowns = () => {
+            const ageOpts = Array.from({ length: 30 }, (_, i) => `<option value="${i + 1}">Day ${i + 1}</option>`).join('');
+            $('inputAge').innerHTML = '<option value="">Select day</option>' + ageOpts + '<option value=">30">More than 30 days</option>';
+            let drugOpts = '<option value="">-- Select Drug --</option>';
+            drugOpts += DRUG_CONFIG.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+            drugOpts += '<option value="other">Other+ (علاج آخر)</option>';
+            $('selectDrug').innerHTML = drugOpts;
+        };
+
+        const updateCounter = () => {
+            const c = patients.length;
+            $('counterText').textContent = `${c} Patient${c !== 1 ? 's' : ''}`;
+            $('patientCounter').classList.toggle('hidden', c === 0);
+            $('btnPdf').disabled = c === 0;
+            $('emptyState').classList.toggle('hidden', c > 0);
+            const total = patients.length;
+            const selected = selectedPatientIds.size;
+            $('selectAllCheckbox').checked = total > 0 && total === selected;
+        };
+
+        const renderDrugsList = () => {
+            $('drugsList').innerHTML = currentDrugs.map((d, i) => `
+                <div class="animate-slide-in bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4 flex items-start justify-between">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-1">
+                            <p class="font-bold text-[var(--fg)]">${d.name}</p>
+                            ${d.isNutrient ? `<span class="px-2 py-0.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-xs font-semibold">${d.dose}ml / 24 hr</span>` : (d.hideDetails ? '' : `<span class="px-2 py-0.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-xs font-semibold">${d.dose}${d.unit} ${d.freq}</span>`)}
                         </div>
-                        <div style="flex:1; overflow:hidden;">${drugsHtml}</div>
-                    `;
-                    pageDiv.querySelector('.pdf-grid').appendChild(cellEl);
-                });
-                
-                container.appendChild(pageDiv);
-                
-                // Convert DOM to Image and add to PDF
-                const canvas = await html2canvas(pageDiv, { scale: 2 });
-                if (i > 0) pdfDocument.addPage();
-                pdfDocument.addImage(canvas.toDataURL('image/jpeg', 1.0), 'JPEG', 0, 0, 297, 210);
+                        <p class="text-sm text-[var(--fg)] leading-relaxed" style="direction: ltr; text-align: left;">${d.method}</p>
+                    </div>
+                    <button onclick="removeDrug(${i})" class="ml-3 p-2 hover:bg-red-100 rounded-lg group flex-shrink-0">
+                        <svg class="w-5 h-5 text-[var(--muted)] group-hover:text-[var(--danger)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>`).join('');
+        };
+
+        const addDrug = () => {
+            const weight = cleanInputNumber($('inputWeight').value);
+            if (!weight || weight <= 0) { showToast('Please enter weight', 'error'); return; }
+            const val = $('selectDrug').value;
+            if (!val) { showToast('Select a drug', 'error'); return; }
+            const freqVal = $('inputFreq').value;
+            let freqDisplay = freqVal === 'q36hr' ? 'q36hr' : freqVal === 'q48hr' ? 'q48hr' : `x ${freqVal}`;
+            let drugNameToCheck = '';
+            if (val === 'other') {
+                drugNameToCheck = $('inputCustomDrug').value.trim();
+                if (!drugNameToCheck) { showToast('Drug name missing', 'error'); return; }
+            } else {
+                const drug = DRUG_CONFIG.find(d => d.id === parseInt(val));
+                drugNameToCheck = drug.name;
             }
-            
-            pdfDocument.save('NICU_Records.pdf');
-            container.innerHTML = ''; // Cleanup
-        });
+            const isDuplicate = currentDrugs.some(d => d.name.trim().toLowerCase() === drugNameToCheck.toLowerCase());
+            if (isDuplicate) { showToast('هذا العلاج مضاف مسبقاً!', 'error'); return; }
+            if (val === 'other') {
+                const customName = $('inputCustomDrug').value.trim();
+                const customMethod = $('inputCustomMethod').value.trim() || 'Manual';
+                const dose = cleanInputNumber($('inputDose').value);
+                currentDrugs.push({ id: generateId(), drugId: 'other', name: customName, dose, unit: 'mg', freq: freqDisplay, method: customMethod, hideDetails: false, isNutrient: false });
+            } else {
+                const drug = DRUG_CONFIG.find(d => d.id === parseInt(val));
+                if (drug.isDopamine) {
+                    currentDrugs.push({ id: generateId(), drugId: drug.id, name: drug.name, dose: 'Infusion', unit: '', freq: '', method: '1 ml dopamin + 39 ml GW', hideDetails: false, isNutrient: false });
+                } else {
+                    const dose = cleanInputNumber($('inputDose').value);
+                    currentDrugs.push({ id: generateId(), drugId: drug.id, name: drug.name, dose, unit: drug.unit || '', freq: drug.hideDetails ? '' : freqDisplay, method: generateMethodString(drug, dose), hideDetails: drug.hideDetails || false, isNutrient: drug.isNutrient || false });
+                }
+            }
+            renderDrugsList(); showToast('Added');
+            $('selectDrug').value = ''; handleDrugSelectionChange();
+        };
 
-        // Bootstrap App
-        initApp();
+        window.removeDrug = (index) => { currentDrugs.splice(index, 1); renderDrugsList(); };
+
+        const savePatient = () => {
+            const name = $('inputName').value.trim(), weight = cleanInputNumber($('inputWeight').value);
+            if (!name || !weight || currentDrugs.length === 0) { showToast('Missing info', 'error'); return; }
+            patients.push({ id: generateId(), name, weight, age: $('inputAge').value, ga: $('inputGA').value, drugs: [...currentDrugs] });
+            saveToStorage(); renderQueue();
+            $('inputName').value = ''; $('inputWeight').value = ''; $('inputGA').value = ''; $('inputAge').value = '';
+            currentDrugs = []; renderDrugsList();
+            $('methodPreviewContainer').classList.add('hidden'); $('dopamineTableContainer').classList.add('hidden');
+            showToast('Patient saved');
+        };
+
+        window.deletePatient = (id) => { patients = patients.filter(p => p.id !== id); selectedPatientIds.delete(id); saveToStorage(); renderQueue(); };
+        window.editPatient = (id) => {
+            const p = patients.find(px => px.id === id); if (!p) return;
+            $('inputName').value = p.name; $('inputWeight').value = p.weight; $('inputAge').value = p.age; $('inputGA').value = p.ga;
+            currentDrugs = [...p.drugs]; renderDrugsList();
+            deletePatient(id); window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        window.togglePatientSelection = (id) => { 
+            if (selectedPatientIds.has(id)) selectedPatientIds.delete(id); else selectedPatientIds.add(id); updateCounter();
+        };
+
+        const toggleSelectAll = (e) => { 
+            if (e.target.checked) patients.forEach(p => selectedPatientIds.add(p.id)); else selectedPatientIds.clear(); renderQueue(); 
+        };
+
+        const generatePDF = async () => {
+            const selectedPatients = patients.filter(p => selectedPatientIds.has(p.id));
+            if (selectedPatients.length === 0) { showToast('No patients selected', 'error'); return; }
+            showToast('Generating...', 'info');
+            const container = $('pdf-render-container');
+            container.innerHTML = ''; 
+
+            let processedPatients = [];
+            selectedPatients.forEach(p => {
+                let remainingDrugs = [...p.drugs];
+                let chunks = [];
+                while(remainingDrugs.length > 0) {
+                    let chunk = [];
+                    let hasDopamineInChunk = false;
+                    for(let i = 0; i < remainingDrugs.length; i++) {
+                        if(remainingDrugs[i].name === 'Dopamine') hasDopamineInChunk = true;
+                        chunk.push(remainingDrugs[i]);
+                        let maxLimit = hasDopamineInChunk ? 15 : 20; 
+                        if(chunk.length === maxLimit || i === remainingDrugs.length - 1) {
+                            chunks.push(chunk);
+                            remainingDrugs = remainingDrugs.slice(i + 1);
+                            break;
+                        }
+                    }
+                }
+                chunks.forEach((chunk, index) => {
+                    processedPatients.push({ ...p, name: index === 0 ? p.name : p.name + ' (تابع)', drugs: chunk });
+                });
+            });
+
+            let pages = [], cells = Array(6).fill(null);
+            
+            const placePatient = (patient) => {
+                const hasDopamine = patient.drugs.some(d => d.name === 'Dopamine');
+                const nonDopCount = patient.drugs.filter(d => d.name !== 'Dopamine').length;
+                
+                let span = 1;
+                if (nonDopCount > 11 || (hasDopamine && nonDopCount > 8)) span = 3;
+                else if (nonDopCount > 5 || (hasDopamine && nonDopCount > 1)) span = 2;
+
+                for (let i = 0; i < 6; i++) {
+                    if (cells[i] === null) {
+                        if (span === 3) {
+                            if (i < 2 && cells[i] === null && cells[i+2] === null && cells[i+4] === null) {
+                                cells[i] = { patient, span: 3 }; cells[i+2] = 'blocked'; cells[i+4] = 'blocked'; return true;
+                            }
+                        } else if (span === 2) {
+                            if (i < 4 && cells[i] === null && cells[i+2] === null) {
+                                cells[i] = { patient, span: 2 }; cells[i+2] = 'blocked'; return true;
+                            }
+                        } else {
+                            cells[i] = { patient, span: 1 }; return true;
+                        }
+                    }
+                }
+                return false;
+            };
+
+            processedPatients.forEach(p => { if (!placePatient(p)) { pages.push([...cells]); cells = Array(6).fill(null); placePatient(p); } });
+            if (cells.some(c => c !== null)) pages.push([...cells]);
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+
+            for (let i = 0; i < pages.length; i++) {
+                const pageDiv = document.createElement('div');
+                pageDiv.className = 'pdf-page';
+                pageDiv.innerHTML = `<div class="pdf-grid"></div>`;
+                const grid = pageDiv.querySelector('.pdf-grid');
+                pages[i].forEach((cellData, index) => {
+                    if (!cellData || cellData === 'blocked') return; 
+                    const el = document.createElement('div');
+                    el.className = 'pdf-cell';
+                    const p = cellData.patient;
+                    if (cellData.span > 1) el.style.gridRow = `span ${cellData.span}`;
+                    
+                    el.innerHTML = `
+                        <div class="pdf-cell-header">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <div style="font-size:10pt; color:#000000; font-weight: bold;">${p.weight}kg | GA:${p.ga}w | D${p.age}</div>
+                                <div style="font-weight:900; color:#000000; direction:rtl;">${p.name}</div>
+                            </div>
+                        </div>
+                        <div style="flex:1;">
+                            ${p.drugs.map(d => `
+                                <div class="pdf-drug-item">
+                                    <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:10pt;">
+                                        <span>${d.name}</span>
+                                        ${d.isNutrient ? `<span>${d.dose}ml</span>` : (d.hideDetails ? '' : `<span>${d.dose}${d.unit} ${d.freq}</span>`)}
+                                    </div>
+                                    <div style="font-size:9.5pt; text-align:left; margin-top:1px;">${boldNumbersInText(d.method)}</div>
+                                    ${d.name === 'Dopamine' ? `
+                                        <table style="width:100%; margin-top:2mm; font-size:8.5pt; border-collapse:collapse; border: 1.5px solid #000; text-align:center;">
+                                            <tr style="background:#f0f0f0;">
+                                                <th style="border: 1px solid #000; padding: 4px;">Rate (24h)</th>
+                                                <th style="border: 1px solid #000; padding: 4px;">mcg/kg/min</th>
+                                            </tr>
+                                            ${[5,10,15,20].map(ds => `
+                                                <tr>
+                                                    <td style="border: 1px solid #000; padding: 3px; padding-bottom:6px; font-weight: bold;">${((ds*p.weight*1440)/4000).toFixed(0)} ml</td>
+                                                    <td style="border: 1px solid #000; padding: 3px; padding-bottom:6px;">${ds}</td>
+                                                </tr>`).join('')}
+                                        </table>` : ''}
+                                </div>`).join('')}
+                        </div>`;
+                    grid.appendChild(el);
+                });
+                container.appendChild(pageDiv);
+                await document.fonts.ready;
+                const canvas = await html2canvas(pageDiv, { scale: 2 });
+                doc.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, 210, 297);
+                if (i < pages.length - 1) doc.addPage();
+                container.removeChild(pageDiv);
+            }
+            doc.save('NICU_Portrait_Report.pdf'); showToast('Saved');
+        };
+
+        $('btnAddDrug').addEventListener('click', addDrug);
+        $('btnSavePatient').addEventListener('click', savePatient);
+        $('btnPdf').addEventListener('click', generatePDF);
+        $('btnClearAll').addEventListener('click', () => { if (confirm('Clear all?')) { patients = []; selectedPatientIds.clear(); saveToStorage(); renderQueue(); } });
+        $('selectAllCheckbox').addEventListener('change', toggleSelectAll);
+        
+        $('selectDrug').addEventListener('change', handleDrugSelectionChange);
+        $('inputWeight').addEventListener('input', handleDrugSelectionChange);
+        $('inputGA').addEventListener('input', handleDrugSelectionChange);
+        $('inputAge').addEventListener('change', handleDrugSelectionChange);
+        
+        $('inputDose').addEventListener('input', handleManualDoseChange);
+        $('inputFreq').addEventListener('change', handleManualDoseChange); 
+        $('inputTargetVol').addEventListener('change', handleManualDoseChange);
+        
+        populateDropdowns(); loadFromStorage();
     </script>
 </body>
 </html>
