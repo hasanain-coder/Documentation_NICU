@@ -228,11 +228,11 @@
                         <div class="lg:col-span-2 grid grid-cols-2 gap-2 hidden" id="addonContainer">
                             <div class="space-y-2">
                                 <label class="block text-sm font-semibold text-[var(--accent)]">Add-on (ml)</label>
-                                <input type="text" id="inputAddonVol" inputmode="decimal" oninput="this.value = this.value.replace(/[،,٫]/g, '.')" class="input-field w-full px-4 py-3 rounded-xl border border-[var(--border)]" placeholder="مثلاً: 2">
+                                <input type="text" id="inputAddonVol" inputmode="decimal" oninput="this.value = this.value.replace(/[،,٫]/g, '.')" class="input-field w-full px-4 py-3 rounded-xl border border-[var(--border)]" placeholder="مثلاً: 5">
                             </div>
                             <div class="space-y-2">
                                 <label class="block text-sm font-semibold text-[var(--accent)]">Add-on Type</label>
-                                <input type="text" id="inputAddonType" class="input-field w-full px-4 py-3 rounded-xl border border-[var(--border)]" placeholder="HT / KCL">
+                                <input type="text" id="inputAddonType" class="input-field w-full px-4 py-3 rounded-xl border border-[var(--border)]" placeholder="KCL / HT">
                             </div>
                         </div>
 
@@ -527,25 +527,34 @@
             
             if (drug.isNutrient) {
                 if (drug.noPrep) return " ";
-                let totalVol = finalDoseMg;
+                let totalFluid = finalDoseMg;
                 
-                // Logic for additions
+                // Additive logic
                 const addonVol = cleanInputNumber($('inputAddonVol').value);
-                const addonType = $('inputAddonType').value.trim();
+                const addonType = $('inputAddonType').value.trim() || 'Add-on';
 
-                let calcVol = totalVol;
-                let additiveText = "";
-
-                if (addonVol > 0) {
-                    calcVol = (totalVol + addonVol) / 2;
-                    additiveText = ` (${addonType || 'Additive'} ${addonVol}ml)`;
-                    return `(${calcVol.toFixed(1)} ml${additiveText}) X2`;
+                let calcFluid = totalFluid;
+                let calcAddon = addonVol;
+                let suffix = "";
+                
+                // Logic: If total (Fluid + Add-on) > 160, divide all by 2
+                if ((totalFluid + addonVol) > 160) {
+                    calcFluid = totalFluid / 2;
+                    calcAddon = addonVol / 2;
+                    suffix = " X2";
                 }
 
-                let suffix = "";
-                if (totalVol > 160) { calcVol = totalVol / 2; suffix = " X2"; }
-                if (drug.name === '1/5 GS') return `(5% GW ${(calcVol * 0.8).toFixed(0)} + ${(calcVol * 0.2).toFixed(0)} ml NS)${suffix}`;
-                else if (drug.name === '10% GW') return `(5% GW ${(calcVol * 0.9).toFixed(0)} + ${(calcVol * 0.1).toFixed(0)} ml HT)${suffix}`;
+                let additiveText = addonVol > 0 ? ` + ${calcAddon.toFixed(1)} ml ${addonType}` : "";
+
+                if (drug.name === '1/5 GS') {
+                    let gw = (calcFluid * 0.8).toFixed(1);
+                    let ns = (calcFluid * 0.2).toFixed(1);
+                    return `(5% GW ${gw} ml + ${ns} ml NS${additiveText})${suffix}`;
+                } else if (drug.name === '10% GW') {
+                    let gw = (calcFluid * 0.9).toFixed(1);
+                    let ht = (calcFluid * 0.1).toFixed(1);
+                    return `(5% GW ${gw} ml + ${ht} ml HT${additiveText})${suffix}`;
+                }
             }
 
             if (!METHODS[drug.methodIndex]) return '-';
@@ -608,13 +617,11 @@
             const drugId = parseInt(val);
             const drug = DRUG_CONFIG.find(d => d.id === drugId);
 
-            // TPN logic
             if (drug && drug.name === 'TPN') {
                 $('totalDoseContainer').classList.add('hidden');
                 $('freqContainer').classList.add('hidden');
             }
 
-            // Nutrients logic for Additives
             if (drug && drug.isNutrient && !drug.noPrep) {
                 $('addonContainer').classList.remove('hidden');
             }
@@ -689,7 +696,6 @@
         const renderDopamineTable = (weight) => {
             const tbody = $('dopamineTableBody');
             let rows = '';
-            // New Dopamine doses: 2, 5, 7, 10
             const doses = [2, 5, 7, 10];
             doses.forEach(dose => {
                 const rate = ((dose * weight * 1440) / 1000).toFixed(0);
