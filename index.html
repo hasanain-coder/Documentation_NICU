@@ -618,7 +618,7 @@
             const tbody = $('dopamineTableBody');
             let rows = '';
             for (let dose = 5; dose <= 20; dose += 5) {
-                const rate = ((dose * weight * 1440) / 4000).toFixed(0);
+                const rate = ((dose * weight * 1440) / 1000).toFixed(0);
                 rows += `<tr>
                     <td class="p-2 pb-3 text-center font-bold text-[var(--accent)] border border-[var(--border)]">${rate} ml/24hr</td>
                     <td class="p-2 pb-3 text-center border border-[var(--border)]">${dose} mcg/kg/min</td>
@@ -870,7 +870,7 @@
                                             </tr>
                                             ${[5,10,15,20].map(ds => `
                                                 <tr>
-                                                    <td style="border: 1px solid #000; padding: 3px; padding-bottom:6px; font-weight: bold;">${((ds*p.weight*1440)/4000).toFixed(0)} ml</td>
+                                                    <td style="border: 1px solid #000; padding: 3px; padding-bottom:6px; font-weight: bold;">${((ds*p.weight*1440)/1000).toFixed(0)} ml</td>
                                                     <td style="border: 1px solid #000; padding: 3px; padding-bottom:6px;">${ds}</td>
                                                 </tr>`).join('')}
                                         </table>` : ''}
