@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Arabic:wght@400;600;800&family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg: #F0F4F3;
@@ -21,7 +21,13 @@
             --surface: #E8EFEE;
         }
 
-        * { font-family: 'Inter', 'Noto Sans Arabic', sans-serif; }
+        /* تحسين معالجة النصوص العربية لمنع التقطيع */
+        * { 
+            font-family: 'Inter', 'Cairo', 'Noto Sans Arabic', sans-serif; 
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+        }
+        
         h1, h2, h3, .display-font { font-family: 'Crimson Pro', serif; }
 
         body {
@@ -77,9 +83,11 @@
         .input-field:focus { background: var(--card); }
 
         .arabic-text {
-            font-family: 'Noto Sans Arabic', sans-serif;
+            font-family: 'Cairo', 'Noto Sans Arabic', sans-serif;
             direction: rtl;
             text-align: right;
+            unicode-bidi: isolate;
+            font-variant-ligatures: common-ligatures;
         }
 
         #pdf-render-container {
@@ -87,7 +95,7 @@
             top: 0;
             left: 0;
             z-index: -1000;
-            opacity: 0.01;
+            opacity: 0;
             pointer-events: none;
             background: white;
         }
@@ -867,6 +875,7 @@
             showToast('Generating...', 'info');
             const container = $('pdf-render-container');
             container.innerHTML = ''; 
+            container.style.opacity = '1'; // تفعيل الرؤية للحظة لتحسين الرندر
 
             let processedPatients = [];
             selectedPatients.forEach(p => {
@@ -937,7 +946,7 @@
                         <div class="pdf-cell-header">
                             <div style="display:flex; justify-content:space-between; align-items:center;">
                                 <div style="font-size:10pt; color:#000000; font-weight: bold;">${p.weight}kg | GA:${p.ga}w | D${p.age}</div>
-                                <div style="font-weight:900; color:#000000; direction:rtl;">${p.name}</div>
+                                <div style="font-weight:900; color:#000000; direction:rtl; font-family:'Cairo'">${p.name}</div>
                             </div>
                         </div>
                         <div style="flex:1;">
@@ -947,7 +956,7 @@
                                         <span>${d.name}</span>
                                         ${d.isNutrient ? `<span>${d.dose}ml</span>` : (d.hideDetails ? '' : `<span>${d.dose}${d.unit} ${d.freq}</span>`)}
                                     </div>
-                                    ${d.alert ? `<div style="color:red; font-weight:bold; font-size:8.5pt; text-align:right; direction:rtl; margin-top:1px;">${d.alert}</div>` : ''}
+                                    ${d.alert ? `<div class="arabic-text" style="color:red; font-weight:bold; font-size:8.5pt; text-align:right; margin-top:1px;">${d.alert}</div>` : ''}
                                     <div style="font-size:9.5pt; text-align:left; margin-top:1px;">${boldNumbersInText(d.method)}</div>
                                     ${d.isDopamine ? `
                                         <table style="width:100%; margin-top:2mm; font-size:8.5pt; border-collapse:collapse; border: 1.5px solid #000; text-align:center;">
@@ -965,14 +974,29 @@
                         </div>`;
                     grid.appendChild(el);
                 });
+                
                 container.appendChild(pageDiv);
+                
+                // انتظار تحميل الخطوط العربية بالكامل قبل التقاط الصورة
                 await document.fonts.ready;
-                const canvas = await html2canvas(pageDiv, { scale: 2 });
-                doc.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, 210, 297);
+                // إضافة تأخير بسيط (100ms) لضمان استقرار الـ RTL Shaping
+                await new Promise(r => setTimeout(r, 150));
+
+                const canvas = await html2canvas(pageDiv, { 
+                    scale: 2.5, // دقة أعلى لضمان وضوح الحروف
+                    useCORS: true,
+                    logging: false,
+                    backgroundColor: '#ffffff'
+                });
+                
+                doc.addImage(canvas.toDataURL('image/jpeg', 0.98), 'JPEG', 0, 0, 210, 297);
                 if (i < pages.length - 1) doc.addPage();
                 container.removeChild(pageDiv);
             }
-            doc.save('NICU_Portrait_Report.pdf'); showToast('Saved');
+            
+            doc.save('NICU_Report.pdf'); 
+            container.style.opacity = '0';
+            showToast('PDF Generated Successfully');
         };
 
         $('btnAddDrug').addEventListener('click', addDrug);
