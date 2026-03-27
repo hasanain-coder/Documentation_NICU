@@ -347,7 +347,6 @@
             9: 'كل اثنين وخميس',
             8: '** مع المغذي',
             10: '** + ## ml GW >> ^^ ml /24 hr',
-            // تم تعديل طريقة كتابة "تبخير" لضمان عدم التقطيع في PDF
             11: ' ** + 3ml NS / 15 min <span class="arabic-text" style="display:inline-block; direction:rtl;">تبخير</span>'
         };
 
@@ -409,7 +408,8 @@
             { id: 5, name: 'Colistin Loading', dosePerKg: 150000, unit: 'IU', factor: 500000, methodIndex: 2, defaultFreq: 1 },
             { id: 6, name: 'Colistin Maint.', dosePerKg: 37500, unit: 'IU', factor: 500000, methodIndex: 2, defaultFreq: 2 },
             { id: 24, name: 'Colistin neb.', dosePerKg: 5, unit: 'mg', factor: 16.667, methodIndex: 11, defaultFreq: 2, alert: 'مهم: يعطى فنتلوين تبخير قبله ب١٠ دقائق' },
-            { id: 25, name: 'Decadron amp', dosePerKg: 0.075, unit: 'mg', factor: 0.4, methodIndex: 2, defaultFreq: 2, alert: 'مهم: تخفف الامبولة الى ٢٠ مل مع NS قبل الاعطاء' },
+            { id: 25, name: 'Decadron DART', dosePerKg: 0.075, unit: 'mg', factor: 0.4, methodIndex: 2, defaultFreq: 2, alert: 'مهم: تخفف الامبولة الى ٢٠ مل مع NS قبل الاعطاء' },
+            { id: 28, name: 'Decadron amp', dosePerKg: 0.25, unit: 'mg', factor: 0.4, methodIndex: 2, defaultFreq: 2, alert: 'مهم: تخفف الامبولة الى ٢٠ مل مع NS قبل الاعطاء' },
             { id: 7, name: 'Tigecycline', dosePerKg: 2, unit: 'mg', factor: 2, methodIndex: 3, defaultFreq: 2 },
             { id: 8, name: 'Meropenem', dosePerKg: 40, unit: 'mg', factor: 50, methodIndex: 3,
                 getRecommendedFreq: (ga, pna) => {
@@ -474,6 +474,8 @@
             { id: 18, name: 'Dexmedetomidine Y-site', dosePerKg: 7.2, unit: 'mcg', factor: 100, methodIndex: 10, defaultFreq: 1 },
             { id: 19, name: 'Midazolam + fluid', dosePerKg: 0.72, unit: 'mg', factor: 5, methodIndex: 8, defaultFreq: 1 },
             { id: 20, name: 'Midazolam Y-site', dosePerKg: 0.72, unit: 'mg', factor: 5, methodIndex: 10, defaultFreq: 1 },
+            { id: 26, name: 'Phenobarbital loading', dosePerKg: 20, unit: 'mg', factor: 10, methodIndex: 3, defaultFreq: 1, alert: 'مهم: تخفف الامبولة الى ٢٠ مل مع NS قبل الاعطاء' },
+            { id: 27, name: 'Phenobarbital Maint.', dosePerKg: 2.5, unit: 'mg', factor: 10, methodIndex: 3, defaultFreq: 2, alert: 'مهم: تخفف الامبولة الى ٢٠ مل مع NS قبل الاعطاء' },
             { id: 21, name: 'Fluconazol prophylactic', dosePerKg: 4, unit: 'mg', methodIndex: 9, defaultFreq: 1},
             { id: 12, name: 'TPN', methodIndex: 6, defaultFreq: 1, hideDetails: true },
             { id: 13, name: '1/5 GS', methodIndex: 7, defaultFreq: 1, hideDetails: true, isNutrient: true },
