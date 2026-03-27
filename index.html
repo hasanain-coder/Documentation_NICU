@@ -347,7 +347,8 @@
             9: 'كل اثنين وخميس',
             8: '** مع المغذي',
             10: '** + ## ml GW >> ^^ ml /24 hr',
-            11: ' ** + 3ml NS / 15 min تبخير'
+            // تم تعديل طريقة كتابة "تبخير" لضمان عدم التقطيع في PDF
+            11: ' ** + 3ml NS / 15 min <span class="arabic-text" style="display:inline-block; direction:rtl;">تبخير</span>'
         };
 
         const DRUG_CONFIG = [
@@ -697,7 +698,8 @@
         };
 
         const updateMethodPreview = (drug, dose) => {
-            $('previewMethod').textContent = generateMethodString(drug, dose);
+            // تم التغيير لـ innerHTML لقبول كود الـ span الجديد
+            $('previewMethod').innerHTML = generateMethodString(drug, dose);
             $('methodPreviewContainer').classList.remove('hidden');
         };
 
@@ -875,7 +877,7 @@
             showToast('Generating...', 'info');
             const container = $('pdf-render-container');
             container.innerHTML = ''; 
-            container.style.opacity = '1'; // تفعيل الرؤية للحظة لتحسين الرندر
+            container.style.opacity = '1'; 
 
             let processedPatients = [];
             selectedPatients.forEach(p => {
@@ -977,13 +979,11 @@
                 
                 container.appendChild(pageDiv);
                 
-                // انتظار تحميل الخطوط العربية بالكامل قبل التقاط الصورة
                 await document.fonts.ready;
-                // إضافة تأخير بسيط (100ms) لضمان استقرار الـ RTL Shaping
                 await new Promise(r => setTimeout(r, 150));
 
                 const canvas = await html2canvas(pageDiv, { 
-                    scale: 2.5, // دقة أعلى لضمان وضوح الحروف
+                    scale: 2.5, 
                     useCORS: true,
                     logging: false,
                     backgroundColor: '#ffffff'
