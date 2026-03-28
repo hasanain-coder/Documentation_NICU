@@ -352,7 +352,8 @@
             9: 'كل اثنين وخميس',
             8: '** مع المغذي',
             10: '** + ## ml GW >> ^^ ml /24 hr',
-            11: ' ** + 3ml NS / 15 min <span class="arabic-text" style="display:inline-block; direction:rtl;">تبخير</span>'
+            11: ' ** + 3ml NS / 15 min <span class="arabic-text" style="display:inline-block; direction:rtl;">تبخير</span>',
+                        12: 'تحل الكبسولة ب ٢ سي سي كلوكوز وتر ثم يدفع عن طريق ال OG ثم يدفع ٢ سي سي كلوكوز وتر عن طريق ال OG'
         };
 
         const DRUG_CONFIG = [
@@ -482,6 +483,7 @@
             { id: 26, name: 'Phenobarbital loading', dosePerKg: 20, unit: 'mg', factor: 10, methodIndex: 3, defaultFreq: 1, alert: 'مهم: تخفف الامبولة الى ٢٠ مل مع NS قبل الاعطاء' },
             { id: 27, name: 'Phenobarbital Maint.', dosePerKg: 2.5, unit: 'mg', factor: 10, methodIndex: 3, defaultFreq: 2, alert: 'مهم: تخفف الامبولة الى ٢٠ مل مع NS قبل الاعطاء' },
             { id: 21, name: 'Fluconazol prophylactic', dosePerKg: 4, unit: 'mg', methodIndex: 9, defaultFreq: 1},
+            { id: 29, name: 'Sildenafil cap', dosePerKg: 1, unit: 'mg', methodIndex: 12, defaultFreq: 3},
             { id: 12, name: 'TPN', methodIndex: 6, defaultFreq: 1, hideDetails: true },
             { id: 13, name: '1/5 GS', methodIndex: 7, defaultFreq: 1, hideDetails: true, isNutrient: true },
             { id: 14, name: '10% GW', methodIndex: 7, defaultFreq: 1, hideDetails: true, isNutrient: true },
@@ -494,7 +496,7 @@
             { name: 'Sedation', ids: [9, 17, 18, 19, 20, 22, 23, 26, 27] },
             { name: 'Miscellaneous', ids: [3, 4, 10, 25, 28] },
             { name: 'Fluids', ids: [12, 13, 14, 15] },
-            { name: 'Oral capsules', ids: [21] },
+            { name: 'Oral capsules', ids: [21, 29] },
             { name: 'Other+', ids: ['other'] }
         ];
 
