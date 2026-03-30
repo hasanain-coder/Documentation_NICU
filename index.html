@@ -938,11 +938,12 @@
                 let chunks = [];
                 while(remainingDrugs.length > 0) {
                     let chunk = [];
-                    let hasDopamineInChunk = false;
+                    let hasDopamineTableInChunk = false;
                     for(let i = 0; i < remainingDrugs.length; i++) {
-                        if(remainingDrugs[i].isDopamine) hasDopamineInChunk = true;
+                        // تعديل: فحص ID رقم 9 بدلاً من الكلمة
+                        if(remainingDrugs[i].drugId === 9) hasDopamineTableInChunk = true;
                         chunk.push(remainingDrugs[i]);
-                        let maxLimit = hasDopamineInChunk ? 15 : 20; 
+                        let maxLimit = hasDopamineTableInChunk ? 15 : 20; 
                         if(chunk.length === maxLimit || i === remainingDrugs.length - 1) {
                             chunks.push(chunk);
                             remainingDrugs = remainingDrugs.slice(i + 1);
@@ -957,11 +958,12 @@
 
             let pages = [], cells = Array(6).fill(null);
             const placePatient = (patient) => {
-                const hasDopamine = patient.drugs.some(d => d.isDopamine);
-                const nonDopCount = patient.drugs.filter(d => !d.isDopamine).length;
+                // تعديل: فحص ID رقم 9 حصراً
+                const hasDopTable = patient.drugs.some(d => d.drugId === 9);
+                const nonDopCount = patient.drugs.filter(d => d.drugId !== 9).length;
                 let span = 1;
-                if (nonDopCount > 11 || (hasDopamine && nonDopCount > 8)) span = 3;
-                else if (nonDopCount > 5 || (hasDopamine && nonDopCount > 1)) span = 2;
+                if (nonDopCount > 11 || (hasDopTable && nonDopCount > 8)) span = 3;
+                else if (nonDopCount > 5 || (hasDopTable && nonDopCount > 1)) span = 2;
                 for (let i = 0; i < 6; i++) {
                     if (cells[i] === null) {
                         if (span === 3) {
@@ -1013,7 +1015,7 @@
                                     </div>
                                     ${d.alert ? `<div class="arabic-text" style="color:red; font-weight:bold; font-size:8.5pt; text-align:right; margin-top:1px;">${d.alert}</div>` : ''}
                                     <div style="font-size:9.5pt; text-align:left; margin-top:1px;">${boldNumbersInText(d.method)}</div>
-                                    ${d.isDopamine ? `
+                                    ${d.drugId === 9 ? `
                                         <table style="width:100%; margin-top:2mm; font-size:8.5pt; border-collapse:collapse; border: 1.5px solid #000; text-align:center;">
                                             <tr style="background:#f0f0f0;">
                                                 <th style="border: 1px solid #000; padding: 4px;">Rate ml/24h</th>
