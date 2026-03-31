@@ -1,4 +1,4 @@
-تعديلك خطا<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en" dir="ltr">
 <head>
     <meta charset="UTF-8">
@@ -447,8 +447,8 @@
                 }
             },
             { id: 9, name: 'Dopamine syringe pump', isDopamine: true, defaultFreq: 1 },
-            { id: 22, name: 'Dopamine + fluid', dosePerKg: 7200, unit: 'mcg', factor: 40, methodIndex: 8, defaultFreq: 1, isDopamine: true },
-            { id: 23, name: 'Dopamine Y-site', dosePerKg: 7200, unit: 'mcg', factor: 40, methodIndex: 10, defaultFreq: 1, isDopamine: true },
+            { id: 22, name: 'Dopamine + fluid', dosePerKg: 7200, unit: 'mg', factor: 40, methodIndex: 8, defaultFreq: 1, isDopamine: true },
+            { id: 23, name: 'Dopamine Y-site', dosePerKg: 7200, unit: 'mg', factor: 40, methodIndex: 10, defaultFreq: 1, isDopamine: true },
             { id: 10, name: 'Vit k', dosePerKg: 1, unit: 'mg', factor: 10, methodIndex: 4, defaultFreq: 1 },
             { id: 11, name: 'Vancomycin', dosePerKg: 15, unit: 'mg', factor: 2, methodIndex: 5, 
                 getRecommendedFreq: (ga, pna) => {
@@ -742,7 +742,7 @@
                     if(divisor === 1440) calcDose = (weight * defaultDoseKg * 1440) / 1000;
                     else calcDose = (weight * defaultDoseKg) / 24;
 
-                    $('inputDose').value = calcDose.toFixed(4);
+                    $('inputDose').value = calcDose.toFixed(1);
                 }
             } else if (drug.id === 10) { 
                 $('inputDose').value = 1;
@@ -782,7 +782,7 @@
                     } else {
                         calcDose = (weight * doseKg) / 24; // Sedation logic
                     }
-                    $('inputDose').value = calcDose.toFixed(4);
+                    $('inputDose').value = calcDose.toFixed(1);
                 }
             } else if (source === 'totalDose' && [17, 18, 19, 20, 22, 23].includes(drugId)) {
                 const totalDose = cleanInputNumber($('inputDose').value);
