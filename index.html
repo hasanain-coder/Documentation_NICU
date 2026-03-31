@@ -1,7 +1,4 @@
-تعديلك خطا
-ردت الجرعة الي تتقسم هي dose/kg وليس total dose
-والخانات بعدها مو متجاورة
-<!DOCTYPE html>
+تعديلك خطا<!DOCTYPE html>
 <html lang="en" dir="ltr">
 <head>
     <meta charset="UTF-8">
@@ -218,8 +215,8 @@
                         </div>
 
                         <div class="space-y-2 lg:col-span-1 hidden" id="dosePerKgContainer">
-                            <label class="block text-sm font-semibold text-[var(--fg)]">Dose/kg</label>
-                            <input type="text" id="inputDosePerKg" inputmode="decimal" oninput="this.value = this.value.replace(/[،,٫]/g, '.')" class="input-field w-full px-4 py-3 rounded-xl border border-[var(--border)]" placeholder="Dose/kg">
+                            <label class="block text-sm font-semibold text-[var(--accent)]">Dose/kg</label>
+                            <input type="text" id="inputDosePerKg" inputmode="decimal" oninput="this.value = this.value.replace(/[،,٫]/g, '.')" class="input-field w-full px-4 py-3 rounded-xl border border-[var(--accent)]/30 font-bold" placeholder="Dose/kg">
                         </div>
 
                         <div class="space-y-2 lg:col-span-1" id="totalDoseContainer">
@@ -450,8 +447,8 @@
                 }
             },
             { id: 9, name: 'Dopamine syringe pump', isDopamine: true, defaultFreq: 1 },
-            { id: 22, name: 'Dopamine + fluid', dosePerKg: 7.2, unit: 'mcg', factor: 40, methodIndex: 8, defaultFreq: 1, isDopamine: true },
-            { id: 23, name: 'Dopamine Y-site', dosePerKg: 7.2, unit: 'mcg', factor: 40, methodIndex: 10, defaultFreq: 1, isDopamine: true },
+            { id: 22, name: 'Dopamine + fluid', dosePerKg: 7200, unit: 'mcg', factor: 40, methodIndex: 8, defaultFreq: 1, isDopamine: true },
+            { id: 23, name: 'Dopamine Y-site', dosePerKg: 7200, unit: 'mcg', factor: 40, methodIndex: 10, defaultFreq: 1, isDopamine: true },
             { id: 10, name: 'Vit k', dosePerKg: 1, unit: 'mg', factor: 10, methodIndex: 4, defaultFreq: 1 },
             { id: 11, name: 'Vancomycin', dosePerKg: 15, unit: 'mg', factor: 2, methodIndex: 5, 
                 getRecommendedFreq: (ga, pna) => {
@@ -663,11 +660,7 @@
             const pna = ageVal === '>30' ? 31 : parseInt(ageVal) || 0;
 
             $('totalDoseContainer').classList.remove('hidden');
-            if ($('selectCategory').value === 'Fluids') {
-                 $('freqContainer').classList.add('hidden');
-            } else {
-                 $('freqContainer').classList.remove('hidden');
-            }
+            $('freqContainer').classList.remove('hidden');
             $('addonContainer').classList.add('hidden');
             $('dosePerKgContainer').classList.add('hidden'); 
 
@@ -688,6 +681,10 @@
             if (drug && drug.name === 'TPN') {
                 $('totalDoseContainer').classList.add('hidden');
                 $('freqContainer').classList.add('hidden');
+            }
+
+            if ($('selectCategory').value === 'Fluids') {
+                 $('freqContainer').classList.add('hidden');
             }
 
             if (drug && drug.isNutrient && !drug.noPrep) {
@@ -725,15 +722,26 @@
                 return; 
             }
             
-            // تعديل: منطق تقسيم الجرعة حسب الفئة المطلوبة (17,18,19,20 -> 24) و (22,23 -> 1440)
-            if ([17, 18, 19, 20, 22, 23].includes(drug.id)) {
+            // التعامل مع الأدوية المطلوبة لتقسيم الجرعة
+            const specialIds = [17, 18, 19, 20, 22, 23];
+            if (specialIds.includes(drug.id)) {
                 $('dosePerKgContainer').classList.remove('hidden');
-                $('inputDosePerKg').value = drug.dosePerKg;
                 
-                let factor = [22, 23].includes(drug.id) ? 1440 : 24;
+                // تحديد معامل التقسيم
+                let divisor = [22, 23].includes(drug.id) ? 1440 : 24;
+                
+                // تحديد قيمة dose/kg الافتراضية
+                let defaultDoseKg = drug.dosePerKg;
+                if ([22, 23].includes(drug.id)) defaultDoseKg = 5; // القيمة الافتراضية للـ mcg/kg/min
+                
+                $('inputDosePerKg').value = defaultDoseKg;
+                
                 if (weight > 0) {
-                    // حساب الجرعة الإجمالية بناءً على تقسيم جرعة الكيلو
-                    let calcDose = (weight * drug.dosePerKg) / factor;
+                    let calcDose = (weight * defaultDoseKg * (divisor === 1440 ? 1440 : 1)) / divisor;
+                    // لتبسيط المنطق في حالة الدوبامين: total = weight * mcg * 1.44
+                    if(divisor === 1440) calcDose = (weight * defaultDoseKg * 1440) / 1000;
+                    else calcDose = (weight * defaultDoseKg) / 24;
+
                     $('inputDose').value = calcDose.toFixed(4);
                 }
             } else if (drug.id === 10) { 
@@ -764,11 +772,29 @@
             const drug = DRUG_CONFIG.find(d => d.id === drugId);
             const weight = cleanInputNumber($('inputWeight').value);
 
-            // تعديل: حساب الجرعة الكلية بناءً على التقسيم المطلوب عند تغيير Dose/kg يدوياً
+            // منطق الربط بين Dose/kg و Total Dose
             if (source === 'dosePerKg' && [17, 18, 19, 20, 22, 23].includes(drugId)) {
                 const doseKg = cleanInputNumber($('inputDosePerKg').value);
-                let factor = [22, 23].includes(drugId) ? 1440 : 24;
-                $('inputDose').value = ((doseKg * weight) / factor).toFixed(4);
+                if (weight > 0) {
+                    let calcDose;
+                    if ([22, 23].includes(drugId)) {
+                        calcDose = (weight * doseKg * 1440) / 1000; // Dopamine logic
+                    } else {
+                        calcDose = (weight * doseKg) / 24; // Sedation logic
+                    }
+                    $('inputDose').value = calcDose.toFixed(4);
+                }
+            } else if (source === 'totalDose' && [17, 18, 19, 20, 22, 23].includes(drugId)) {
+                const totalDose = cleanInputNumber($('inputDose').value);
+                if (weight > 0) {
+                    let calcDoseKg;
+                    if ([22, 23].includes(drugId)) {
+                        calcDoseKg = (totalDose * 1000) / (weight * 1440);
+                    } else {
+                        calcDoseKg = (totalDose * 24) / weight;
+                    }
+                    $('inputDosePerKg').value = calcDoseKg.toFixed(2);
+                }
             }
 
             const manualDose = cleanInputNumber($('inputDose').value);
@@ -1092,4 +1118,5 @@
         populateDropdowns(); loadFromStorage();
     </script>
 </body>
+</html>
 </html>
