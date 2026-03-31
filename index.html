@@ -200,7 +200,7 @@
                         <h3 class="text-lg font-semibold text-[var(--fg)]">Medication & Dosage</h3>
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 mb-4 items-start">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-4 mb-4 items-start">
                         <div class="space-y-2 lg:col-span-1">
                             <label class="block text-sm font-semibold text-[var(--fg)]">Category</label>
                             <select id="selectCategory" class="input-field w-full px-4 py-3 rounded-xl border border-[var(--border)]"></select>
@@ -213,8 +213,14 @@
                             <input type="text" id="inputCustomDrug" class="hidden input-field w-full px-4 py-3 rounded-xl border border-[var(--border)] mt-2" placeholder="اسم العلاج (مثال: Paracetamol)">
                             <input type="text" id="inputCustomMethod" class="hidden input-field w-full px-4 py-3 rounded-xl border border-[var(--border)] mt-2" placeholder="طريقة الإعطاء (اختياري)">
                         </div>
+
+                        <div class="space-y-2 lg:col-span-1 hidden" id="dosePerKgContainer">
+                            <label class="block text-sm font-semibold text-[var(--fg)]">Dose/kg</label>
+                            <input type="text" id="inputDosePerKg" inputmode="decimal" oninput="this.value = this.value.replace(/[،,٫]/g, '.')" class="input-field w-full px-4 py-3 rounded-xl border border-[var(--border)]" placeholder="Dose/kg">
+                        </div>
+
                         <div class="space-y-2 lg:col-span-1" id="totalDoseContainer">
-                            <label class="block text-sm font-semibold text-[var(--fg)]">Total Dose</label>
+                            <label class="block text-sm font-semibold text-[var(--fg)]" id="labelTotalDose">Total Dose</label>
                             <div class="flex gap-2">
                                 <input type="text" id="inputDose" inputmode="decimal" oninput="this.value = this.value.replace(/[،,٫]/g, '.')" class="input-field flex-1 px-4 py-3 rounded-xl border border-[var(--border)]" placeholder="Dose">
                                 <input type="text" id="inputCustomUnit" class="hidden input-field w-20 px-2 py-3 rounded-xl border border-[var(--border)]" placeholder="Unit">
@@ -627,6 +633,13 @@
             const drugSelect = $('selectDrug');
             drugSelect.innerHTML = '';
 
+            // تعديل: إخفاء التردد إذا كانت الفئة Fluids
+            if (categoryName === 'Fluids') {
+                $('freqContainer').classList.add('hidden');
+            } else {
+                $('freqContainer').classList.remove('hidden');
+            }
+
             if (!categoryName) {
                 drugSelect.innerHTML = '<option value="">-- Select Category First --</option>';
                 handleDrugSelectionChange(); // Reset other fields
@@ -652,12 +665,19 @@
         const handleDrugSelectionChange = () => {
             const val = $('selectDrug').value;
             const ga = cleanInputNumber($('inputGA').value);
+            const weight = cleanInputNumber($('inputWeight').value);
             let ageVal = $('inputAge').value;
             const pna = ageVal === '>30' ? 31 : parseInt(ageVal) || 0;
 
             $('totalDoseContainer').classList.remove('hidden');
-            $('freqContainer').classList.remove('hidden');
+            // تأكيد حالة حقل التردد بناءً على الفئة المختارة
+            if ($('selectCategory').value === 'Fluids') {
+                 $('freqContainer').classList.add('hidden');
+            } else {
+                 $('freqContainer').classList.remove('hidden');
+            }
             $('addonContainer').classList.add('hidden');
+            $('dosePerKgContainer').classList.add('hidden'); // إخفاء حقل dose/kg افتراضياً
 
             if (val === '') {
                 $('inputDose').value = ''; $('inputDose').disabled = false;
@@ -693,7 +713,6 @@
                 return;
             }
 
-            const weight = cleanInputNumber($('inputWeight').value);
             if (!drug) return;
             
             $('targetVolContainer').classList.toggle('hidden', drug.methodIndex !== 3 && drug.methodIndex !== 10);
@@ -714,27 +733,48 @@
                 return; 
             }
             
-            if (weight > 0) {
+            // تعديل: منطق حساب الجرعات الجديد
+            if (drug.id === 10) { // Vit K
+                $('inputDose').value = 1;
+            } else if (drug.id === 21) { // Fluconazol prophylactic
+                $('inputDose').value = 4;
+            } else if ([17, 18, 19, 20, 22, 23].includes(drug.id)) { // الأدوية الخاصة
+                $('dosePerKgContainer').classList.remove('hidden');
+                $('inputDosePerKg').value = drug.dosePerKg;
+                if (weight > 0) {
+                    $('inputDose').value = (weight * drug.dosePerKg).toFixed(2);
+                }
+            } else if (weight > 0) {
                 if(drug.dosePerKg) { 
                     $('inputDose').value = (weight * drug.dosePerKg).toFixed(1); 
                 } else { 
                     $('inputDose').value = ''; 
                 }
-                if (drug.getRecommendedFreq) { 
-                    $('inputFreq').value = drug.getRecommendedFreq(ga, pna); 
-                } else { 
-                    $('inputFreq').value = drug.defaultFreq || 1; 
-                }
-                checkClinicalAlerts(drug);
-                updateMethodPreview(drug, parseFloat($('inputDose').value) || 0);
             }
+
+            // تحديث التردد المقترح
+            if (drug.getRecommendedFreq) { 
+                $('inputFreq').value = drug.getRecommendedFreq(ga, pna); 
+            } else { 
+                $('inputFreq').value = drug.defaultFreq || 1; 
+            }
+            checkClinicalAlerts(drug);
+            updateMethodPreview(drug, parseFloat($('inputDose').value) || 0);
         };
 
-        const handleManualDoseChange = () => {
+        const handleManualDoseChange = (source) => {
             const val = $('selectDrug').value;
             if (val === 'other' || val === '') return;
             const drugId = parseInt(val);
             const drug = DRUG_CONFIG.find(d => d.id === drugId);
+            const weight = cleanInputNumber($('inputWeight').value);
+
+            // تعديل: ربط حقل dose/kg بحقل total dose للأدوية الخاصة
+            if (source === 'dosePerKg' && [17, 18, 19, 20, 22, 23].includes(drugId)) {
+                const doseKg = cleanInputNumber($('inputDosePerKg').value);
+                $('inputDose').value = (doseKg * weight).toFixed(2);
+            }
+
             const manualDose = cleanInputNumber($('inputDose').value);
             if (drug && !drug.isDopamine) {
                 checkClinicalAlerts(drug);
@@ -882,7 +922,7 @@
                 if (drug.isDopamine && drug.id === 9) {
                     currentDrugs.push({ id: generateId(), drugId: drug.id, name: drug.name, dose: 'Infusion', unit: '', freq: '', method: '1 ml dopamin + 39 ml GW', hideDetails: false, isNutrient: false, isDopamine: true, alert: drug.alert || '' });
                 } else {
-                    currentDrugs.push({ id: generateId(), drugId: drug.id, name: drug.name, dose, unit: drug.unit || '', freq: (drug.hideDetails || drug.name === 'TPN') ? '' : freqDisplay, method: generateMethodString(drug, dose), hideDetails: drug.hideDetails || false, isNutrient: drug.isNutrient || false, isDopamine: drug.isDopamine || false, alert: drug.alert || '' });
+                    currentDrugs.push({ id: generateId(), drugId: drug.id, name: drug.name, dose, unit: drug.unit || '', freq: (drug.hideDetails || drug.name === 'TPN' || $('selectCategory').value === 'Fluids') ? '' : freqDisplay, method: generateMethodString(drug, dose), hideDetails: drug.hideDetails || false, isNutrient: drug.isNutrient || false, isDopamine: drug.isDopamine || false, alert: drug.alert || '' });
                 }
             }
             renderDrugsList(); showToast('Added');
@@ -940,7 +980,6 @@
                     let chunk = [];
                     let hasDopamineTableInChunk = false;
                     for(let i = 0; i < remainingDrugs.length; i++) {
-                        // تعديل: فحص ID رقم 9 بدلاً من الكلمة
                         if(remainingDrugs[i].drugId === 9) hasDopamineTableInChunk = true;
                         chunk.push(remainingDrugs[i]);
                         let maxLimit = hasDopamineTableInChunk ? 15 : 20; 
@@ -958,7 +997,6 @@
 
             let pages = [], cells = Array(6).fill(null);
             const placePatient = (patient) => {
-                // تعديل: فحص ID رقم 9 حصراً
                 const hasDopTable = patient.drugs.some(d => d.drugId === 9);
                 const nonDopCount = patient.drugs.filter(d => d.drugId !== 9).length;
                 let span = 1;
@@ -1060,20 +1098,19 @@
         $('btnClearAll').addEventListener('click', () => { if (confirm('Clear all?')) { patients = []; selectedPatientIds.clear(); saveToStorage(); renderQueue(); } });
         $('selectAllCheckbox').addEventListener('change', toggleSelectAll);
         
-        // مستمع لحدث تغيير الفئة
         $('selectCategory').addEventListener('change', updateDrugListByCategory);
-        
         $('selectDrug').addEventListener('change', handleDrugSelectionChange);
         $('inputWeight').addEventListener('input', handleDrugSelectionChange);
         $('inputGA').addEventListener('input', handleDrugSelectionChange);
         $('inputAge').addEventListener('change', handleDrugSelectionChange);
         
-        $('inputDose').addEventListener('input', handleManualDoseChange);
-        $('inputFreq').addEventListener('change', handleManualDoseChange); 
-        $('inputTargetVol').addEventListener('change', handleManualDoseChange);
+        $('inputDose').addEventListener('input', () => handleManualDoseChange('totalDose'));
+        $('inputDosePerKg').addEventListener('input', () => handleManualDoseChange('dosePerKg'));
+        $('inputFreq').addEventListener('change', () => handleManualDoseChange('freq')); 
+        $('inputTargetVol').addEventListener('change', () => handleManualDoseChange('targetVol'));
         
-        $('inputAddonVol').addEventListener('input', handleManualDoseChange);
-        $('inputAddonType').addEventListener('input', handleManualDoseChange);
+        $('inputAddonVol').addEventListener('input', () => handleManualDoseChange('addon'));
+        $('inputAddonType').addEventListener('input', () => handleManualDoseChange('addon'));
 
         populateDropdowns(); loadFromStorage();
     </script>
