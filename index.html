@@ -715,7 +715,7 @@
                 renderDopamineTable(weight); return;
             }
             
-            $('inputDose').disabled = false; $('inputDose').placeholder = 'Auto or Manual';
+            $('inputDose').disabled = false; $('inputDose').placeholder = 'Auto';
             $('dopamineTableContainer').classList.add('hidden'); $('methodPreviewContainer').classList.remove('hidden');
             
             if (drug.isNutrient || drug.name === 'TPN') { 
