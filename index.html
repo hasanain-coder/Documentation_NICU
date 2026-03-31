@@ -215,12 +215,12 @@
                         </div>
 
                         <div class="lg:col-span-2 flex gap-3" id="doseWrapper">
-                            <div class="space-y-2 flex-1 hidden" id="dosePerKgContainer">
+                            <div class="space-y-2 flex-1 basis-0 min-w-0 hidden" id="dosePerKgContainer">
                                 <label class="block text-sm font-semibold text-[var(--accent)]">Dose/kg</label>
                                 <input type="text" id="inputDosePerKg" inputmode="decimal" oninput="this.value = this.value.replace(/[،,٫]/g, '.')" class="input-field w-full px-4 py-3 rounded-xl border border-[var(--accent)]/30 font-bold" placeholder="Dose/kg">
                             </div>
 
-                            <div class="space-y-2 flex-1" id="totalDoseContainer">
+                            <div class="space-y-2 flex-1 basis-0 min-w-0" id="totalDoseContainer">
                                 <label class="block text-sm font-semibold text-[var(--fg)]" id="labelTotalDose">Total Dose</label>
                                 <div class="flex gap-2">
                                     <input type="text" id="inputDose" inputmode="decimal" oninput="this.value = this.value.replace(/[،,٫]/g, '.')" class="input-field flex-1 px-4 py-3 rounded-xl border border-[var(--border)]" placeholder="Dose">
