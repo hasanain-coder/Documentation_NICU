@@ -211,22 +211,24 @@
                             <select id="selectDrug" class="input-field w-full px-4 py-3 rounded-xl border border-[var(--border)]"></select>
                             
                             <input type="text" id="inputCustomDrug" class="hidden input-field w-full px-4 py-3 rounded-xl border border-[var(--border)] mt-2" placeholder="اسم العلاج (مثال: Paracetamol)">
-                            <input type="text" id="inputCustomMethod" class="hidden input-field w-full px-4 py-3 rounded-xl border border-[var(--border)] mt-2" placeholder="طريقة الإعطاء (اختياري)">
                         </div>
 
-                        <div class="lg:col-span-2 grid grid-cols-2 gap-2 sm:gap-3" id="doseWrapper">
-                            <div class="space-y-2 hidden min-w-0" id="dosePerKgContainer">
-                                <label class="block text-sm font-semibold text-[var(--accent)]">Dose/kg</label>
-                                <input type="text" id="inputDosePerKg" inputmode="decimal" oninput="this.value = this.value.replace(/[،,٫]/g, '.')" class="input-field w-full px-3 py-3 rounded-xl border border-[var(--accent)]/30 font-bold" placeholder="Dose/kg">
-                            </div>
+                        <div class="lg:col-span-2 space-y-2" id="doseWrapper">
+                            <div class="grid grid-cols-2 gap-2 sm:gap-3">
+                                <div class="space-y-2 hidden min-w-0" id="dosePerKgContainer">
+                                    <label class="block text-sm font-semibold text-[var(--accent)]">Dose/kg</label>
+                                    <input type="text" id="inputDosePerKg" inputmode="decimal" oninput="this.value = this.value.replace(/[،,٫]/g, '.')" class="input-field w-full px-3 py-3 rounded-xl border border-[var(--accent)]/30 font-bold" placeholder="Dose/kg">
+                                </div>
 
-                            <div class="space-y-2 min-w-0" id="totalDoseContainer">
-                                <label class="block text-sm font-semibold text-[var(--fg)]" id="labelTotalDose">Total Dose</label>
-                                <div class="flex gap-1">
-                                    <input type="text" id="inputDose" inputmode="decimal" oninput="this.value = this.value.replace(/[،,٫]/g, '.')" class="input-field flex-1 px-3 py-3 rounded-xl border border-[var(--border)] min-w-0" placeholder="Dose">
-                                    <input type="text" id="inputCustomUnit" class="hidden input-field w-14 sm:w-20 px-1 py-3 rounded-xl border border-[var(--border)]" placeholder="Unit">
+                                <div class="space-y-2 min-w-0" id="totalDoseContainer">
+                                    <label class="block text-sm font-semibold text-[var(--fg)]" id="labelTotalDose">Total Dose</label>
+                                    <div class="flex gap-1">
+                                        <input type="text" id="inputDose" inputmode="decimal" oninput="this.value = this.value.replace(/[،,٫]/g, '.')" class="input-field flex-1 px-3 py-3 rounded-xl border border-[var(--border)] min-w-0" placeholder="Dose">
+                                        <input type="text" id="inputCustomUnit" class="hidden input-field w-14 sm:w-20 px-1 py-3 rounded-xl border border-[var(--border)]" placeholder="Unit">
+                                    </div>
                                 </div>
                             </div>
+                            <input type="text" id="inputCustomMethod" class="hidden input-field w-full px-4 py-3 rounded-xl border border-[var(--border)]" placeholder="طريقة الإعطاء (اختياري)">
                         </div>
 
                         <div class="space-y-2 lg:col-span-1" id="freqContainer">
@@ -248,24 +250,23 @@
                             </select>
                         </div>
                         
-                        <div class="space-y-2 lg:col-span-1 flex items-end h-full">
-                            <button id="btnAddDrug" class="btn-primary w-full py-3 rounded-xl text-white font-semibold flex items-center justify-center gap-2 h-[50px] mt-auto">
+                        <div class="lg:col-span-1 flex flex-col gap-2">
+                             <div id="addonContainer" class="hidden grid grid-cols-2 gap-2">
+                                <div class="space-y-1">
+                                    <label class="block text-[10px] font-bold text-[var(--accent)] uppercase">Vol</label>
+                                    <input type="text" id="inputAddonVol" inputmode="decimal" oninput="this.value = this.value.replace(/[،,٫]/g, '.')" class="input-field w-full px-2 py-2 rounded-lg border border-[var(--border)] text-sm" placeholder="ml">
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="block text-[10px] font-bold text-[var(--accent)] uppercase">Type</label>
+                                    <input type="text" id="inputAddonType" class="input-field w-full px-2 py-2 rounded-lg border border-[var(--border)] text-sm" placeholder="KCL">
+                                </div>
+                            </div>
+                            <button id="btnAddDrug" class="btn-primary w-full py-3 rounded-xl text-white font-semibold flex items-center justify-center gap-2 h-[50px]">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                                 </svg>
                                 Add
                             </button>
-                        </div>
-                    </div>
-
-                    <div class="lg:col-span-2 grid grid-cols-2 gap-2 hidden mb-4" id="addonContainer">
-                        <div class="space-y-2">
-                            <label class="block text-sm font-semibold text-[var(--accent)]">Add-on (ml)</label>
-                            <input type="text" id="inputAddonVol" inputmode="decimal" oninput="this.value = this.value.replace(/[،,٫]/g, '.')" class="input-field w-full px-4 py-3 rounded-xl border border-[var(--border)]" placeholder="مثلاً: 5">
-                        </div>
-                        <div class="space-y-2">
-                            <label class="block text-sm font-semibold text-[var(--accent)]">Add-on Type</label>
-                            <input type="text" id="inputAddonType" class="input-field w-full px-4 py-3 rounded-xl border border-[var(--border)]" placeholder="KCL / HT">
                         </div>
                     </div>
 
@@ -580,16 +581,29 @@
                     calcAddon = addonVol / 2;
                     suffix = " X2";
                 }
+                
+                // التعديل: كتابة الإضافة بجانب الكمية الكلية في بداية سطر التحضير
+                let mainHeader = `${totalFluid} ml`;
+                if (addonVol > 0) {
+                    mainHeader += ` (+ ${addonVol} ml ${addonType})`;
+                }
+
                 let additiveText = addonVol > 0 ? ` + ${calcAddon.toFixed(0)} ml ${addonType}` : "";
+                let prepDetail = "";
+
                 if (drug.name === '1/5 GS') {
                     let gw = (calcFluid * 0.8).toFixed(0);
                     let ns = (calcFluid * 0.2).toFixed(0);
-                    return `(5% GW ${gw} ml + ${ns} ml NS${additiveText})${suffix}`;
+                    prepDetail = `(5% GW ${gw} ml + ${ns} ml NS${additiveText})${suffix}`;
                 } else if (drug.name === '10% GW') {
                     let gw = (calcFluid * 0.9).toFixed(0);
                     let ht = (calcFluid * 0.1).toFixed(0);
-                    return `(5% GW ${gw} ml + ${ht} ml HT${additiveText})${suffix}`;
+                    prepDetail = `(5% GW ${gw} ml + ${ht} ml HT${additiveText})${suffix}`;
+                } else {
+                     prepDetail = `(${drug.name} ${calcFluid} ml ${additiveText})${suffix}`;
                 }
+
+                return `${mainHeader} | ${prepDetail}`;
             }
 
             if (!METHODS[drug.methodIndex]) return '-';
@@ -703,6 +717,10 @@
                 $('targetVolContainer').classList.add('hidden');
                 $('dopamineTableContainer').classList.add('hidden');
                 return;
+            } else {
+                $('inputCustomDrug').classList.add('hidden');
+                $('inputCustomMethod').classList.add('hidden');
+                $('inputCustomUnit').classList.add('hidden');
             }
 
             if (!drug) return;
@@ -953,7 +971,15 @@
         const savePatient = () => {
             const name = $('inputName').value.trim(), weight = cleanInputNumber($('inputWeight').value);
             if (!name || !weight || currentDrugs.length === 0) { showToast('Missing info', 'error'); return; }
-            patients.push({ id: generateId(), name, weight, age: $('inputAge').value, ga: $('inputGA').value, drugs: [...currentDrugs] });
+            
+            // التعديل: ترتيب العلاجات ليكون الـ Fluid (isNutrient) هو الأخير دائماً
+            const sortedDrugs = [...currentDrugs].sort((a, b) => {
+                if (a.isNutrient && !b.isNutrient) return 1;
+                if (!a.isNutrient && b.isNutrient) return -1;
+                return 0;
+            });
+
+            patients.push({ id: generateId(), name, weight, age: $('inputAge').value, ga: $('inputGA').value, drugs: sortedDrugs });
             saveToStorage(); renderQueue();
             $('inputName').value = ''; $('inputWeight').value = ''; $('inputGA').value = ''; $('inputAge').value = '';
             currentDrugs = []; renderDrugsList();
