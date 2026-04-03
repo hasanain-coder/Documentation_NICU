@@ -568,7 +568,7 @@
             } else {
                 currentDrugs.push({
                     id: Date.now(), drugId: dObj.id, name, dose, unit: dObj.unit||'', 
-                    freq: (dObj.hideDetails||cat==='Fluids')?'':fStr, 
+                    freq: (dObj.hideDetails||$('selectCategory').value==='Fluids')?'':fStr, 
                     method: $('previewMethod').innerText, 
                     isNutrient: dObj.isNutrient||false, hideDetails: dObj.hideDetails||false
                 });
