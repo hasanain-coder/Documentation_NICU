@@ -504,7 +504,7 @@
             { id: 30, name: 'Vit D drop', dosePerKg: 400, unit: 'IU', factor: 1, methodIndex: 13, defaultFreq: 1 },
             { id: 31, name: 'HydroCHLOROthiazide cap', dosePerKg: 1, unit: 'mg', methodIndex: 12, defaultFreq: 2},
             { id: 32, name: 'Ventolin neb.', dosePerKg: 1.25, unit: 'mg', factor: 5,  methodIndex: 11, defaultFreq: 4},
-            { id: 33, name: 'NS neb.', dosePerKg: 1, unit: 'mg', methodIndex: 13, hideDetails: true, defaultFreq: 4}
+            { id: 33, name: 'NS neb.', dosePerKg: 3, unit: 'ml', methodIndex: 14, hideDetails: true, defaultFreq: 4}
         ];
 
         const DRUG_CATEGORIES = [
@@ -776,6 +776,8 @@
                 $('inputDose').value = 4;
             } else if (drug.id === 32) { 
                 $('inputDose').value = 1.25;
+            } else if (drug.id === 33) { 
+                $('inputDose').value = 3;
             } else if (weight > 0) {
                 if(drug.dosePerKg) { 
                     $('inputDose').value = (weight * drug.dosePerKg).toFixed(1); 
