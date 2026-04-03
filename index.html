@@ -504,7 +504,8 @@
             { id: 30, name: 'Vit D drop', dosePerKg: 400, unit: 'IU', factor: 1, methodIndex: 13, defaultFreq: 1 },
             { id: 31, name: 'HydroCHLOROthiazide cap', dosePerKg: 1, unit: 'mg', methodIndex: 12, defaultFreq: 2},
             { id: 32, name: 'Ventolin neb.', dosePerKg: 1.25, unit: 'mg', factor: 5,  methodIndex: 11, defaultFreq: 4},
-            { id: 33, name: 'NS neb.', dosePerKg: 3, unit: 'ml', methodIndex: 14, hideDetails: true, defaultFreq: 4}
+            { id: 34, name: 'Pulmicort neb.', dosePerKg: 0.25, unit: 'mg', factor: 0.5,  methodIndex: 11, defaultFreq: 2},
+            { id: 33, name: 'NS neb.', dosePerKg: 3, unit: 'ml', methodIndex: 14, defaultFreq: 4}
         ];
 
         const DRUG_CATEGORIES = [
@@ -513,7 +514,7 @@
             { name: 'Miscellaneous', ids: [3, 4, 10, 25, 28, 30] },
             { name: 'Fluids', ids: [12, 13, 14, 15] },
             { name: 'Oral capsules', ids: [21, 29, 31] },
-            { name: 'Nebulization', ids: [32, 33] },
+            { name: 'Nebulization', ids: [32, 33, 34] },
             { name: 'Other+', ids: ['other'] }
         ];
 
@@ -778,6 +779,8 @@
                 $('inputDose').value = 1.25;
             } else if (drug.id === 33) { 
                 $('inputDose').value = 3;
+            } else if (drug.id === 34) { 
+                $('inputDose').value = 0.25;
             } else if (weight > 0) {
                 if(drug.dosePerKg) { 
                     $('inputDose').value = (weight * drug.dosePerKg).toFixed(1); 
