@@ -53,36 +53,15 @@
             from { opacity: 0; transform: translateX(-16px); }
             to { opacity: 1; transform: translateX(0); }
         }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
-        }
-        @keyframes shimmer {
-            0% { background-position: -200% 0; }
-            100% { background-position: 200% 0; }
-        }
 
         .animate-fade-up { animation: fadeUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
         .animate-slide-in { animation: slideIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
         .patient-card { opacity: 0; animation: fadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
-        .stagger-1 { animation-delay: 0.1s; }
-        .stagger-2 { animation-delay: 0.2s; }
-        .stagger-3 { animation-delay: 0.3s; }
 
         input:focus, select:focus, textarea:focus {
             outline: none;
             border-color: var(--accent);
             box-shadow: 0 0 0 4px rgba(27, 107, 90, 0.12);
-        }
-
-        input:invalid:not(:placeholder-shown),
-        .input-error {
-            border-color: var(--danger) !important;
-            box-shadow: 0 0 0 4px rgba(193, 18, 31, 0.1) !important;
-        }
-
-        .input-valid:not(:placeholder-shown) {
-            border-color: var(--success);
         }
 
         .btn-primary {
@@ -101,26 +80,15 @@
             background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
             transition: left 0.5s;
         }
-        .btn-primary:hover:not(:disabled)::before {
-            left: 100%;
-        }
+        .btn-primary:hover:not(:disabled)::before { left: 100%; }
         .btn-primary:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 8px 24px rgba(27, 107, 90, 0.3);
         }
-        .btn-primary:active:not(:disabled) {
-            transform: translateY(0);
-        }
         .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        .btn-secondary {
-            transition: all 0.25s ease;
-        }
-        .btn-secondary:hover {
-            background: var(--danger);
-            color: white;
-            border-color: var(--danger);
-        }
+        .btn-secondary { transition: all 0.25s ease; }
+        .btn-secondary:hover { background: var(--danger); color: white; border-color: var(--danger); }
 
         .card-hover { transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1); }
         .card-hover:hover { 
@@ -142,14 +110,6 @@
             direction: rtl;
             text-align: right;
             unicode-bidi: isolate;
-            font-variant-ligatures: common-ligatures;
-        }
-
-        .category-badge {
-            transition: all 0.2s ease;
-        }
-        .category-badge:hover {
-            transform: scale(1.05);
         }
 
         .drug-count-badge {
@@ -214,12 +174,6 @@
             color: #000000;
         }
         .pdf-drug-item:last-child { border-bottom: none; }
-
-        .loading-shimmer {
-            background: linear-gradient(90deg, var(--surface) 25%, #f0f4f3 50%, var(--surface) 75%);
-            background-size: 200% 100%;
-            animation: shimmer 1.5s infinite;
-        }
 
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after {
@@ -288,6 +242,7 @@
             </div>
 
             <div class="p-8 space-y-8">
+                <!-- Patient Demographics -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     <div class="space-y-2">
                         <label for="inputName" class="block text-sm font-semibold text-[var(--fg)]">Patient Name</label>
@@ -309,6 +264,7 @@
 
                 <div class="section-divider"></div>
 
+                <!-- Medication Section -->
                 <div>
                     <div class="flex items-center gap-3 mb-6">
                         <div class="w-10 h-10 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center">
@@ -318,7 +274,7 @@
                         </div>
                         <div>
                             <h3 class="text-xl font-semibold text-[var(--fg)]">Medication & Dosage</h3>
-                            <p class="text-xs text-[var(--muted)]">Select category and drug to calculate dose</p>
+                            <p class="text-xs text-[var(--muted)]">Configuration-driven selection</p>
                         </div>
                     </div>
 
@@ -331,26 +287,25 @@
                         <div class="space-y-2 lg:col-span-1">
                             <label for="selectDrug" class="block text-sm font-semibold text-[var(--fg)]">Drug</label>
                             <select id="selectDrug" class="input-field w-full px-4 py-3.5 rounded-xl border border-[var(--border)] text-[var(--fg)]" aria-label="Drug Selection"></select>
-                            
-                            <input type="text" id="inputCustomDrug" class="hidden input-field w-full px-4 py-3 rounded-xl border border-[var(--border)] mt-2 text-[var(--fg)]" placeholder="اسم العلاج (مثال: Paracetamol)" aria-label="Custom Drug Name">
+                            <input type="text" id="inputCustomDrug" class="hidden input-field w-full px-4 py-3 rounded-xl border border-[var(--border)] mt-2 text-[var(--fg)]" placeholder="Custom Drug Name">
                         </div>
 
                         <div class="lg:col-span-2 space-y-2" id="doseWrapper">
                             <div class="grid grid-cols-2 gap-3">
                                 <div class="space-y-2 hidden min-w-0" id="dosePerKgContainer">
                                     <label for="inputDosePerKg" class="block text-sm font-semibold text-[var(--accent)]">Dose/kg</label>
-                                    <input type="text" id="inputDosePerKg" inputmode="decimal" oninput="this.value = this.value.replace(/[،,٫]/g, '.')" class="input-field w-full px-3 py-3.5 rounded-xl border border-[var(--accent)]/30 font-bold text-[var(--fg)]" placeholder="Dose/kg" aria-label="Dose per kilogram">
+                                    <input type="text" id="inputDosePerKg" inputmode="decimal" oninput="this.value = this.value.replace(/[،,٫]/g, '.')" class="input-field w-full px-3 py-3.5 rounded-xl border border-[var(--accent)]/30 font-bold text-[var(--fg)]" placeholder="Dose/kg">
                                 </div>
 
                                 <div class="space-y-2 min-w-0" id="totalDoseContainer">
                                     <label for="inputDose" class="block text-sm font-semibold text-[var(--fg)]" id="labelTotalDose">Total Dose</label>
                                     <div class="flex gap-1">
-                                        <input type="text" id="inputDose" inputmode="decimal" oninput="this.value = this.value.replace(/[،,٫]/g, '.')" class="input-field flex-1 px-3 py-3.5 rounded-xl border border-[var(--border)] min-w-0 text-[var(--fg)]" placeholder="Dose" aria-label="Total Dose">
-                                        <input type="text" id="inputCustomUnit" class="hidden input-field w-14 sm:w-20 px-1 py-3.5 rounded-xl border border-[var(--border)] text-[var(--fg)]" placeholder="Unit" aria-label="Custom Unit">
+                                        <input type="text" id="inputDose" inputmode="decimal" oninput="this.value = this.value.replace(/[،,٫]/g, '.')" class="input-field flex-1 px-3 py-3.5 rounded-xl border border-[var(--border)] min-w-0 text-[var(--fg)]" placeholder="Dose">
+                                        <input type="text" id="inputCustomUnit" class="hidden input-field w-14 sm:w-20 px-1 py-3.5 rounded-xl border border-[var(--border)] text-[var(--fg)]" placeholder="Unit">
                                     </div>
                                 </div>
                             </div>
-                            <input type="text" id="inputCustomMethod" class="hidden input-field w-full px-4 py-3 rounded-xl border border-[var(--border)] text-[var(--fg)]" placeholder="طريقة الإعطاء (اختياري)" aria-label="Custom Method">
+                            <input type="text" id="inputCustomMethod" class="hidden input-field w-full px-4 py-3 rounded-xl border border-[var(--border)] text-[var(--fg)]" placeholder="Custom Method">
                         </div>
 
                         <div class="space-y-2 lg:col-span-1" id="freqContainer">
@@ -367,8 +322,8 @@
                         <div class="space-y-2 lg:col-span-1 hidden" id="targetVolContainer">
                             <label for="inputTargetVol" class="block text-sm font-semibold text-[var(--accent)]">Target Volume</label>
                             <select id="inputTargetVol" class="input-field w-full px-4 py-3.5 rounded-xl border border-[var(--border)] bg-[var(--accent)]/5 text-[var(--fg)]" aria-label="Target Volume">
-                                <option value="10">10 ml (Multiplier x2)</option>
-                                <option value="5">5 ml (Multiplier x3)</option>
+                                <option value="10">10 ml (x2)</option>
+                                <option value="5">5 ml (x3)</option>
                             </select>
                         </div>
                         
@@ -376,11 +331,11 @@
                              <div id="addonContainer" class="hidden grid grid-cols-2 gap-2">
                                 <div class="space-y-1">
                                     <label for="inputAddonVol" class="block text-[10px] font-bold text-[var(--accent)] uppercase">Vol</label>
-                                    <input type="text" id="inputAddonVol" inputmode="decimal" oninput="this.value = this.value.replace(/[،,٫]/g, '.')" class="input-field w-full px-2 py-2 rounded-lg border border-[var(--border)] text-sm text-[var(--fg)]" placeholder="ml" aria-label="Addon Volume">
+                                    <input type="text" id="inputAddonVol" inputmode="decimal" oninput="this.value = this.value.replace(/[،,٫]/g, '.')" class="input-field w-full px-2 py-2 rounded-lg border border-[var(--border)] text-sm text-[var(--fg)]" placeholder="ml">
                                 </div>
                                 <div class="space-y-1">
                                     <label for="inputAddonType" class="block text-[10px] font-bold text-[var(--accent)] uppercase">Type</label>
-                                    <input type="text" id="inputAddonType" class="input-field w-full px-2 py-2 rounded-lg border border-[var(--border)] text-sm text-[var(--fg)]" placeholder="KCL" aria-label="Addon Type">
+                                    <input type="text" id="inputAddonType" class="input-field w-full px-2 py-2 rounded-lg border border-[var(--border)] text-sm text-[var(--fg)]" placeholder="KCL">
                                 </div>
                             </div>
                             <button id="btnAddDrug" class="btn-primary w-full py-3.5 rounded-xl text-white font-semibold flex items-center justify-center gap-2 h-[52px]" aria-label="Add Drug">
@@ -482,6 +437,10 @@
     </div>
 
     <script>
+        // ==========================================
+        // 1. CONFIGURATION DRUG DATA
+        // ==========================================
+        
         const METHODS = {
             1: '** / 5min',
             2: '** + 5 ml GW / 10 min',
@@ -500,153 +459,135 @@
         };
 
         const DRUG_CONFIG = [
-            { id: 1, name: 'Amoxicillin', dosePerKg: 50, unit: 'mg', factor: 50, methodIndex: 1, 
-                getRecommendedFreq: (ga, pna) => {
-                    if (ga < 100) {
-                        return (pna < 8) ? '2' : '3';
-                    } 
-                    return '3';
-                },
+            // --- Antibiotics ---
+            { 
+                id: 1, name: 'Amoxicillin', category: 'Antibiotics',
+                dosePerKg: 50, unit: 'mg', factor: 50, methodIndex: 1,
+                inputMode: 'weightBased', 
+                getRecommendedFreq: (ga, pna) => (ga < 100 ? (pna < 8 ? '2' : '3') : '3'),
                 warning_rule: (ga, age, freq) => {
-                    let recommended;
-                    if (ga < 100) {
-                        recommended = (age < 8) ? '2' : '3';
-                    } else {
-                        recommended = '3';
-                    }
-                    
+                    const recommended = (ga < 100) ? ((age < 8) ? '2' : '3') : '3';
                     if (freq !== recommended) {
-                        let msg = (recommended === '3') ? 'ثلاث مرات يومياً (كل ٨ ساعات)' : 'مرتان يومياً (كل ١٢ ساعة)';
+                        const msg = (recommended === '3') ? 'ثلاث مرات يومياً (كل ٨ ساعات)' : 'مرتان يومياً (كل ١٢ ساعة)';
                         return `⚠️ تنبيه: التردد المقترح بناءً على PNA هو ${msg}!`;
                     }
                     return null;
                 }
             },
-            { id: 16, name: 'Amikacin', dosePerKg: 15, unit: 'mg', factor: 8, methodIndex: 2, defaultFreq: 1 },
+            { id: 16, name: 'Amikacin', category: 'Antibiotics', dosePerKg: 15, unit: 'mg', factor: 8, methodIndex: 2, defaultFreq: 1, inputMode: 'weightBased' },
             { 
-                id: 2, name: 'Gentamicin', dosePerKg: 5, unit: 'mg', factor: 40, methodIndex: 2, 
+                id: 2, name: 'Gentamicin', category: 'Antibiotics',
+                dosePerKg: 5, unit: 'mg', factor: 40, methodIndex: 2, 
+                inputMode: 'weightBased',
                 getRecommendedFreq: (ga, pna) => {
-                    if (ga <= 29) {
-                        return (pna <= 14) ? 'q48hr' : 'q36hr';
-                    } else if (ga <= 34) {
-                        return 'q36hr';
-                    } else if (ga >= 35) {
-                        return '1'; 
-                    }
+                    if (ga <= 29) return (pna <= 14) ? 'q48hr' : 'q36hr';
+                    if (ga <= 34) return 'q36hr';
                     return '1';
                 },
                 warning_rule: (ga, age, freq) => {
                     let recommended;
-                    if (ga <= 30) {
-                        recommended = (age <= 14) ? 'q48hr' : 'q36hr';
-                    } else if (ga <= 34) {
-                        recommended = 'q36hr';
-                    } else if (ga >= 35) {
-                        recommended = '1';
-                    }
-                    
-                    if (recommended && freq !== recommended) {
-                        let msg = (recommended === '1') ? 'مرة يومياً (كل ٢٤ ساعة)' : recommended;
-                        return `⚠️ تنبيه: التردد المقترح بناءً على GA و PNA هو ${msg}!`;
-                    }
+                    if (ga <= 30) recommended = (age <= 14) ? 'q48hr' : 'q36hr';
+                    else if (ga <= 34) recommended = 'q36hr';
+                    else recommended = '1';
+                    if (recommended && freq !== recommended) return `⚠️ تنبيه: التردد المقترح بناءً على GA و PNA هو ${recommended === '1' ? 'مرة يومياً' : recommended}!`;
                     return null;
                 }
             },
-            { id: 3, name: 'Caffeine Loading', dosePerKg: 20, unit: 'mg', factor: 20, methodIndex: 3, defaultFreq: 1 },
-            { id: 4, name: 'Caffeine Maint.', dosePerKg: 10, unit: 'mg', factor: 20, methodIndex: 2, defaultFreq: 1 },
-            { id: 5, name: 'Colistin Loading', dosePerKg: 150000, unit: 'IU', factor: 500000, methodIndex: 2, defaultFreq: 1 },
-            { id: 6, name: 'Colistin Maint.', dosePerKg: 37500, unit: 'IU', factor: 500000, methodIndex: 2, defaultFreq: 2 },
-            { id: 24, name: 'Colistin neb.', dosePerKg: 5, unit: 'mg', factor: 16.667, methodIndex: 11, defaultFreq: 2, alert: 'مهم: يعطى فنتلوين تبخير قبله ب١٠ دقائق' },
-            { id: 25, name: 'Decadron DART', dosePerKg: 0.075, unit: 'mg', factor: 0.4, methodIndex: 2, defaultFreq: 2, alert: 'مهم: تخفف الامبولة الى ٢٠ مل مع NS قبل الاعطاء' },
-            { id: 28, name: 'Decadron amp', dosePerKg: 0.25, unit: 'mg', factor: 0.4, methodIndex: 2, defaultFreq: 2, alert: 'مهم: تخفف الامبولة الى ٢٠ مل مع NS قبل الاعطاء' },
-            { id: 7, name: 'Tigecycline', dosePerKg: 2, unit: 'mg', factor: 2, methodIndex: 3, defaultFreq: 2 },
-            { id: 8, name: 'Meropenem', dosePerKg: 40, unit: 'mg', factor: 50, methodIndex: 3,
-                getRecommendedFreq: (ga, pna) => {
-                    if (ga < 32) {
-                        return (pna < 14) ? '2' : '3';
-                    } 
-                    return '3';
-                },
+            { id: 5, name: 'Colistin Loading', category: 'Antibiotics', dosePerKg: 150000, unit: 'IU', factor: 500000, methodIndex: 2, defaultFreq: 1, inputMode: 'weightBased' },
+            { id: 6, name: 'Colistin Maint.', category: 'Antibiotics', dosePerKg: 37500, unit: 'IU', factor: 500000, methodIndex: 2, defaultFreq: 2, inputMode: 'weightBased' },
+            { id: 24, name: 'Colistin neb.', category: 'Antibiotics', dosePerKg: 5, unit: 'mg', factor: 16.667, methodIndex: 11, defaultFreq: 2, inputMode: 'weightBased', alert: 'مهم: يعطى فنتلوين تبخير قبله ب١٠ دقائق' },
+            { id: 7, name: 'Tigecycline', category: 'Antibiotics', dosePerKg: 2, unit: 'mg', factor: 2, methodIndex: 3, defaultFreq: 2, inputMode: 'weightBased' },
+            { 
+                id: 8, name: 'Meropenem', category: 'Antibiotics',
+                dosePerKg: 40, unit: 'mg', factor: 50, methodIndex: 3,
+                inputMode: 'weightBased',
+                getRecommendedFreq: (ga, pna) => (ga < 32 ? (pna < 14 ? '2' : '3') : '3'),
                 warning_rule: (ga, age, freq) => {
-                    let recommended;
-                    if (ga < 32) {
-                        recommended = (age < 14) ? '2' : '3';
-                    } else {
-                        recommended = '3';
-                    }
-                    
-                    if (freq !== recommended) {
-                        let msg = (recommended === '3') ? 'ثلاث مرات يومياً (كل ٨ ساعات)' : 'مرتان يومياً (كل ١٢ ساعة)';
-                        return `⚠️ تنبيه: التردد المقترح بناءً على GA و PNA هو ${msg}!`;
-                    }
+                    const recommended = (ga < 32) ? ((age < 14) ? '2' : '3') : '3';
+                    if (freq !== recommended) return `⚠️ تنبيه: التردد المقترح بناءً على GA و PNA هو ${(recommended === '3' ? 'ثلاث مرات' : 'مرتان')}!`;
                     return null;
                 }
             },
-            { id: 9, name: 'Dopamine syringe pump', isDopamine: true, defaultFreq: 1 },
-            { id: 22, name: 'Dopamine + fluid', dosePerKg: 5, unit: 'mg', factor: 40, methodIndex: 8, defaultFreq: 1, isDopamine: true },
-            { id: 23, name: 'Dopamine Y-site', dosePerKg: 5, unit: 'mg', factor: 40, methodIndex: 10, defaultFreq: 1, isDopamine: true },
-            { id: 10, name: 'Vit k', dosePerKg: 1, unit: 'mg', factor: 10, methodIndex: 4, defaultFreq: 1 },
-            { id: 11, name: 'Vancomycin', dosePerKg: 15, unit: 'mg', factor: 2, methodIndex: 5, 
-                getRecommendedFreq: (ga, pna) => {
-                    const weight = cleanInputNumber($('inputWeight').value);
-                    if (pna < 7) {
-                        if (weight < 1.2) return '1';
-                        if (weight <= 2) return '2';
-                        return '3';
-                    } else {
-                        if (weight < 1.2) return '1';
-                        return '3';
-                    }
+            { 
+                id: 11, name: 'Vancomycin', category: 'Antibiotics',
+                dosePerKg: 15, unit: 'mg', factor: 2, methodIndex: 5,
+                inputMode: 'weightBased',
+                getRecommendedFreq: (ga, pna, weight) => {
+                    if (pna < 7) return weight < 1.2 ? '1' : (weight <= 2 ? '2' : '3');
+                    return weight < 1.2 ? '1' : '3';
                 },
-                warning_rule: (ga, pna, freq) => {
-                    const weight = cleanInputNumber($('inputWeight').value);
+                warning_rule: (ga, pna, freq, weight) => {
                     let recommended;
-                    if (pna < 7) {
-                        if (weight < 1.2) recommended = '1';
-                        else if (weight <= 2) recommended = '2';
-                        else recommended = '3';
-                    } else {
-                        if (weight < 1.2) recommended = '1';
-                        else recommended = '3';
-                    }
-                    if (freq !== recommended) {
-                        let msg = '';
-                        if (recommended === '1') msg = 'مرة واحدة يومياً (كل ٢٤ ساعة)';
-                        else if (recommended === '2') msg = 'مرتان يومياً (كل ١٢ ساعة)';
-                        else if (recommended === '3') msg = 'ثلاث مرات يومياً (كل ٨ ساعات)';
-                        return `⚠️ تنبيه: التردد المقترح بناءً على الوزن وPNA هو ${msg}!`;
-                    }
+                    if (pna < 7) recommended = weight < 1.2 ? '1' : (weight <= 2 ? '2' : '3');
+                    else recommended = weight < 1.2 ? '1' : '3';
+                    if (freq !== recommended) return `⚠️ تنبيه: التردد المقترح بناءً على الوزن وPNA هو ${recommended}!`;
                     return null;
                 }
             },
-            { id: 17, name: 'Dexmedetomidine + fluid', dosePerKg: 0.3, unit: 'mcg', factor: 100, methodIndex: 8, defaultFreq: 1 },
-            { id: 18, name: 'Dexmedetomidine Y-site', dosePerKg: 0.3, unit: 'mcg', factor: 100, methodIndex: 10, defaultFreq: 1 },
-            { id: 19, name: 'Midazolam + fluid', dosePerKg: 0.03, unit: 'mg', factor: 5, methodIndex: 8, defaultFreq: 1 },
-            { id: 20, name: 'Midazolam Y-site', dosePerKg: 0.03, unit: 'mg', factor: 5, methodIndex: 10, defaultFreq: 1 },
-            { id: 26, name: 'Phenobarbital loading', dosePerKg: 20, unit: 'mg', factor: 10, methodIndex: 3, defaultFreq: 1, alert: 'مهم: تخفف الامبولة الى ٢٠ مل مع NS قبل الاعطاء' },
-            { id: 27, name: 'Phenobarbital Maint.', dosePerKg: 2.5, unit: 'mg', factor: 10, methodIndex: 3, defaultFreq: 2, alert: 'مهم: تخفف الامبولة الى ٢٠ مل مع NS قبل الاعطاء' },
-            { id: 21, name: 'Fluconazol prophylactic', dosePerKg: 4, unit: 'mg', methodIndex: 9, defaultFreq: 1},
-            { id: 29, name: 'Sildenafil cap', dosePerKg: 1, unit: 'mg', methodIndex: 12, defaultFreq: 3},
-            { id: 12, name: 'TPN', methodIndex: 6, defaultFreq: 1, hideDetails: true },
-            { id: 13, name: '1/5 GS', methodIndex: 7, defaultFreq: 1, hideDetails: true, isNutrient: true },
-            { id: 14, name: '10% GW', methodIndex: 7, defaultFreq: 1, hideDetails: true, isNutrient: true },
-            { id: 15, name: '5% GW', methodIndex: 7, defaultFreq: 1, hideDetails: true, isNutrient: true, noPrep: true },
-            { id: 30, name: 'Vit D drop', dosePerKg: 400, unit: 'IU', factor: 1, methodIndex: 13, defaultFreq: 1 },
-            { id: 31, name: 'HydroCHLOROthiazide cap', dosePerKg: 1, unit: 'mg', methodIndex: 12, defaultFreq: 2},
-            { id: 32, name: 'Ventolin neb.', dosePerKg: 1.25, unit: 'mg', factor: 5,  methodIndex: 11, defaultFreq: 4},
-            { id: 34, name: 'Pulmicort neb.', dosePerKg: 0.25, unit: 'mg', factor: 0.5,  methodIndex: 11, defaultFreq: 2},
-            { id: 33, name: 'NS neb.', dosePerKg: 3, unit: 'ml', methodIndex: 14, defaultFreq: 4}
+
+            // --- Sedatives & Inotropes ---
+            { id: 9, name: 'Dopamine syringe pump', category: 'Sedatives & Inotropes', isDopamine: true, defaultFreq: 1, inputMode: 'dopaminePump' },
+            { 
+                id: 22, name: 'Dopamine + fluid', category: 'Sedatives & Inotropes',
+                unit: 'mg', factor: 40, methodIndex: 8, defaultFreq: 1,
+                inputMode: 'infusion', showDosePerKgInput: true, defaultDosePerKg: 5, isDopamine: true
+            },
+            { 
+                id: 23, name: 'Dopamine Y-site', category: 'Sedatives & Inotropes',
+                unit: 'mg', factor: 40, methodIndex: 10, defaultFreq: 1,
+                inputMode: 'infusion', showDosePerKgInput: true, defaultDosePerKg: 5, isDopamine: true
+            },
+            { 
+                id: 17, name: 'Dexmedetomidine + fluid', category: 'Sedatives & Inotropes',
+                dosePerKg: 0.3, unit: 'mcg', factor: 100, methodIndex: 8, defaultFreq: 1,
+                inputMode: 'infusion', showDosePerKgInput: true, defaultDosePerKg: 0.3
+            },
+            { 
+                id: 18, name: 'Dexmedetomidine Y-site', category: 'Sedatives & Inotropes',
+                dosePerKg: 0.3, unit: 'mcg', factor: 100, methodIndex: 10, defaultFreq: 1,
+                inputMode: 'infusion', showDosePerKgInput: true, defaultDosePerKg: 0.3
+            },
+            { 
+                id: 19, name: 'Midazolam + fluid', category: 'Sedatives & Inotropes',
+                dosePerKg: 0.03, unit: 'mg', factor: 5, methodIndex: 8, defaultFreq: 1,
+                inputMode: 'infusion', showDosePerKgInput: true, defaultDosePerKg: 0.03
+            },
+            { 
+                id: 20, name: 'Midazolam Y-site', category: 'Sedatives & Inotropes',
+                dosePerKg: 0.03, unit: 'mg', factor: 5, methodIndex: 10, defaultFreq: 1,
+                inputMode: 'infusion', showDosePerKgInput: true, defaultDosePerKg: 0.03
+            },
+            { id: 26, name: 'Phenobarbital loading', category: 'Sedatives & Inotropes', dosePerKg: 20, unit: 'mg', factor: 10, methodIndex: 3, defaultFreq: 1, inputMode: 'weightBased', alert: 'مهم: تخفف الامبولة الى ٢٠ مل مع NS قبل الاعطاء' },
+            { id: 27, name: 'Phenobarbital Maint.', category: 'Sedatives & Inotropes', dosePerKg: 2.5, unit: 'mg', factor: 10, methodIndex: 3, defaultFreq: 2, inputMode: 'weightBased', alert: 'مهم: تخفف الامبولة الى ٢٠ مل مع NS قبل الاعطاء' },
+
+            // --- Miscellaneous ---
+            { id: 3, name: 'Caffeine Loading', category: 'Miscellaneous', dosePerKg: 20, unit: 'mg', factor: 20, methodIndex: 3, defaultFreq: 1, inputMode: 'weightBased' },
+            { id: 4, name: 'Caffeine Maint.', category: 'Miscellaneous', dosePerKg: 10, unit: 'mg', factor: 20, methodIndex: 2, defaultFreq: 1, inputMode: 'weightBased' },
+            { id: 10, name: 'Vit k', category: 'Miscellaneous', unit: 'mg', factor: 10, methodIndex: 4, defaultFreq: 1, inputMode: 'fixed', fixedDose: 1 },
+            { id: 25, name: 'Decadron DART', category: 'Miscellaneous', dosePerKg: 0.075, unit: 'mg', factor: 0.4, methodIndex: 2, defaultFreq: 2, inputMode: 'weightBased', alert: 'مهم: تخفف الامبولة الى ٢٠ مل مع NS قبل الاعطاء' },
+            { id: 28, name: 'Decadron amp', category: 'Miscellaneous', dosePerKg: 0.25, unit: 'mg', factor: 0.4, methodIndex: 2, defaultFreq: 2, inputMode: 'weightBased', alert: 'مهم: تخفف الامبولة الى ٢٠ مل مع NS قبل الاعطاء' },
+            { id: 30, name: 'Vit D drop', category: 'Miscellaneous', unit: 'IU', factor: 1, methodIndex: 13, defaultFreq: 1, inputMode: 'fixed', fixedDose: 400 },
+
+            // --- Fluids ---
+            { id: 12, name: 'TPN', category: 'Fluids', methodIndex: 6, defaultFreq: 1, inputMode: 'volume', hideDetails: true },
+            { id: 13, name: '1/5 GS', category: 'Fluids', methodIndex: 7, defaultFreq: 1, inputMode: 'volume', hideDetails: true, isNutrient: true },
+            { id: 14, name: '10% GW', category: 'Fluids', methodIndex: 7, defaultFreq: 1, inputMode: 'volume', hideDetails: true, isNutrient: true },
+            { id: 15, name: '5% GW', category: 'Fluids', methodIndex: 7, defaultFreq: 1, inputMode: 'volume', hideDetails: true, isNutrient: true, noPrep: true },
+
+            // --- Oral capsules ---
+            { id: 21, name: 'Fluconazol prophylactic', category: 'Oral capsules', dosePerKg: 4, unit: 'mg', methodIndex: 9, defaultFreq: 1, inputMode: 'fixed', fixedDose: 4 }, // Assuming fixed prophylactic dose
+            { id: 29, name: 'Sildenafil cap', category: 'Oral capsules', dosePerKg: 1, unit: 'mg', methodIndex: 12, defaultFreq: 3, inputMode: 'weightBased' },
+            { id: 31, name: 'HydroCHLOROthiazide cap', category: 'Oral capsules', dosePerKg: 1, unit: 'mg', methodIndex: 12, defaultFreq: 2, inputMode: 'weightBased' },
+
+            // --- Nebulization ---
+            { id: 32, name: 'Ventolin neb.', category: 'Nebulization', dosePerKg: 1.25, unit: 'mg', factor: 5, methodIndex: 11, defaultFreq: 4, inputMode: 'fixed', fixedDose: 1.25 },
+            { id: 34, name: 'Pulmicort neb.', category: 'Nebulization', dosePerKg: 0.25, unit: 'mg', factor: 0.5, methodIndex: 11, defaultFreq: 2, inputMode: 'fixed', fixedDose: 0.25 },
+            { id: 33, name: 'NS neb.', category: 'Nebulization', dosePerKg: 3, unit: 'ml', methodIndex: 14, defaultFreq: 4, inputMode: 'fixed', fixedDose: 3 }
         ];
 
-        const DRUG_CATEGORIES = [
-            { name: 'Antibiotics', ids: [1, 2, 5, 6, 7, 8, 11, 16, 24] },
-            { name: 'Sedatives & Inotropes', ids: [9, 17, 18, 19, 20, 22, 23, 26, 27] },
-            { name: 'Miscellaneous', ids: [3, 4, 10, 25, 28, 30] },
-            { name: 'Fluids', ids: [12, 13, 14, 15] },
-            { name: 'Oral capsules', ids: [21, 29, 31] },
-            { name: 'Nebulization', ids: [32, 33, 34] },
-            { name: 'Other+', ids: ['other'] }
-        ];
+        // ==========================================
+        // 2. CORE LOGIC & UTILITIES
+        // ==========================================
 
         const STORAGE_KEY = 'nicu_patient_queue';
         let patients = [];
@@ -665,21 +606,13 @@
         };
 
         const showToast = (message, type = 'success') => {
-            const colors = { 
-                success: 'bg-[#047857] text-white', 
-                error: 'bg-[#B91C1C] text-white', 
-                info: 'bg-[var(--fg)] text-white',
-                warning: 'bg-[var(--warning)] text-white'
-            };
+            const colors = { success: 'bg-[#047857] text-white', error: 'bg-[#B91C1C] text-white', info: 'bg-[var(--fg)] text-white', warning: 'bg-[var(--warning)] text-white' };
             const toast = $('toast');
             $('toastMsg').textContent = message;
             toast.className = `fixed bottom-8 left-1/2 -translate-x-1/2 px-6 py-3.5 rounded-2xl font-medium shadow-2xl z-50 transition-all duration-300 ${colors[type]}`;
             toast.style.opacity = '1';
             toast.style.transform = 'translateX(-50%) translateY(0)';
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                toast.style.transform = 'translateX(-50%) translateY(16px)';
-            }, 3000);
+            setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateX(-50%) translateY(16px)'; }, 3000);
         };
 
         const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
@@ -689,13 +622,57 @@
             return text.toString().replace(/\d+(\.\d+)?/g, '<strong style="font-weight: 900;">$&</strong>');
         };
 
+        // ==========================================
+        // 3. DYNAMIC CATEGORY GENERATION
+        // ==========================================
+        
+        const getCategories = () => {
+            const categoryMap = {};
+            DRUG_CONFIG.forEach(drug => {
+                if (drug.category) {
+                    if (!categoryMap[drug.category]) categoryMap[drug.category] = { name: drug.category, ids: [] };
+                    categoryMap[drug.category].ids.push(drug.id);
+                }
+            });
+            
+            // Add 'Other+' option at the end
+            categoryMap['Other+'] = { name: 'Other+', ids: ['other'] };
+            return Object.values(categoryMap);
+        };
+
+        // ==========================================
+        // 4. UI CONTROL LOGIC
+        // ==========================================
+
+        const resetDrugFormUI = () => {
+            $('totalDoseContainer').classList.remove('hidden');
+            $('freqContainer').classList.remove('hidden');
+            $('addonContainer').classList.add('hidden');
+            $('dosePerKgContainer').classList.add('hidden');
+            $('methodPreviewContainer').classList.add('hidden');
+            $('dopamineTableContainer').classList.add('hidden');
+            $('alertMessage').classList.add('hidden');
+            $('inputCustomDrug').classList.add('hidden');
+            $('inputCustomMethod').classList.add('hidden');
+            $('inputCustomUnit').classList.add('hidden');
+            $('targetVolContainer').classList.add('hidden');
+            
+            $('inputDose').disabled = false;
+            $('inputDose').placeholder = 'Auto';
+            $('inputDose').value = '';
+            $('inputFreq').value = '1';
+            $('warningMessage').classList.add('hidden');
+        };
+
         const checkClinicalAlerts = (drug) => {
             const ga = cleanInputNumber($('inputGA').value);
             let ageVal = $('inputAge').value;
             const age = ageVal === '>30' ? 31 : parseInt(ageVal) || 0; 
             const freq = $('inputFreq').value;
-            
+            const weight = cleanInputNumber($('inputWeight').value);
+
             $('alertMessage').classList.add('hidden');
+            $('warningMessage').classList.add('hidden');
             
             if (drug && drug.alert) {
                 $('alertText').textContent = drug.alert;
@@ -703,14 +680,12 @@
             }
             
             if (drug && drug.warning_rule) {
-                const alert = drug.warning_rule(ga, age, freq);
+                const alert = drug.warning_rule(ga, age, freq, weight);
                 if (alert) { 
                     $('warningMessage').textContent = alert; 
                     $('warningMessage').classList.remove('hidden'); 
-                    return; 
                 }
             }
-            $('warningMessage').classList.add('hidden');
         };
 
         const generateMethodString = (drug, finalDoseMg) => {
@@ -733,24 +708,14 @@
                 }
                 
                 let mainHeader = `${totalFluid} ml`;
-                if (addonVol > 0) {
-                    mainHeader += ` (+ ${addonVol} ml ${addonType})`;
-                }
+                if (addonVol > 0) mainHeader += ` (+ ${addonVol} ml ${addonType})`;
 
                 let additiveText = addonVol > 0 ? ` + ${calcAddon.toFixed(0)} ml ${addonType}` : "";
                 let prepDetail = "";
 
-                if (drug.name === '1/5 GS') {
-                    let gw = (calcFluid * 0.8).toFixed(0);
-                    let ns = (calcFluid * 0.2).toFixed(0);
-                    prepDetail = `(5% GW ${gw} ml + ${ns} ml NS${additiveText})${suffix}`;
-                } else if (drug.name === '10% GW') {
-                    let gw = (calcFluid * 0.9).toFixed(0);
-                    let ht = (calcFluid * 0.1).toFixed(0);
-                    prepDetail = `(5% GW ${gw} ml + ${ht} ml HT${additiveText})${suffix}`;
-                } else {
-                     prepDetail = `(${drug.name} ${calcFluid} ml ${additiveText})${suffix}`;
-                }
+                if (drug.name === '1/5 GS') prepDetail = `(5% GW ${(calcFluid * 0.8).toFixed(0)} ml + ${(calcFluid * 0.2).toFixed(0)} ml NS${additiveText})${suffix}`;
+                else if (drug.name === '10% GW') prepDetail = `(5% GW ${(calcFluid * 0.9).toFixed(0)} ml + ${(calcFluid * 0.1).toFixed(0)} ml HT${additiveText})${suffix}`;
+                else prepDetail = `(${drug.name} ${calcFluid} ml ${additiveText})${suffix}`;
 
                 return `${mainHeader} | ${prepDetail}`;
             }
@@ -763,25 +728,13 @@
 
             if (drug.methodIndex === 3 || drug.methodIndex === 10) {
                 const targetVol = parseInt($('inputTargetVol').value);
-                if (targetVol === 10) { 
-                    drawn_volume_ml *= 2; 
-                    diluent_volume = 20 - drawn_volume_ml; 
-                    methodStr = methodStr.replace('^^', '10'); 
-                } else if (targetVol === 5) { 
-                    drawn_volume_ml *= 3; 
-                    diluent_volume = 15 - drawn_volume_ml; 
-                    methodStr = methodStr.replace('^^', '5'); 
-                }
-            } else { 
-                diluent_volume = 20 - drawn_volume_ml; 
-            }
+                if (targetVol === 10) { drawn_volume_ml *= 2; diluent_volume = 20 - drawn_volume_ml; methodStr = methodStr.replace('^^', '10'); }
+                else if (targetVol === 5) { drawn_volume_ml *= 3; diluent_volume = 15 - drawn_volume_ml; methodStr = methodStr.replace('^^', '5'); }
+            } else { diluent_volume = 20 - drawn_volume_ml; }
 
             let display_volume = drawn_volume_ml;
             let unitStr = ' ml';
-            if (drawn_volume_ml < 1) { 
-                display_volume = drawn_volume_ml * 100; 
-                unitStr = ' units'; 
-            }
+            if (drawn_volume_ml < 1) { display_volume = drawn_volume_ml * 100; unitStr = ' units'; }
 
             let display_drawn_str = unitStr === ' units' ? Math.round(display_volume) : display_volume.toFixed(1);
             methodStr = methodStr.replace('**', `${display_drawn_str}${unitStr}`);
@@ -790,24 +743,26 @@
             return methodStr;
         };
 
+        // ==========================================
+        // 5. REFACTORED DRUG SELECTION HANDLER
+        // ==========================================
+
         const updateDrugListByCategory = () => {
             const categoryName = $('selectCategory').value;
             const drugSelect = $('selectDrug');
             drugSelect.innerHTML = '';
-            if (categoryName === 'Fluids') {
-                $('freqContainer').classList.add('hidden');
-            } else {
-                $('freqContainer').classList.remove('hidden');
-            }
+            
             if (!categoryName) {
-                drugSelect.innerHTML = '<option value="">-- Select Category First --</option>';
-                handleDrugSelectionChange();
+                drugSelect.innerHTML = '<option value="">-- Select Category --</option>';
+                resetDrugFormUI();
                 return;
             }
-            const category = DRUG_CATEGORIES.find(c => c.name === categoryName);
+            
+            const category = getCategories().find(c => c.name === categoryName);
             let drugOpts = '<option value="">-- Select Drug --</option>';
+            
             if (categoryName === 'Other+') {
-                drugOpts += '<option value="other">Other+ (علاج آخر)</option>';
+                drugOpts += '<option value="other">Other+ (Custom)</option>';
             } else {
                 category.ids.forEach(id => {
                     const d = DRUG_CONFIG.find(item => item.id === id);
@@ -820,125 +775,81 @@
 
         const handleDrugSelectionChange = () => {
             const val = $('selectDrug').value;
-            const ga = cleanInputNumber($('inputGA').value);
             const weight = cleanInputNumber($('inputWeight').value);
+            const ga = cleanInputNumber($('inputGA').value);
             let ageVal = $('inputAge').value;
             const pna = ageVal === '>30' ? 31 : parseInt(ageVal) || 0;
 
-            $('totalDoseContainer').classList.remove('hidden');
-            $('freqContainer').classList.remove('hidden');
-            $('addonContainer').classList.add('hidden');
-            $('dosePerKgContainer').classList.add('hidden'); 
+            resetDrugFormUI();
 
-            if (val === '') {
-                $('inputDose').value = ''; $('inputDose').disabled = false;
-                $('methodPreviewContainer').classList.add('hidden');
-                $('inputCustomDrug').classList.add('hidden');
-                $('inputCustomMethod').classList.add('hidden');
-                $('inputCustomUnit').classList.add('hidden');
-                $('targetVolContainer').classList.add('hidden');
-                $('dopamineTableContainer').classList.add('hidden');
-                $('alertMessage').classList.add('hidden');
-                return;
-            }
-
-            const drugId = parseInt(val);
-            const drug = DRUG_CONFIG.find(d => d.id === drugId);
-
-            if (drug && drug.name === 'TPN') {
-                $('totalDoseContainer').classList.add('hidden');
-                $('freqContainer').classList.add('hidden');
-            }
-
-            if ($('selectCategory').value === 'Fluids') {
-                 $('freqContainer').classList.add('hidden');
-            }
-
-            if (drug && drug.isNutrient && !drug.noPrep) {
-                $('addonContainer').classList.remove('hidden');
-            }
-
+            if (val === '') return;
+            
             if (val === 'other') {
                 $('inputCustomDrug').classList.remove('hidden');
                 $('inputCustomMethod').classList.remove('hidden');
                 $('inputCustomUnit').classList.remove('hidden');
-                $('inputDose').disabled = false; $('inputDose').placeholder = 'Manual Dose'; $('inputDose').value = '';
-                $('methodPreviewContainer').classList.add('hidden');
-                $('targetVolContainer').classList.add('hidden');
-                $('dopamineTableContainer').classList.add('hidden');
-                $('alertMessage').classList.add('hidden');
+                $('inputDose').disabled = false;
+                $('inputDose').placeholder = 'Manual Dose';
                 return;
-            } else {
-                $('inputCustomDrug').classList.add('hidden');
-                $('inputCustomMethod').classList.add('hidden');
-                $('inputCustomUnit').classList.add('hidden');
             }
 
+            const drug = DRUG_CONFIG.find(d => d.id === parseInt(val));
             if (!drug) return;
-            
-            $('targetVolContainer').classList.toggle('hidden', drug.methodIndex !== 3 && drug.methodIndex !== 10);
-            
-            if (drug.isDopamine && drug.id === 9) {
-                $('inputDose').value = ''; $('inputDose').placeholder = 'See table below'; $('inputDose').disabled = true;
-                $('dopamineTableContainer').classList.remove('hidden'); $('methodPreviewContainer').classList.add('hidden');
-                renderDopamineTable(weight); return;
-            }
-            
-            $('inputDose').disabled = false; $('inputDose').placeholder = 'Auto';
-            $('dopamineTableContainer').classList.add('hidden'); $('methodPreviewContainer').classList.remove('hidden');
-            
-            if (drug.isNutrient || drug.name === 'TPN') { 
-                $('inputDose').value = ''; 
-                $('inputDose').placeholder = 'Total Volume (ml)'; 
-                if (drug.isNutrient) updateMethodPreview(drug, 0);
-                return; 
-            }
-            
-            const specialIds = [17, 18, 19, 20, 22, 23];
-            if (specialIds.includes(drug.id)) {
-                $('dosePerKgContainer').classList.remove('hidden');
-                
-                let defaultDoseKg = drug.dosePerKg;
-                if ([22, 23].includes(drug.id)) defaultDoseKg = 5; 
-                
-                $('inputDosePerKg').value = defaultDoseKg;
-                
-                if (weight > 0) {
-                    let calcDose;
-                    if ([22, 23].includes(drug.id)) {
-                        calcDose = (weight * defaultDoseKg * 1440) / 1000;
-                    } else {
-                        calcDose = (weight * defaultDoseKg * 24);
+
+            // Frequency Logic
+            if (drug.category === 'Fluids' || drug.hideDetails) $('freqContainer').classList.add('hidden');
+            else $('freqContainer').classList.remove('hidden');
+
+            // Nutrient Addons
+            if (drug.isNutrient && !drug.noPrep) $('addonContainer').classList.remove('hidden');
+
+            // Set Frequency
+            const recommendedFreq = drug.getRecommendedFreq ? drug.getRecommendedFreq(ga, pna, weight) : drug.defaultFreq;
+            $('inputFreq').value = recommendedFreq || 1;
+
+            // Target Volume for specific methods
+            if (drug.methodIndex === 3 || drug.methodIndex === 10) $('targetVolContainer').classList.remove('hidden');
+
+            // INPUT MODE SWITCH
+            switch(drug.inputMode) {
+                case 'dopaminePump':
+                    $('inputDose').placeholder = 'See table';
+                    $('inputDose').disabled = true;
+                    $('dopamineTableContainer').classList.remove('hidden');
+                    renderDopamineTable(weight);
+                    checkClinicalAlerts(drug);
+                    return; // Skip preview
+
+                case 'infusion':
+                    $('dosePerKgContainer').classList.remove('hidden');
+                    $('inputDosePerKg').value = drug.defaultDosePerKg || drug.dosePerKg;
+                    if (weight > 0) {
+                        const ratePerKg = cleanInputNumber($('inputDosePerKg').value);
+                        const total24h = drug.isDopamine 
+                            ? (weight * ratePerKg * 1440) / 1000 
+                            : weight * ratePerKg * 24;
+                        $('inputDose').value = total24h.toFixed(2);
                     }
-                    $('inputDose').value = calcDose.toFixed(2);
-                }
-            } else if (drug.id === 10) { 
-                $('inputDose').value = 1;
-            } else if (drug.id === 30) { 
-                $('inputDose').value = 400;
-            } else if (drug.id === 21) { 
-                $('inputDose').value = 4;
-            } else if (drug.id === 32) { 
-                $('inputDose').value = 1.25;
-            } else if (drug.id === 33) { 
-                $('inputDose').value = 3;
-            } else if (drug.id === 34) { 
-                $('inputDose').value = 0.25;
-            } else if (weight > 0) {
-                if(drug.dosePerKg) { 
-                    $('inputDose').value = (weight * drug.dosePerKg).toFixed(1); 
-                } else { 
-                    $('inputDose').value = ''; 
-                }
+                    break;
+
+                case 'fixed':
+                    $('inputDose').value = drug.fixedDose;
+                    $('inputDose').disabled = true;
+                    break;
+
+                case 'volume':
+                    $('inputDose').placeholder = 'Total Volume (ml)';
+                    break;
+
+                case 'weightBased':
+                default:
+                    $('inputDose').disabled = false;
+                    if (weight > 0 && drug.dosePerKg) $('inputDose').value = (weight * drug.dosePerKg).toFixed(1);
+                    break;
             }
 
-            if (drug.getRecommendedFreq) { 
-                $('inputFreq').value = drug.getRecommendedFreq(ga, pna); 
-            } else { 
-                $('inputFreq').value = drug.defaultFreq || 1; 
-            }
             checkClinicalAlerts(drug);
-            updateMethodPreview(drug, parseFloat($('inputDose').value) || 0);
+            updateMethodPreview(drug, cleanInputNumber($('inputDose').value));
         };
 
         const handleManualDoseChange = (source) => {
@@ -948,35 +859,23 @@
             const drug = DRUG_CONFIG.find(d => d.id === drugId);
             const weight = cleanInputNumber($('inputWeight').value);
 
-            if (source === 'dosePerKg' && [17, 18, 19, 20, 22, 23].includes(drugId)) {
+            if (source === 'dosePerKg' && drug.inputMode === 'infusion') {
                 const doseKg = cleanInputNumber($('inputDosePerKg').value);
                 if (weight > 0) {
-                    let calcDose;
-                    if ([22, 23].includes(drugId)) {
-                        calcDose = (weight * doseKg * 1440) / 1000;
-                    } else {
-                        calcDose = (weight * doseKg * 24); 
-                    }
+                    const calcDose = drug.isDopamine ? (weight * doseKg * 1440) / 1000 : (weight * doseKg * 24);
                     $('inputDose').value = calcDose.toFixed(2);
                 }
-            } else if (source === 'totalDose' && [17, 18, 19, 20, 22, 23].includes(drugId)) {
+            } else if (source === 'totalDose' && drug.inputMode === 'infusion') {
                 const totalDose = cleanInputNumber($('inputDose').value);
                 if (weight > 0) {
-                    let calcDoseKg;
-                    if ([22, 23].includes(drugId)) {
-                        calcDoseKg = (totalDose * 1000) / (weight * 1440);
-                    } else {
-                        calcDoseKg = totalDose / (weight * 24);
-                    }
+                    const calcDoseKg = drug.isDopamine ? (totalDose * 1000) / (weight * 1440) : totalDose / (weight * 24);
                     $('inputDosePerKg').value = calcDoseKg.toFixed(3);
                 }
             }
 
             const manualDose = cleanInputNumber($('inputDose').value);
-            if (drug && !drug.isDopamine) {
+            if (drug) {
                 checkClinicalAlerts(drug);
-                updateMethodPreview(drug, manualDose);
-            } else if (drug && drug.isDopamine && (drug.methodIndex === 10 || drug.methodIndex === 8)) {
                 updateMethodPreview(drug, manualDose);
             }
         };
@@ -989,8 +888,7 @@
         const renderDopamineTable = (weight) => {
             const tbody = $('dopamineTableBody');
             let rows = '';
-            const doses = [2, 5, 7, 10];
-            doses.forEach(dose => {
+            [2, 5, 7, 10].forEach(dose => {
                 const rate = ((dose * weight * 1440) / 1000).toFixed(0);
                 rows += `<tr>
                     <td class="p-3 text-center font-bold text-[var(--accent)] border border-[var(--border)]">${rate} ml/24hr</td>
@@ -1000,26 +898,18 @@
             tbody.innerHTML = rows;
         };
 
-        const saveToStorage = () => { 
-            try { 
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(patients)); 
-            } catch (e) {} 
-        };
+        // ==========================================
+        // 6. DATA MANAGEMENT
+        // ==========================================
+
+        const saveToStorage = () => { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(patients)); } catch (e) {} };
         
         const updateStats = () => {
-            const total = patients.length;
-            const selected = selectedPatientIds.size;
-            const drugsToday = patients.reduce((sum, p) => sum + (p.drugs ? p.drugs.length : 0), 0);
-            
-            $('statTotal').textContent = total;
-            $('statSelected').textContent = selected;
-            $('statDrugs').textContent = drugsToday;
-            
+            $('statTotal').textContent = patients.length;
+            $('statSelected').textContent = selectedPatientIds.size;
+            $('statDrugs').textContent = patients.reduce((sum, p) => sum + (p.drugs ? p.drugs.length : 0), 0);
             const lastSaved = localStorage.getItem('nicu_last_saved');
-            if (lastSaved) {
-                const date = new Date(lastSaved);
-                $('statLastSaved').textContent = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-            }
+            if (lastSaved) $('statLastSaved').textContent = new Date(lastSaved).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
         };
 
         const renderQueue = () => {
@@ -1029,22 +919,15 @@
                 <div class="patient-card bg-white rounded-2xl border border-[var(--border)] shadow-lg overflow-hidden card-hover" style="animation-delay: ${index * 0.05}s">
                     <div class="p-5 border-b border-[var(--border)] bg-gradient-to-r from-[var(--surface)] to-white flex items-center justify-between">
                         <div class="flex items-center gap-4">
-                            <input type="checkbox" ${isSelected ? 'checked' : ''} 
-                                onclick="togglePatientSelection('${p.id}')" 
-                                class="w-5 h-5 rounded-lg border-2 border-[var(--border)] text-[var(--accent)] focus:ring-[var(--accent)] cursor-pointer"
-                                aria-label="Select patient ${p.name}">
+                            <input type="checkbox" ${isSelected ? 'checked' : ''} onclick="togglePatientSelection('${p.id}')" class="w-5 h-5 rounded-lg border-2 border-[var(--border)] text-[var(--accent)] focus:ring-[var(--accent)] cursor-pointer">
                             <div>
                                 <h3 class="font-bold text-lg text-[var(--fg)]">${p.name}</h3>
                                 <p class="text-xs text-[var(--muted)] mt-0.5">${p.weight}kg | GA:${p.ga}w | Day ${p.age}</p>
                             </div>
                         </div>
                         <div class="flex gap-1">
-                            <button onclick="editPatient('${p.id}')" class="p-2.5 hover:bg-[var(--accent)]/10 rounded-xl text-[var(--accent)] transition-all" aria-label="Edit patient">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                            </button>
-                            <button onclick="deletePatient('${p.id}')" class="p-2.5 hover:bg-red-50 rounded-xl text-[var(--danger)] transition-all" aria-label="Delete patient">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                            </button>
+                            <button onclick="editPatient('${p.id}')" class="p-2.5 hover:bg-[var(--accent)]/10 rounded-xl text-[var(--accent)] transition-all"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>
+                            <button onclick="deletePatient('${p.id}')" class="p-2.5 hover:bg-red-50 rounded-xl text-[var(--danger)] transition-all"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
                         </div>
                     </div>
                     <div class="p-5 space-y-3">
@@ -1065,23 +948,17 @@
             updateStats();
         };
 
-        const loadFromStorage = () => { 
-            try { 
-                const data = localStorage.getItem(STORAGE_KEY); 
-                if (data) { 
-                    patients = JSON.parse(data); 
-                    renderQueue(); 
-                } 
-            } catch (e) {} 
-        };
+        const loadFromStorage = () => { try { const data = localStorage.getItem(STORAGE_KEY); if (data) { patients = JSON.parse(data); renderQueue(); } } catch (e) {} };
 
         const populateDropdowns = () => {
             const ageOpts = Array.from({ length: 30 }, (_, i) => `<option value="${i + 1}">Day ${i + 1}</option>`).join('');
             $('inputAge').innerHTML = '<option value="">Select day</option>' + ageOpts + '<option value=">30">More than 30 days</option>';
+            
+            const categories = getCategories();
             let catOpts = '<option value="">-- Select Category --</option>';
-            catOpts += DRUG_CATEGORIES.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+            catOpts += categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
             $('selectCategory').innerHTML = catOpts;
-            $('selectDrug').innerHTML = '<option value="">-- Select Category First --</option>';
+            $('selectDrug').innerHTML = '<option value="">-- Select Category --</option>';
         };
 
         const updateCounter = () => {
@@ -1090,9 +967,7 @@
             $('patientCounter').classList.toggle('hidden', c === 0);
             $('btnPdf').disabled = c === 0;
             $('emptyState').classList.toggle('hidden', c > 0);
-            const total = patients.length;
-            const selected = selectedPatientIds.size;
-            $('selectAllCheckbox').checked = total > 0 && total === selected;
+            $('selectAllCheckbox').checked = c > 0 && c === selectedPatientIds.size;
         };
 
         const renderDrugsList = () => {
@@ -1106,9 +981,7 @@
                         ${d.alert ? `<p class="text-[var(--danger)] font-bold text-xs mb-2 arabic-text">${d.alert}</p>` : ''}
                         <p class="text-sm text-[var(--fg)] leading-relaxed" style="direction: ltr; text-align: left;">${boldNumbersInText(d.method)}</p>
                     </div>
-                    <button onclick="removeDrug(${i})" class="ml-4 p-2.5 hover:bg-red-100 rounded-xl group flex-shrink-0 transition-all" aria-label="Remove drug">
-                        <svg class="w-5 h-5 text-[var(--muted)] group-hover:text-[var(--danger)] transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
-                    </button>
+                    <button onclick="removeDrug(${i})" class="ml-4 p-2.5 hover:bg-red-100 rounded-xl group flex-shrink-0 transition-all"><svg class="w-5 h-5 text-[var(--muted)] group-hover:text-[var(--danger)] transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg></button>
                 </div>`).join('');
         };
 
@@ -1117,11 +990,10 @@
             if (!weight || weight <= 0) { showToast('Please enter weight first', 'error'); return; }
             const val = $('selectDrug').value;
             if (!val) { showToast('Select a drug', 'error'); return; }
-            const freqVal = $('inputFreq').value;
-            let freqDisplay = freqVal === 'q36hr' ? 'q36hr' : freqVal === 'q48hr' ? 'q48hr' : `x ${freqVal}`;
             
             let drugNameToCheck = '';
             let drugObj = null;
+            
             if (val === 'other') {
                 drugNameToCheck = $('inputCustomDrug').value.trim();
                 if (!drugNameToCheck) { showToast('Drug name missing', 'error'); return; }
@@ -1130,44 +1002,47 @@
                 drugNameToCheck = drugObj.name;
             }
 
-            const isDuplicate = currentDrugs.some(d => d.name.trim().toLowerCase() === drugNameToCheck.toLowerCase());
-            if (isDuplicate) { showToast('هذا العلاج مضاف مسبقاً!', 'warning'); return; }
+            if (currentDrugs.some(d => d.name.trim().toLowerCase() === drugNameToCheck.toLowerCase())) { 
+                showToast('هذا العلاج مضاف مسبقاً!', 'warning'); return; 
+            }
+
+            const freqVal = $('inputFreq').value;
+            let freqDisplay = freqVal === 'q36hr' ? 'q36hr' : freqVal === 'q48hr' ? 'q48hr' : `x ${freqVal}`;
+            const dose = cleanInputNumber($('inputDose').value);
 
             if (val === 'other') {
-                const customName = $('inputCustomDrug').value.trim();
-                const customMethod = $('inputCustomMethod').value.trim() || 'Manual';
-                const customUnit = $('inputCustomUnit').value.trim() || 'mg';
-                const dose = cleanInputNumber($('inputDose').value);
-                currentDrugs.push({ id: generateId(), drugId: 'other', name: customName, dose, unit: customUnit, freq: freqDisplay, method: customMethod, hideDetails: false, isNutrient: false, isDopamine: false, alert: '' });
+                currentDrugs.push({ 
+                    id: generateId(), drugId: 'other', name: $('inputCustomDrug').value.trim(), 
+                    dose, unit: $('inputCustomUnit').value.trim() || 'mg', freq: freqDisplay, 
+                    method: $('inputCustomMethod').value.trim() || 'Manual', hideDetails: false, isNutrient: false, isDopamine: false, alert: '' 
+                });
             } else {
-                const drug = drugObj;
-                const dose = cleanInputNumber($('inputDose').value);
-                if (drug.isDopamine && drug.id === 9) {
-                    currentDrugs.push({ id: generateId(), drugId: drug.id, name: drug.name, dose: 'Infusion', unit: '', freq: '', method: '1 ml dopamin + 39 ml GW', hideDetails: false, isNutrient: false, isDopamine: true, alert: drug.alert || '' });
+                if (drugObj.inputMode === 'dopaminePump') {
+                    currentDrugs.push({ id: generateId(), drugId: drugObj.id, name: drugObj.name, dose: 'Infusion', unit: '', freq: '', method: '1 ml dopamin + 39 ml GW', hideDetails: false, isNutrient: false, isDopamine: true, alert: drugObj.alert || '' });
                 } else {
-                    currentDrugs.push({ id: generateId(), drugId: drug.id, name: drug.name, dose, unit: drug.unit || '', freq: (drug.hideDetails || drug.name === 'TPN' || $('selectCategory').value === 'Fluids') ? '' : freqDisplay, method: generateMethodString(drug, dose), hideDetails: drug.hideDetails || false, isNutrient: drug.isNutrient || false, isDopamine: drug.isDopamine || false, alert: drug.alert || '' });
+                    currentDrugs.push({ 
+                        id: generateId(), drugId: drugObj.id, name: drugObj.name, dose, unit: drugObj.unit || '', 
+                        freq: (drugObj.hideDetails || drugObj.category === 'Fluids') ? '' : freqDisplay, 
+                        method: generateMethodString(drugObj, dose), 
+                        hideDetails: drugObj.hideDetails || false, isNutrient: drugObj.isNutrient || false, 
+                        isDopamine: drugObj.isDopamine || false, alert: drugObj.alert || '' 
+                    });
                 }
             }
+            
             renderDrugsList(); 
-            showToast('Drug added successfully', 'success');
+            showToast('Drug added', 'success');
             $('selectCategory').value = '';
             updateDrugListByCategory();
             $('inputAddonVol').value = '';
             $('inputAddonType').value = '';
         };
 
-        window.removeDrug = (index) => { 
-            currentDrugs.splice(index, 1); 
-            renderDrugsList(); 
-            showToast('Drug removed', 'info');
-        };
+        window.removeDrug = (index) => { currentDrugs.splice(index, 1); renderDrugsList(); showToast('Drug removed', 'info'); };
 
         const savePatient = () => {
             const name = $('inputName').value.trim(), weight = cleanInputNumber($('inputWeight').value);
-            if (!name || !weight || currentDrugs.length === 0) { 
-                showToast('Please complete patient info and add at least one drug', 'error'); 
-                return; 
-            }
+            if (!name || !weight || currentDrugs.length === 0) { showToast('Complete info and add drugs', 'error'); return; }
             
             const sortedDrugs = [...currentDrugs].sort((a, b) => {
                 if (a.isNutrient && !b.isNutrient) return 1;
@@ -1179,52 +1054,36 @@
             patients.push({ id: generateId(), name, weight, age: $('inputAge').value, ga: $('inputGA').value, drugs: sortedDrugs, timestamp });
             
             localStorage.setItem('nicu_last_saved', timestamp);
-            saveToStorage(); 
-            renderQueue();
+            saveToStorage(); renderQueue();
             
             $('inputName').value = ''; $('inputWeight').value = ''; $('inputGA').value = ''; $('inputAge').value = '';
             currentDrugs = []; renderDrugsList();
-            $('methodPreviewContainer').classList.add('hidden'); 
-            $('dopamineTableContainer').classList.add('hidden');
-            $('alertMessage').classList.add('hidden');
-            showToast('Patient saved successfully', 'success');
+            resetDrugFormUI();
+            showToast('Patient saved', 'success');
         };
 
-        window.deletePatient = (id) => { 
-            patients = patients.filter(p => p.id !== id); 
-            selectedPatientIds.delete(id); 
-            saveToStorage(); 
-            renderQueue(); 
-            showToast('Patient removed', 'info');
-        };
-        
+        window.deletePatient = (id) => { patients = patients.filter(p => p.id !== id); selectedPatientIds.delete(id); saveToStorage(); renderQueue(); showToast('Patient removed', 'info'); };
         window.editPatient = (id) => {
             const p = patients.find(px => px.id === id); if (!p) return;
             $('inputName').value = p.name; $('inputWeight').value = p.weight; $('inputAge').value = p.age; $('inputGA').value = p.ga;
             currentDrugs = [...p.drugs]; renderDrugsList();
-            deletePatient(id); 
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            showToast('Editing patient - make changes and save', 'info');
+            deletePatient(id); window.scrollTo({ top: 0, behavior: 'smooth' });
+            showToast('Editing patient', 'info');
         };
 
-        window.togglePatientSelection = (id) => { 
-            if (selectedPatientIds.has(id)) selectedPatientIds.delete(id); else selectedPatientIds.add(id); 
-            updateCounter();
-            updateStats();
-        };
+        window.togglePatientSelection = (id) => { if (selectedPatientIds.has(id)) selectedPatientIds.delete(id); else selectedPatientIds.add(id); updateCounter(); updateStats(); };
+        const toggleSelectAll = (e) => { if (e.target.checked) patients.forEach(p => selectedPatientIds.add(p.id)); else selectedPatientIds.clear(); renderQueue(); };
 
-        const toggleSelectAll = (e) => { 
-            if (e.target.checked) patients.forEach(p => selectedPatientIds.add(p.id)); else selectedPatientIds.clear(); 
-            renderQueue(); 
-        };
-
+        // ==========================================
+        // 7. PDF GENERATION (Preserved Original Logic)
+        // ==========================================
+        
         const generatePDF = async () => {
             const selectedPatients = patients.filter(p => selectedPatientIds.has(p.id));
             if (selectedPatients.length === 0) { showToast('No patients selected', 'error'); return; }
             showToast('Generating PDF...', 'info');
             const container = $('pdf-render-container');
-            container.innerHTML = ''; 
-            container.style.opacity = '1'; 
+            container.innerHTML = ''; container.style.opacity = '1'; 
 
             let processedPatients = [];
             selectedPatients.forEach(p => {
@@ -1285,40 +1144,21 @@
                 pageDiv.className = 'pdf-page';
                 pageDiv.innerHTML = `<div class="pdf-grid"></div>`;
                 const grid = pageDiv.querySelector('.pdf-grid');
-                pages[i].forEach((cellData, index) => {
+                pages[i].forEach((cellData) => {
                     if (!cellData || cellData === 'blocked') return; 
                     const el = document.createElement('div');
                     el.className = 'pdf-cell';
                     const p = cellData.patient;
                     if (cellData.span > 1) el.style.gridRow = `span ${cellData.span}`;
                     el.innerHTML = `
-                        <div class="pdf-cell-header">
-                            <div style="display:flex; justify-content:space-between; align-items:center;">
-                                <div style="font-size:10pt; color:#000000; font-weight: bold;">${p.weight}kg | GA:${p.ga}w | D${p.age}</div>
-                                <div style="font-weight:900; color:#000000; direction:rtl; font-family:'Cairo'">${p.name}</div>
-                            </div>
-                        </div>
+                        <div class="pdf-cell-header"><div style="display:flex; justify-content:space-between; align-items:center;"><div style="font-size:10pt; color:#000000; font-weight: bold;">${p.weight}kg | GA:${p.ga}w | D${p.age}</div><div style="font-weight:900; color:#000000; direction:rtl; font-family:'Cairo'">${p.name}</div></div></div>
                         <div style="flex:1;">
                             ${p.drugs.map(d => `
                                 <div class="pdf-drug-item">
-                                    <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:10pt;">
-                                        <span>${d.name}</span>
-                                        ${d.isNutrient ? `<span>${d.dose}ml</span>` : (d.hideDetails ? '' : `<span>${d.dose}${d.unit} ${d.freq}</span>`)}
-                                    </div>
+                                    <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:10pt;"><span>${d.name}</span>${d.isNutrient ? `<span>${d.dose}ml</span>` : (d.hideDetails ? '' : `<span>${d.dose}${d.unit} ${d.freq}</span>`)}</div>
                                     ${d.alert ? `<div class="arabic-text" style="color:red; font-weight:bold; font-size:8.5pt; text-align:right; margin-top:1px;">${d.alert}</div>` : ''}
                                     <div style="font-size:9.5pt; text-align:left; margin-top:1px;">${boldNumbersInText(d.method)}</div>
-                                    ${d.drugId === 9 ? `
-                                        <table style="width:100%; margin-top:2mm; font-size:8.5pt; border-collapse:collapse; border: 1.5px solid #000; text-align:center;">
-                                            <tr style="background:#f0f0f0;">
-                                                <th style="border: 1px solid #000; padding: 4px;">Rate ml/24h</th>
-                                                <th style="border: 1px solid #000; padding: 4px;">mcg/kg/min</th>
-                                            </tr>
-                                            ${[2,5,7,10].map(ds => `
-                                                <tr>
-                                                    <td style="border: 1px solid #000; padding: 3px; padding-bottom:6px; font-weight: bold;">${((ds*p.weight*1440)/1000).toFixed(0)} ml</td>
-                                                    <td style="border: 1px solid #000; padding: 3px; padding-bottom:6px;">${ds}</td>
-                                                </tr>`).join('')}
-                                        </table>` : ''}
+                                    ${d.drugId === 9 ? `<table style="width:100%; margin-top:2mm; font-size:8.5pt; border-collapse:collapse; border: 1.5px solid #000; text-align:center;"><tr style="background:#f0f0f0;"><th style="border: 1px solid #000; padding: 4px;">Rate ml/24h</th><th style="border: 1px solid #000; padding: 4px;">mcg/kg/min</th></tr>${[2,5,7,10].map(ds => `<tr><td style="border: 1px solid #000; padding: 3px; padding-bottom:6px; font-weight: bold;">${((ds*p.weight*1440)/1000).toFixed(0)} ml</td><td style="border: 1px solid #000; padding: 3px; padding-bottom:6px;">${ds}</td></tr>`).join('')}</table>` : ''}
                                 </div>`).join('')}
                         </div>`;
                     grid.appendChild(el);
@@ -1334,22 +1174,17 @@
             }
             doc.save('NICU_Report.pdf'); 
             container.style.opacity = '0';
-            showToast('PDF Generated Successfully', 'success');
+            showToast('PDF Generated', 'success');
         };
 
-        // Event Listeners
+        // ==========================================
+        // 8. INITIALIZATION
+        // ==========================================
+
         $('btnAddDrug').addEventListener('click', addDrug);
         $('btnSavePatient').addEventListener('click', savePatient);
         $('btnPdf').addEventListener('click', generatePDF);
-        $('btnClearAll').addEventListener('click', () => { 
-            if (confirm('Are you sure you want to clear all patients?')) { 
-                patients = []; 
-                selectedPatientIds.clear(); 
-                saveToStorage(); 
-                renderQueue(); 
-                showToast('All patients cleared', 'info');
-            } 
-        });
+        $('btnClearAll').addEventListener('click', () => { if (confirm('Clear all patients?')) { patients = []; selectedPatientIds.clear(); saveToStorage(); renderQueue(); }});
         $('selectAllCheckbox').addEventListener('change', toggleSelectAll);
         $('selectCategory').addEventListener('change', updateDrugListByCategory);
         $('selectDrug').addEventListener('change', handleDrugSelectionChange);
@@ -1366,15 +1201,11 @@
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && e.target.tagName !== 'BUTTON') {
-                if (document.activeElement.closest('#doseWrapper') || document.activeElement.id === 'selectDrug') {
-                    addDrug();
-                } else if ($('inputName').value && $('inputWeight').value) {
-                    savePatient();
-                }
+                if (document.activeElement.closest('#doseWrapper') || document.activeElement.id === 'selectDrug') addDrug();
+                else if ($('inputName').value && $('inputWeight').value) savePatient();
             }
         });
 
-        // Initialize
         populateDropdowns(); 
         loadFromStorage();
         updateStats();
