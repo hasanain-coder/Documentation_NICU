@@ -1,59 +1,87 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NICU Calculator | Baghdad Teaching Hospital</title>
+    <title>NICU Dose Calculator | Baghdad Teaching Hospital</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Inter:wght@400;600&display=swap" rel="stylesheet">
-    
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Arabic:wght@400;600;800&family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #0f766e;
-            --primary-light: #14b8a6;
-            --bg-main: #f8fafc;
-            --card-bg: #ffffff;
-            --border-color: #e2e8f0;
+            --bg: #F0F4F3;
+            --fg: #1C2526;
+            --muted: #5A6872;
+            --accent: #0F766E;
+            --accent-light: #14B8A6;
+            --card: #FFFFFF;
+            --border: #D1DEDD;
+            --danger: #B91C1C;
+            --surface: #E8EFEE;
         }
+
+        * { 
+            font-family: 'Inter', 'Cairo', 'Noto Sans Arabic', sans-serif; 
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        h1, h2, h3 { font-family: 'Crimson Pro', serif; }
 
         body {
-            font-family: 'Inter', 'Cairo', sans-serif;
-            background-color: var(--bg-main);
-            color: #1e293b;
+            background: var(--bg);
+            background-image: 
+                radial-gradient(ellipse at 0% 0%, rgba(15, 118, 110, 0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 100% 100%, rgba(20, 184, 166, 0.04) 0%, transparent 50%);
         }
 
-        .glass-header {
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(12px);
-            border-bottom: 1px solid var(--border-color);
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--surface); }
+        ::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 4px; }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
+            transition: all 0.25s ease;
+        }
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(15, 118, 110, 0.25);
+        }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .card-hover { transition: all 0.3s ease; }
+        .card-hover:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
         }
 
-        .input-group focus-within:ring-2 {
-            ring-color: var(--primary-light);
+        .input-field {
+            transition: all 0.2s ease;
+            background: var(--surface);
+        }
+        .input-field:focus { 
+            background: var(--card);
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
         }
 
-        .btn-grad {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-            transition: all 0.3s ease;
+        .arabic-text {
+            font-family: 'Cairo', sans-serif;
+            direction: rtl;
+            text-align: right;
+            unicode-bidi: isolate;
         }
 
-        .btn-grad:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(15, 118, 110, 0.2);
-        }
-
-        .patient-card {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        /* تنسيقات خاصة للـ PDF لضمان الجودة */
+        /* تنسيقات الطباعة الصارمة والآمنة (نظام الكود الأول المستقر) */
         #pdf-render-container {
             position: absolute;
             left: -9999px;
             top: 0;
             width: 210mm;
+            background: white;
+            z-index: -1000;
         }
         
         .pdf-page {
@@ -65,372 +93,650 @@
             grid-template-columns: 1fr 1fr;
             grid-template-rows: repeat(3, 1fr);
             gap: 5mm;
+            box-sizing: border-box;
         }
 
-        .pdf-card {
+        .pdf-cell {
             border: 2px solid #000;
-            padding: 4mm;
-            border-radius: 4px;
+            border-radius: 2mm;
+            padding: 3mm;
+            background: #fff;
             display: flex;
             flex-direction: column;
+            overflow: hidden;
         }
+
+        .pdf-cell-header {
+            border-bottom: 2px solid #000;
+            padding-bottom: 2mm;
+            margin-bottom: 2mm;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .pdf-drug-item {
+            margin-bottom: 1.5mm;
+            padding-bottom: 1.5mm;
+            border-bottom: 1px dashed #999;
+        }
+        .pdf-drug-item:last-child { border-bottom: none; }
     </style>
 </head>
 <body class="min-h-screen pb-12">
-
-    <header class="glass-header sticky top-0 z-50">
-        <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+    <header class="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-[var(--border)] shadow-sm">
+        <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
             <div class="flex items-center gap-3">
-                <div class="bg-teal-700 text-white p-2 rounded-lg">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-[var(--accent)] to-[var(--accent-light)] flex items-center justify-center shadow-md">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                     </svg>
                 </div>
                 <div>
-                    <h1 class="text-xl font-bold text-slate-800">حاسبة جرع الخدج</h1>
-                    <p class="text-xs text-slate-500 font-semibold">مستشفى بغداد التعليمي - NICU</p>
+                    <h1 class="text-xl md:text-2xl font-bold text-[var(--fg)] tracking-tight">NICU Dose Calculator</h1>
+                    <p class="text-xs text-[var(--muted)]">Baghdad Teaching Hospital</p>
                 </div>
             </div>
-            <div id="badge-container" class="hidden">
-                <span class="bg-teal-100 text-teal-800 px-3 py-1 rounded-full text-sm font-bold" id="patient-count">0 مرضى</span>
+            <div id="patientCounter" class="hidden px-4 py-2 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/20">
+                <span class="text-[var(--accent)] font-semibold text-sm" id="counterText">0 Patients</span>
             </div>
         </div>
     </header>
 
-    <main class="max-w-6xl mx-auto px-4 mt-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
-        <div class="lg:col-span-8 space-y-6">
-            <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                <div class="bg-slate-50 px-6 py-4 border-b border-slate-200">
-                    <h2 class="font-bold text-slate-700 flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                        بيانات المريض
-                    </h2>
-                </div>
-                
-                <div class="p-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div class="md:col-span-2">
-                        <label class="block text-sm font-bold text-slate-600 mb-1">اسم المريض</label>
-                        <input type="text" id="p-name" class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-teal-500 outline-none" placeholder="الاسم الكامل">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold text-slate-600 mb-1">الوزن (kg)</label>
-                        <input type="number" step="0.01" id="p-weight" class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-teal-500 outline-none" placeholder="0.00">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold text-slate-600 mb-1">العمر (بالأيام)</label>
-                        <input type="number" id="p-age" class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-teal-500 outline-none" placeholder="1">
-                    </div>
-                </div>
-            </section>
+    <main class="max-w-5xl mx-auto px-4 py-6 space-y-6">
+        <section id="inputSection" class="bg-white rounded-2xl shadow-lg border border-[var(--border)] overflow-hidden">
+            <div class="bg-gradient-to-r from-[var(--accent)] to-[var(--accent-light)] px-6 py-4">
+                <h2 class="text-xl text-white font-semibold">Patient Information</h2>
+            </div>
 
-            <section class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-                <h2 class="font-bold text-slate-700 mb-4 flex items-center gap-2 text-lg">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                    </svg>
-                    إضافة علاج
-                </h2>
-
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <div>
-                        <label class="block text-sm font-bold text-slate-600 mb-1">التصنيف</label>
-                        <select id="cat-select" class="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white outline-none"></select>
+            <div class="p-6 space-y-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-[var(--fg)]">Patient Name</label>
+                        <input type="text" id="inputName" class="input-field w-full px-4 py-3 rounded-xl border border-[var(--border)]" placeholder="Full name">
                     </div>
-                    <div>
-                        <label class="block text-sm font-bold text-slate-600 mb-1">الدواء</label>
-                        <select id="drug-select" class="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white outline-none"></select>
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-[var(--fg)]">Weight (kg)</label>
+                        <input type="text" id="inputWeight" inputmode="decimal" class="input-field w-full px-4 py-3 rounded-xl border border-[var(--border)]" placeholder="0.00">
                     </div>
-                    <div>
-                        <label class="block text-sm font-bold text-slate-600 mb-1">التكرار</label>
-                        <select id="freq-select" class="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white outline-none">
-                            <option value="x1">مرة واحدة (x1)</option>
-                            <option value="x2">مرتين (x2)</option>
-                            <option value="x3">3 مرات (x3)</option>
-                            <option value="x4">4 مرات (x4)</option>
-                            <option value="q36hr">كل 36 ساعة</option>
-                            <option value="q48hr">كل 48 ساعة</option>
-                        </select>
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-[var(--fg)]">Postnatal Age (Days)</label>
+                        <select id="inputAge" class="input-field w-full px-4 py-3 rounded-xl border border-[var(--border)]"></select>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-[var(--fg)]">Gestational Age (wks)</label>
+                        <input type="text" id="inputGA" inputmode="decimal" class="input-field w-full px-4 py-3 rounded-xl border border-[var(--border)]" placeholder="e.g., 34">
                     </div>
                 </div>
 
-                <div id="dose-preview" class="bg-teal-50 rounded-xl p-4 border border-teal-100 mb-4 hidden">
-                    <div class="flex flex-col md:flex-row justify-between items-center gap-4">
-                        <div>
-                            <span class="text-teal-800 font-bold" id="calculated-dose-text">الجرعة: --</span>
-                            <p class="text-xs text-teal-600 mt-1 font-semibold" id="prep-method-text">طريقة التحضير ستظهر هنا</p>
+                <div class="border-t border-[var(--border)] pt-6">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-4 items-start">
+                        <div class="space-y-2 lg:col-span-1">
+                            <label class="block text-sm font-semibold text-[var(--fg)]">Category</label>
+                            <select id="selectCategory" class="input-field w-full px-4 py-3 rounded-xl border border-[var(--border)]"></select>
                         </div>
-                        <button id="btn-add-drug" class="btn-grad text-white px-6 py-2 rounded-lg font-bold w-full md:w-auto">
-                            + إضافة للجدول
-                        </button>
+                        
+                        <div class="space-y-2 lg:col-span-1">
+                            <label class="block text-sm font-semibold text-[var(--fg)]">Drug</label>
+                            <select id="selectDrug" class="input-field w-full px-4 py-3 rounded-xl border border-[var(--border)]"></select>
+                            <input type="text" id="inputCustomDrug" class="hidden input-field w-full px-4 py-3 rounded-xl border border-[var(--border)] mt-2" placeholder="Custom drug">
+                        </div>
+
+                        <div class="lg:col-span-2 space-y-2" id="doseWrapper">
+                            <div class="grid grid-cols-2 gap-2 sm:gap-3">
+                                <div class="space-y-2 hidden min-w-0" id="dosePerKgContainer">
+                                    <label class="block text-sm font-semibold text-[var(--accent)]">Dose/kg</label>
+                                    <input type="text" id="inputDosePerKg" inputmode="decimal" class="input-field w-full px-3 py-3 rounded-xl border border-[var(--accent)]/30 font-bold" placeholder="Dose/kg">
+                                </div>
+
+                                <div class="space-y-2 min-w-0" id="totalDoseContainer">
+                                    <label class="block text-sm font-semibold text-[var(--fg)]">Total Dose</label>
+                                    <div class="flex gap-1">
+                                        <input type="text" id="inputDose" inputmode="decimal" class="input-field flex-1 px-3 py-3 rounded-xl border border-[var(--border)] min-w-0" placeholder="Dose">
+                                        <input type="text" id="inputCustomUnit" class="hidden input-field w-14 sm:w-20 px-1 py-3 rounded-xl border border-[var(--border)]" placeholder="Unit">
+                                    </div>
+                                </div>
+                            </div>
+                            <input type="text" id="inputCustomMethod" class="hidden input-field w-full px-4 py-3 rounded-xl border border-[var(--border)]" placeholder="Method (optional)">
+                        </div>
+
+                        <div class="space-y-2 lg:col-span-1" id="freqContainer">
+                            <label class="block text-sm font-semibold text-[var(--fg)]">Frequency</label>
+                            <select id="inputFreq" class="input-field w-full px-4 py-3 rounded-xl border border-[var(--border)]">
+                                <option value="1">Once daily (x 1)</option>
+                                <option value="2">Twice daily (x 2)</option>
+                                <option value="3">Three times (x 3)</option>
+                                <option value="4">Four times (x 4)</option>
+                                <option value="q36hr">q36hr</option>
+                                <option value="q48hr">q48hr</option>
+                            </select>
+                        </div>
+                        <div class="space-y-2 lg:col-span-1 hidden" id="targetVolContainer">
+                            <label class="block text-sm font-semibold text-[var(--accent)]">Target Vol</label>
+                            <select id="inputTargetVol" class="input-field w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--accent)]/5">
+                                <option value="10">10 ml (x2)</option>
+                                <option value="5">5 ml (x3)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="lg:col-span-1 flex flex-col gap-2">
+                            <div id="addonContainer" class="hidden grid grid-cols-2 gap-2">
+                                <div class="space-y-1">
+                                    <label class="block text-[10px] font-bold text-[var(--accent)] uppercase">Vol (ml)</label>
+                                    <input type="text" id="inputAddonVol" inputmode="decimal" class="input-field w-full px-2 py-2 rounded-lg border border-[var(--border)] text-sm" placeholder="ml">
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="block text-[10px] font-bold text-[var(--accent)] uppercase">Type</label>
+                                    <input type="text" id="inputAddonType" class="input-field w-full px-2 py-2 rounded-lg border border-[var(--border)] text-sm" placeholder="KCL">
+                                </div>
+                            </div>
+                            <button id="btnAddDrug" class="btn-primary w-full py-3 rounded-xl text-white font-semibold flex items-center justify-center gap-2 h-[50px]">
+                                Add
+                            </button>
+                        </div>
                     </div>
+
+                    <div id="methodPreviewContainer" class="hidden bg-[var(--surface)] border border-[var(--accent)]/20 rounded-xl p-4 mt-4">
+                        <p class="text-xs font-semibold text-[var(--accent)] uppercase tracking-wide mb-1">Administration Method</p>
+                        <p id="previewMethod" class="text-[var(--fg)] text-sm font-bold" style="direction: ltr; text-align: left;">-</p>
+                        <p id="warningMessage" class="hidden text-sm text-[var(--danger)] font-bold mt-2 arabic-text"></p>
+                    </div>
+
+                    <div id="dopamineTableContainer" class="hidden mt-4 overflow-x-auto">
+                        <h4 class="text-sm font-bold text-[var(--accent)] mb-2">Dopamine Infusion Table</h4>
+                        <table class="w-full text-xs border-collapse border border-[var(--border)] rounded-xl overflow-hidden">
+                            <thead class="bg-[var(--accent)] text-white">
+                                <tr>
+                                    <th class="p-2 border border-[#0F766E]">Rate (ml/24hr)</th>
+                                    <th class="p-2 border border-[#0F766E]">Dose (mcg/kg/min)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dopamineTableBody" class="bg-white"></tbody>
+                        </table>
+                    </div>
+
+                    <div id="drugsList" class="mt-4 space-y-2"></div>
                 </div>
 
-                <div id="current-drugs-list" class="space-y-2"></div>
-            </section>
+                <button id="btnSavePatient" class="btn-primary w-full py-4 rounded-xl text-white font-bold text-lg mt-6">
+                    Save Patient to Queue
+                </button>
+            </div>
+        </section>
 
-            <button id="btn-save-patient" class="w-full bg-slate-800 text-white py-4 rounded-xl font-bold text-lg hover:bg-slate-900 transition-colors shadow-lg">
-                حفظ المريض في قائمة الانتظار
-            </button>
-        </div>
-
-        <div class="lg:col-span-4">
-            <div class="sticky top-24 space-y-4">
-                <div class="flex justify-between items-center">
-                    <h2 class="font-bold text-slate-800 text-lg tracking-tight">قائمة المرضى</h2>
-                    <button id="btn-generate-pdf" class="bg-red-600 text-white px-3 py-1 rounded-md text-sm font-bold hover:bg-red-700 transition-colors flex items-center gap-1">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        طباعة PDF
-                    </button>
-                </div>
-                
-                <div id="patient-queue" class="space-y-3">
-                    <div id="empty-state" class="bg-white border-2 border-dashed border-slate-200 rounded-2xl p-8 text-center">
-                        <p class="text-slate-400 font-medium">لا يوجد مرضى حالياً</p>
-                    </div>
+        <section class="space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <h2 class="text-2xl font-bold text-[var(--fg)]">Patient Queue</h2>
+                <div class="flex items-center gap-4">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" id="selectAllCheckbox" class="w-5 h-5 rounded border border-[var(--border)] text-[var(--accent)]">
+                        <span class="text-sm font-medium text-[var(--fg)]">Select All</span>
+                    </label>
                 </div>
             </div>
-        </div>
+
+            <div class="flex gap-2 flex-wrap">
+                <button id="btnPdf" disabled class="btn-primary px-5 py-2.5 rounded-xl text-white font-medium flex items-center gap-2">
+                    Print PDF
+                </button>
+                <button id="btnClearAll" class="px-5 py-2.5 rounded-xl border border-[var(--danger)]/30 text-[var(--danger)] font-medium hover:bg-[var(--danger)]/5 transition-colors">
+                    Clear All
+                </button>
+            </div>
+
+            <div id="patientQueue" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+
+            <div id="emptyState" class="text-center py-16 bg-white rounded-2xl border-2 border-dashed border-[var(--border)]">
+                <p class="text-[var(--muted)] text-lg font-medium">No patients in queue</p>
+            </div>
+        </section>
     </main>
 
     <div id="pdf-render-container"></div>
 
+    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 rounded-xl font-medium shadow-xl z-50 opacity-0 translate-y-4 transition-all duration-300 pointer-events-none text-white bg-[var(--accent)]">
+        <span id="toastMsg">Message</span>
+    </div>
+
     <script>
-        // --- قاعدة بيانات الأدوية ---
-        const DRUGS = [
-            { id: 1, cat: 'Antibiotics', name: 'Amoxicillin', doseKg: 50, factor: 50, unit: 'mg', method: 'IV over 5 min' },
-            { id: 2, cat: 'Antibiotics', name: 'Gentamicin', doseKg: 5, factor: 40, unit: 'mg', method: 'IV + 5ml GW over 10 min' },
-            { id: 3, cat: 'Antibiotics', name: 'Amikacin', doseKg: 15, factor: 50, unit: 'mg', method: 'IV + 5ml GW over 10 min' },
-            { id: 4, cat: 'Antibiotics', name: 'Colistin (Loading)', doseKg: 150000, factor: 500000, unit: 'IU', method: 'IV + 5ml GW over 10 min' },
-            { id: 5, cat: 'Antibiotics', name: 'Colistin (Maint.)', doseKg: 37500, factor: 500000, unit: 'IU', method: 'IV + 5ml GW over 10 min' },
-            { id: 6, cat: 'Antibiotics', name: 'Meropenem', doseKg: 40, factor: 50, unit: 'mg', method: 'IV over 30 min' },
-            { id: 7, cat: 'Sedatives', name: 'Caffeine (Loading)', doseKg: 20, factor: 20, unit: 'mg', method: 'IV/Oral once' },
-            { id: 8, cat: 'Sedatives', name: 'Caffeine (Maint.)', doseKg: 10, factor: 20, unit: 'mg', method: 'IV/Oral once daily' },
-            { id: 9, cat: 'Inotropes', name: 'Dopamine', isDopamine: true, unit: 'mcg/kg/min' }
+        // --- طرق الإعطاء (Methods) ---
+        const METHODS = {
+            1: '** / 5min',
+            2: '** + 5 ml GW / 10 min',
+            3: '** + ## ml GW >> ^^ ml /30 min',
+            4: '** + 3 ml GW / 3 min',
+            5: '** / 60 min',
+            6: 'over 24 hr',
+            7: 'Special Nutrients',
+            8: '** + Fluid',
+            9: 'كل اثنين وخميس',
+            10: '** + ## ml GW >> ^^ ml /24 hr',
+            11: '** + 3ml NS / 15 min (تبخير)',
+            12: 'بالفم - تحل بـ 2cc GW',
+            13: 'بالفم',
+            14: '3ml NS / 15 min (تبخير)'
+        };
+
+        // --- قاعدة الأدوية ---
+        const DRUG_CONFIG = [
+            { id: 1, name: 'Amoxicillin', dosePerKg: 50, unit: 'mg', factor: 50, methodIndex: 1, 
+                getRecommendedFreq: (ga, pna) => (ga < 100 && pna < 8) ? '2' : '3',
+                warning_rule: (ga, age, freq) => {
+                    let rec = (ga < 100 && age < 8) ? '2' : '3';
+                    if (freq !== rec) return `⚠️ التردد المقترح: ${rec === '3' ? 'كل 8 ساعات' : 'كل 12 ساعة'}`;
+                    return null;
+                }
+            },
+            { id: 16, name: 'Amikacin', dosePerKg: 15, unit: 'mg', factor: 8, methodIndex: 2, defaultFreq: 1 },
+            { id: 2, name: 'Gentamicin', dosePerKg: 5, unit: 'mg', factor: 40, methodIndex: 2, 
+                getRecommendedFreq: (ga, pna) => {
+                    if (ga <= 29) return (pna <= 14) ? 'q48hr' : 'q36hr';
+                    if (ga <= 34) return 'q36hr';
+                    return '1';
+                }
+            },
+            { id: 3, name: 'Caffeine Load', dosePerKg: 20, unit: 'mg', factor: 20, methodIndex: 3, defaultFreq: 1 },
+            { id: 4, name: 'Caffeine Maint', dosePerKg: 10, unit: 'mg', factor: 20, methodIndex: 2, defaultFreq: 1 },
+            { id: 5, name: 'Colistin Load', dosePerKg: 150000, unit: 'IU', factor: 500000, methodIndex: 2, defaultFreq: 1 },
+            { id: 6, name: 'Colistin Maint', dosePerKg: 37500, unit: 'IU', factor: 500000, methodIndex: 2, defaultFreq: 2 },
+            { id: 8, name: 'Meropenem', dosePerKg: 40, unit: 'mg', factor: 50, methodIndex: 3,
+                getRecommendedFreq: (ga, pna) => (ga < 32 && pna < 14) ? '2' : '3'
+            },
+            { id: 9, name: 'Dopamine (Pump)', isDopamine: true, defaultFreq: 1 },
+            { id: 22, name: 'Dopamine + fluid', dosePerKg: 5, unit: 'mg', factor: 40, methodIndex: 8, defaultFreq: 1, isDopamine: true },
+            { id: 23, name: 'Dopamine Y-site', dosePerKg: 5, unit: 'mg', factor: 40, methodIndex: 10, defaultFreq: 1, isDopamine: true },
+            { id: 10, name: 'Vit K', dosePerKg: 1, unit: 'mg', factor: 10, methodIndex: 4, defaultFreq: 1 },
+            { id: 11, name: 'Vancomycin', dosePerKg: 15, unit: 'mg', factor: 2, methodIndex: 5 },
+            { id: 17, name: 'Dexmedetomidine fluid', dosePerKg: 0.3, unit: 'mcg', factor: 100, methodIndex: 8, defaultFreq: 1 },
+            { id: 18, name: 'Dexmedetomidine Y-site', dosePerKg: 0.3, unit: 'mcg', factor: 100, methodIndex: 10, defaultFreq: 1 },
+            { id: 19, name: 'Midazolam fluid', dosePerKg: 0.03, unit: 'mg', factor: 5, methodIndex: 8, defaultFreq: 1 },
+            { id: 20, name: 'Midazolam Y-site', dosePerKg: 0.03, unit: 'mg', factor: 5, methodIndex: 10, defaultFreq: 1 },
+            { id: 26, name: 'Phenobarbital Load', dosePerKg: 20, unit: 'mg', factor: 10, methodIndex: 3, defaultFreq: 1 },
+            { id: 27, name: 'Phenobarbital Maint', dosePerKg: 2.5, unit: 'mg', factor: 10, methodIndex: 3, defaultFreq: 2 },
+            { id: 12, name: 'TPN', methodIndex: 6, defaultFreq: 1, hideDetails: true },
+            { id: 13, name: '1/5 GS', methodIndex: 7, defaultFreq: 1, hideDetails: true, isNutrient: true },
+            { id: 14, name: '10% GW', methodIndex: 7, defaultFreq: 1, hideDetails: true, isNutrient: true },
+            { id: 15, name: '5% GW', methodIndex: 7, defaultFreq: 1, hideDetails: true, isNutrient: true, noPrep: true },
+            { id: 32, name: 'Ventolin neb.', dosePerKg: 1.25, unit: 'mg', factor: 5, methodIndex: 11, defaultFreq: 4},
+            { id: 34, name: 'Pulmicort neb.', dosePerKg: 0.25, unit: 'mg', factor: 0.5, methodIndex: 11, defaultFreq: 2},
+            { id: 33, name: 'NS neb.', dosePerKg: 3, unit: 'ml', methodIndex: 14, defaultFreq: 4}
         ];
 
-        const CATEGORIES = ['Antibiotics', 'Sedatives', 'Inotropes', 'Fluids', 'Other'];
+        const DRUG_CATEGORIES = [
+            { name: 'Antibiotics', ids: [1, 2, 5, 6, 8, 11, 16] },
+            { name: 'Sedatives & Inotropes', ids: [9, 17, 18, 19, 20, 22, 23, 26, 27] },
+            { name: 'Miscellaneous', ids: [3, 4, 10] },
+            { name: 'Fluids', ids: [12, 13, 14, 15] },
+            { name: 'Nebulization', ids: [32, 33, 34] },
+            { name: 'Other+', ids: ['other'] }
+        ];
 
-        let currentDrugs = [];
-        let patientQueue = JSON.parse(localStorage.getItem('nicu_queue') || '[]');
-
-        // --- عناصر الواجهة ---
+        // --- المتغيرات والحالة ---
         const $ = id => document.getElementById(id);
-        const catSelect = $('cat-select');
-        const drugSelect = $('drug-select');
-        const pWeight = $('p-weight');
-        const drugListDiv = $('current-drugs-list');
+        let patients = JSON.parse(localStorage.getItem('nicu_patient_queue') || '[]');
+        let currentDrugs = [];
+        let selectedPatientIds = new Set();
 
-        // --- المبادرة ---
-        function init() {
-            CATEGORIES.forEach(c => catSelect.options.add(new Option(c, c)));
-            updateDrugOptions();
-            renderQueue();
-        }
+        // --- دوال مساعدة ---
+        const showToast = (msg) => {
+            const t = $('toast'); $('toastMsg').textContent = msg;
+            t.style.opacity = '1'; t.style.transform = 'translate(-50%, 0)';
+            setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translate(-50%, 16px)'; }, 2500);
+        };
+        const cleanNum = (str) => {
+            if(!str) return 0;
+            let val = str.toString().replace(/,/g, '.');
+            return parseFloat(val) || 0;
+        };
 
-        catSelect.onchange = updateDrugOptions;
-        drugSelect.onchange = calculateCurrentDose;
-        pWeight.oninput = calculateCurrentDose;
+        // --- المبادرة وتعبئة القوائم ---
+        const init = () => {
+            let ageOpts = '<option value="">Day</option>';
+            for(let i=1; i<=30; i++) ageOpts += `<option value="${i}">${i}</option>`;
+            ageOpts += '<option value=">30">> 30</option>';
+            $('inputAge').innerHTML = ageOpts;
 
-        function updateDrugOptions() {
-            drugSelect.innerHTML = '';
-            const filtered = DRUGS.filter(d => d.cat === catSelect.value);
-            filtered.forEach(d => drugSelect.options.add(new Option(d.name, d.id)));
-            calculateCurrentDose();
-        }
-
-        function calculateCurrentDose() {
-            const weight = parseFloat(pWeight.value) || 0;
-            const drugId = parseInt(drugSelect.value);
-            const drug = DRUGS.find(d => d.id === drugId);
-            const preview = $('dose-preview');
-
-            if (!drug || weight <= 0) {
-                preview.classList.add('hidden');
-                return;
-            }
-
-            preview.classList.remove('hidden');
+            let catOpts = '<option value="">-- Category --</option>';
+            DRUG_CATEGORIES.forEach(c => catOpts += `<option value="${c.name}">${c.name}</option>`);
+            $('selectCategory').innerHTML = catOpts;
             
-            if (drug.isDopamine) {
-                $('calculated-dose-text').innerText = `Dopamine Infusion Table (Auto-calculated)`;
-                $('prep-method-text').innerText = `انقر للإضافة لعرض جدول السرعات المقترح`;
+            renderQueue();
+            
+            // إضافة مستمعات الأحداث (Event Listeners)
+            ['inputWeight', 'inputDose', 'inputDosePerKg', 'inputAddonVol'].forEach(id => {
+                $(id).addEventListener('input', function() { this.value = this.value.replace(/[^0-9.]/g, ''); });
+            });
+            $('selectCategory').onchange = updateDrugList;
+            $('selectDrug').onchange = handleDrugChange;
+            $('inputWeight').oninput = handleDrugChange;
+            $('btnAddDrug').onclick = addDrug;
+            $('btnSavePatient').onclick = savePatient;
+            $('btnClearAll').onclick = () => { if(confirm('Clear all?')) { patients=[]; selectedPatientIds.clear(); saveStorage(); renderQueue(); }};
+            $('selectAllCheckbox').onchange = (e) => { if(e.target.checked) patients.forEach(p=>selectedPatientIds.add(p.id)); else selectedPatientIds.clear(); renderQueue(); };
+            $('btnPdf').onclick = generateSafePDF;
+        };
+
+        // --- التحديث والحسابات ---
+        const updateDrugList = () => {
+            const cat = $('selectCategory').value;
+            const sel = $('selectDrug');
+            sel.innerHTML = '<option value="">-- Select Drug --</option>';
+            $('freqContainer').classList.toggle('hidden', cat === 'Fluids');
+            
+            if(!cat) return;
+            const cObj = DRUG_CATEGORIES.find(c => c.name === cat);
+            if(cat === 'Other+') {
+                sel.innerHTML += '<option value="other">Custom Drug</option>';
             } else {
-                const totalDose = (drug.doseKg * weight).toFixed(1);
-                const drawnVol = (totalDose / drug.factor).toFixed(2);
-                $('calculated-dose-text').innerText = `الجرعة: ${totalDose} ${drug.unit} (${drawnVol} ml)`;
-                $('prep-method-text').innerText = `طريقة الإعطاء: ${drug.method}`;
+                cObj.ids.forEach(id => {
+                    const d = DRUG_CONFIG.find(x => x.id === id);
+                    if(d) sel.innerHTML += `<option value="${d.id}">${d.name}</option>`;
+                });
             }
-        }
-
-        // --- إضافة دواء للقائمة المؤقتة ---
-        $('btn-add-drug').onclick = () => {
-            const weight = parseFloat(pWeight.value);
-            const drugId = parseInt(drugSelect.value);
-            const drug = DRUGS.find(d => d.id === drugId);
-            const freq = $('freq-select').value;
-
-            const doseData = {
-                ...drug,
-                calculatedDose: (drug.doseKg * weight).toFixed(1),
-                drawnVol: ( (drug.doseKg * weight) / drug.factor ).toFixed(2),
-                freq: freq
-            };
-
-            currentDrugs.push(doseData);
-            renderCurrentDrugs();
+            handleDrugChange();
         };
 
-        function renderCurrentDrugs() {
-            drugListDiv.innerHTML = currentDrugs.map((d, index) => `
-                <div class="flex justify-between items-center bg-slate-50 p-3 rounded-lg border border-slate-200 animate-fade-in text-sm">
+        const handleDrugChange = () => {
+            const val = $('selectDrug').value;
+            const wt = cleanNum($('inputWeight').value);
+            
+            $('totalDoseContainer').classList.remove('hidden');
+            $('addonContainer').classList.add('hidden');
+            $('dosePerKgContainer').classList.add('hidden');
+            $('inputCustomDrug').classList.add('hidden');
+            $('dopamineTableContainer').classList.add('hidden');
+            $('methodPreviewContainer').classList.add('hidden');
+            $('warningMessage').classList.add('hidden');
+
+            if(!val) { $('inputDose').value = ''; return; }
+
+            if(val === 'other') {
+                $('inputCustomDrug').classList.remove('hidden');
+                $('inputDose').disabled = false; $('inputDose').value = '';
+                return;
+            }
+
+            const drug = DRUG_CONFIG.find(d => d.id == val);
+            if(!drug) return;
+
+            if(drug.isNutrient && !drug.noPrep) $('addonContainer').classList.remove('hidden');
+            
+            if(drug.isDopamine && drug.id === 9) {
+                $('totalDoseContainer').classList.add('hidden');
+                $('dopamineTableContainer').classList.remove('hidden');
+                renderDopaTable(wt);
+                return;
+            }
+
+            $('inputDose').disabled = false;
+            if(drug.isNutrient || drug.name === 'TPN') {
+                $('inputDose').placeholder = 'Vol (ml)';
+                $('inputDose').value = '';
+            } else if(wt > 0 && drug.dosePerKg) {
+                $('inputDose').value = (wt * drug.dosePerKg).toFixed(1);
+            }
+
+            if(drug.getRecommendedFreq) {
+                const ga = cleanNum($('inputGA').value);
+                const age = parseInt($('inputAge').value) || 0;
+                $('inputFreq').value = drug.getRecommendedFreq(ga, age);
+                if(drug.warning_rule) {
+                    const warn = drug.warning_rule(ga, age, $('inputFreq').value);
+                    if(warn) { $('warningMessage').textContent = warn; $('warningMessage').classList.remove('hidden'); }
+                }
+            } else {
+                $('inputFreq').value = drug.defaultFreq || 1;
+            }
+
+            updatePreview(drug, parseFloat($('inputDose').value)||0);
+        };
+
+        const renderDopaTable = (wt) => {
+            const tbody = $('dopamineTableBody');
+            let html = '';
+            [2,5,7,10].forEach(d => {
+                const rate = ((d * wt * 1440)/1000).toFixed(0);
+                html += `<tr>
+                    <td class="p-2 border border-[var(--border)] text-center font-bold">${rate} ml/24h</td>
+                    <td class="p-2 border border-[var(--border)] text-center">${d}</td>
+                </tr>`;
+            });
+            tbody.innerHTML = html;
+        };
+
+        const updatePreview = (drug, dose) => {
+            if(!drug) return;
+            let methodStr = '-';
+            
+            if(drug.isNutrient) {
+                if(drug.noPrep) methodStr = ' ';
+                else {
+                    const adv = cleanNum($('inputAddonVol').value);
+                    const adt = $('inputAddonType').value || 'Add-on';
+                    let total = dose, add = adv, suff = '';
+                    if((dose+adv)>160) { total=dose/2; add=adv/2; suff=' X2'; }
+                    
+                    let main = `${dose} ml` + (adv>0? ` (+ ${adv}ml ${adt})`:'');
+                    let addTxt = adv>0? ` + ${add.toFixed(0)}ml ${adt}`:'';
+                    
+                    if(drug.name === '1/5 GS') methodStr = `${main} | (5% GW ${(total*0.8).toFixed(0)}ml + NS ${(total*0.2).toFixed(0)}ml${addTxt})${suff}`;
+                    else if(drug.name === '10% GW') methodStr = `${main} | (5% GW ${(total*0.9).toFixed(0)}ml + HT ${(total*0.1).toFixed(0)}ml${addTxt})${suff}`;
+                    else methodStr = `${main} | (${drug.name} ${total}ml${addTxt})${suff}`;
+                }
+            } else if(METHODS[drug.methodIndex]) {
+                methodStr = METHODS[drug.methodIndex];
+                let drawn = dose / drug.factor;
+                let diluent = 20 - drawn;
+                if(drug.methodIndex === 3 || drug.methodIndex === 10) {
+                    const tv = parseInt($('inputTargetVol').value || 20);
+                    if(tv===10) { drawn*=2; diluent=20-drawn; methodStr=methodStr.replace('^^','10'); }
+                    else if(tv===5) { drawn*=3; diluent=15-drawn; methodStr=methodStr.replace('^^','5'); }
+                }
+                
+                let dVol = drawn, unit = ' ml';
+                if(drawn < 1 && drug.unit !== 'IU') { dVol = drawn*100; unit=' units'; }
+                let dStr = unit===' units'? Math.round(dVol) : dVol.toFixed(1);
+                
+                methodStr = methodStr.replace('**', `${dStr}${unit}`).replace('##', diluent.toFixed(0));
+            }
+            
+            $('previewMethod').innerHTML = methodStr;
+            $('methodPreviewContainer').classList.remove('hidden');
+        };
+
+        // --- إضافة وحفظ ---
+        const addDrug = () => {
+            const wt = cleanNum($('inputWeight').value);
+            if(!wt) return showToast('Enter Weight!');
+            const val = $('selectDrug').value;
+            if(!val) return showToast('Select Drug!');
+            
+            const dose = cleanNum($('inputDose').value);
+            let dObj = val==='other'? null : DRUG_CONFIG.find(d=>d.id==val);
+            let name = val==='other'? $('inputCustomDrug').value : dObj.name;
+            if(!name) return showToast('Enter Name!');
+            
+            if(currentDrugs.some(d=>d.name.toLowerCase()===name.toLowerCase())) return showToast('Drug already added!');
+
+            let freq = $('inputFreq').value;
+            let fStr = (freq==='q36hr'||freq==='q48hr')? freq : `x ${freq}`;
+
+            if(val==='other') {
+                currentDrugs.push({ id:Date.now(), name, dose, unit:'mg', freq:fStr, method:'Manual', isNutrient:false });
+            } else if(dObj.id===9) {
+                currentDrugs.push({ id:Date.now(), drugId:9, name, dose:'Infusion', unit:'', freq:'', method:'1ml Dopamine + 39ml GW', isDopamine:true });
+            } else {
+                currentDrugs.push({
+                    id: Date.now(), drugId: dObj.id, name, dose, unit: dObj.unit||'', 
+                    freq: (dObj.hideDetails||cat==='Fluids')?'':fStr, 
+                    method: $('previewMethod').innerText, 
+                    isNutrient: dObj.isNutrient||false, hideDetails: dObj.hideDetails||false
+                });
+            }
+            renderDrugs();
+            $('selectCategory').value = ''; updateDrugList();
+        };
+
+        const renderDrugs = () => {
+            $('drugsList').innerHTML = currentDrugs.map((d,i) => `
+                <div class="bg-gray-50 border border-gray-200 rounded-lg p-3 flex justify-between items-center">
                     <div>
-                        <span class="font-bold text-slate-700">${d.name}</span>
-                        <span class="text-slate-500 mr-2">${d.calculatedDose} ${d.unit} | ${d.freq}</span>
+                        <div class="font-bold text-sm text-gray-800">${d.name} <span class="text-teal-600 font-normal ml-2">${d.dose}${d.unit} ${d.freq}</span></div>
+                        <div class="text-xs text-gray-600 mt-1" style="direction:ltr; text-align:left;">${d.method.replace(/\d+(\.\d+)?/g, '<b>$&</b>')}</div>
                     </div>
-                    <button onclick="removeDrug(${index})" class="text-red-500 hover:text-red-700">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
-                        </svg>
-                    </button>
+                    <button onclick="currentDrugs.splice(${i},1); renderDrugs()" class="text-red-500 font-bold p-2">X</button>
                 </div>
             `).join('');
-        }
-
-        window.removeDrug = (i) => {
-            currentDrugs.splice(i, 1);
-            renderCurrentDrugs();
         };
 
-        // --- حفظ المريض ---
-        $('btn-save-patient').onclick = () => {
-            const name = $('p-name').value.trim();
-            const weight = parseFloat(pWeight.value);
+        const savePatient = () => {
+            const name = $('inputName').value.trim();
+            const wt = cleanNum($('inputWeight').value);
+            if(!name || !wt || !currentDrugs.length) return showToast('Missing Information!');
             
-            if (!name || !weight || currentDrugs.length === 0) {
-                alert("يرجى ملء كافة البيانات وإضافة دواء واحد على الأقل");
-                return;
-            }
-
-            const patient = {
-                id: Date.now(),
-                name,
-                weight,
-                age: $('p-age').value,
-                drugs: [...currentDrugs]
-            };
-
-            patientQueue.push(patient);
-            localStorage.setItem('nicu_queue', JSON.stringify(patientQueue));
+            currentDrugs.sort((a,b) => (a.isNutrient===b.isNutrient)?0: a.isNutrient?1:-1);
             
-            // إعادة ضبط
-            $('p-name').value = '';
-            $('p-weight').value = '';
-            currentDrugs = [];
-            renderCurrentDrugs();
-            renderQueue();
-            alert("تم حفظ المريض في القائمة");
+            patients.push({ id:Date.now().toString(), name, weight:wt, age:$('inputAge').value, ga:$('inputGA').value, drugs:[...currentDrugs] });
+            saveStorage();
+            
+            $('inputName').value=''; $('inputWeight').value=''; $('inputGA').value='';
+            currentDrugs = []; renderDrugs(); renderQueue();
+            $('methodPreviewContainer').classList.add('hidden');
+            showToast('Saved to Queue!');
         };
 
-        function renderQueue() {
-            const container = $('patient-queue');
-            const badge = $('badge-container');
+        // --- إدارة القائمة ---
+        const saveStorage = () => localStorage.setItem('nicu_patient_queue', JSON.stringify(patients));
+        
+        const renderQueue = () => {
+            const c = patients.length;
+            $('counterText').textContent = `${c} Patients`;
+            $('patientCounter').classList.toggle('hidden', c===0);
+            $('btnPdf').disabled = c===0;
+            $('emptyState').classList.toggle('hidden', c>0);
             
-            if (patientQueue.length === 0) {
-                container.innerHTML = `<div class="bg-white border-2 border-dashed border-slate-200 rounded-2xl p-8 text-center"><p class="text-slate-400 font-medium">لا يوجد مرضى</p></div>`;
-                badge.classList.add('hidden');
-                return;
-            }
-
-            badge.classList.remove('hidden');
-            $('patient-count').innerText = `${patientQueue.length} مرضى`;
-
-            container.innerHTML = patientQueue.map(p => `
-                <div class="patient-card bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                    <div class="flex justify-between items-start mb-2">
-                        <div>
-                            <h3 class="font-bold text-slate-800">${p.name}</h3>
-                            <p class="text-xs text-slate-500">${p.weight} kg | العمر: ${p.age} يوم</p>
-                        </div>
-                        <button onclick="deletePatient(${p.id})" class="text-slate-300 hover:text-red-500">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                        </button>
+            $('patientQueue').innerHTML = patients.map(p => `
+                <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm relative">
+                    <input type="checkbox" ${selectedPatientIds.has(p.id)?'checked':''} onclick="toggleSelect('${p.id}')" class="absolute top-4 right-4 w-4 h-4 accent-teal-600">
+                    <h3 class="font-bold text-gray-800">${p.name}</h3>
+                    <p class="text-xs text-gray-500 mb-2">Wt: ${p.weight}kg | GA: ${p.ga}w | D: ${p.age}</p>
+                    <div class="space-y-1 pt-2 border-t border-gray-100">
+                        ${p.drugs.map(d => `
+                            <div class="text-xs flex justify-between border-b border-dashed border-gray-200 pb-1">
+                                <span class="font-bold">${d.name}</span>
+                                <span class="text-teal-700">${d.dose}${d.unit} ${d.freq}</span>
+                            </div>
+                            <div class="text-[10px] text-gray-500 mb-1" style="direction:ltr; text-align:left;">${d.method}</div>
+                        `).join('')}
                     </div>
-                    <div class="space-y-1">
-                        ${p.drugs.map(d => `<p class="text-[10px] bg-slate-50 px-2 py-1 rounded inline-block ml-1">${d.name}</p>`).join('')}
+                    <div class="mt-3 flex gap-2">
+                        <button onclick="deleteP('${p.id}')" class="text-xs text-red-500 border border-red-200 px-2 py-1 rounded">Delete</button>
                     </div>
                 </div>
             `).join('');
-        }
-
-        window.deletePatient = (id) => {
-            patientQueue = patientQueue.filter(p => p.id !== id);
-            localStorage.setItem('nicu_queue', JSON.stringify(patientQueue));
-            renderQueue();
+            $('selectAllCheckbox').checked = (c>0 && selectedPatientIds.size === c);
         };
 
-        // --- نظام طباعة PDF المطور ---
-        $('btn-generate-pdf').onclick = async () => {
-            if (patientQueue.length === 0) return;
+        window.toggleSelect = (id) => { selectedPatientIds.has(id)? selectedPatientIds.delete(id) : selectedPatientIds.add(id); renderQueue(); };
+        window.deleteP = (id) => { patients = patients.filter(p=>p.id!==id); selectedPatientIds.delete(id); saveStorage(); renderQueue(); };
+
+        // --- نظام الطباعة (محسن وآمن بنسبة 100%) ---
+        const generateSafePDF = async () => {
+            const selP = patients.filter(p => selectedPatientIds.has(p.id));
+            if(!selP.length) return showToast('No patients selected!');
             
+            showToast('Generating PDF...');
             const container = $('pdf-render-container');
             container.innerHTML = '';
             
-            // تقسيم المرضى لصفحات (كل صفحة 6 بطاقات)
-            for (let i = 0; i < patientQueue.length; i += 6) {
-                const page = document.createElement('div');
-                page.className = 'pdf-page';
+            // 1. معالجة وتكسير المرضى (Chunking) لضمان عدم فيضان المربع
+            let processedCards = [];
+            selP.forEach(p => {
+                let chunks = [];
+                let currentChunk = [];
+                let dCount = 0; // نحسب وزن الأدوية (الجدول ياخذ مساحة أكبر)
                 
-                const chunk = patientQueue.slice(i, i + 6);
-                chunk.forEach(p => {
-                    const card = document.createElement('div');
-                    card.className = 'pdf-card';
-                    card.innerHTML = `
-                        <div style="border-bottom: 1px solid #000; padding-bottom: 2mm; margin-bottom: 2mm; display: flex; justify-content: space-between; align-items: center;">
-                            <span style="font-weight: 900; font-size: 12pt;">${p.name}</span>
-                            <span style="font-size: 10pt;">${p.weight}kg | Day ${p.age}</span>
-                        </div>
-                        <div style="flex-grow: 1;">
-                            ${p.drugs.map(d => `
-                                <div style="margin-bottom: 2mm; border-bottom: 0.5px dashed #ccc; padding-bottom: 1mm;">
-                                    <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 9pt;">
-                                        <span>${d.name}</span>
-                                        <span>${d.calculatedDose} ${d.unit} (${d.freq})</span>
-                                    </div>
-                                    <div style="font-size: 8pt; color: #444; direction: ltr; text-align: left;">
-                                        ${d.drawnVol} ml -> ${d.method}
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                        <div style="font-size: 7pt; text-align: center; color: #888; margin-top: auto;">
-                            Baghdad Teaching Hospital - NICU Unit
-                        </div>
-                    `;
-                    page.appendChild(card);
+                p.drugs.forEach(d => {
+                    let weight = (d.isDopamine) ? 3 : 1; 
+                    if(dCount + weight > 8) { // الحد الأقصى للمربع
+                        chunks.push(currentChunk);
+                        currentChunk = [d];
+                        dCount = weight;
+                    } else {
+                        currentChunk.push(d);
+                        dCount += weight;
+                    }
                 });
-                container.appendChild(page);
+                if(currentChunk.length) chunks.push(currentChunk);
+                
+                chunks.forEach((chk, idx) => {
+                    processedCards.push({
+                        ...p, 
+                        displayName: idx === 0 ? p.name : `${p.name} (تابع)`,
+                        drugs: chk
+                    });
+                });
+            });
+
+            // 2. توزيع البطاقات على صفحات (كل 6 بطاقات بصفحة)
+            let pages = [];
+            for(let i=0; i<processedCards.length; i+=6) {
+                pages.push(processedCards.slice(i, i+6));
             }
 
+            // 3. رسم الـ HTML للطباعة
+            pages.forEach(pageCards => {
+                const pageEl = document.createElement('div');
+                pageEl.className = 'pdf-page';
+                
+                pageCards.forEach(card => {
+                    const cell = document.createElement('div');
+                    cell.className = 'pdf-cell';
+                    
+                    let drugsHTML = card.drugs.map(d => `
+                        <div class="pdf-drug-item">
+                            <div style="display:flex; justify-content:space-between; font-size:10pt; font-weight:bold;">
+                                <span>${d.name}</span>
+                                <span>${d.dose}${d.unit} ${d.freq}</span>
+                            </div>
+                            <div style="font-size:8.5pt; text-align:left; direction:ltr; margin-top:2px; color:#333;">
+                                ${d.method.replace(/\d+(\.\d+)?/g, '<strong style="font-weight:900; color:#000;">$&</strong>')}
+                            </div>
+                            ${d.isDopamine ? `
+                                <table style="width:100%; margin-top:4px; font-size:8pt; border-collapse:collapse; text-align:center;">
+                                    <tr style="background:#eee;"><th style="border:1px solid #000; padding:2px;">Rate ml/24h</th><th style="border:1px solid #000; padding:2px;">mcg/kg/min</th></tr>
+                                    ${[2,5,7,10].map(ds=>`<tr><td style="border:1px solid #000; padding:2px; font-weight:bold;">${((ds*card.weight*1440)/1000).toFixed(0)} ml</td><td style="border:1px solid #000; padding:2px;">${ds}</td></tr>`).join('')}
+                                </table>
+                            `:''}
+                        </div>
+                    `).join('');
+
+                    cell.innerHTML = `
+                        <div class="pdf-cell-header">
+                            <span style="font-size:10pt; font-weight:bold;">Wt:${card.weight}kg | GA:${card.ga}w | D:${card.age}</span>
+                            <span class="arabic-text" style="font-weight:900; font-size:11pt;">${card.displayName}</span>
+                        </div>
+                        <div style="flex:1;">${drugsHTML}</div>
+                    `;
+                    pageEl.appendChild(cell);
+                });
+                container.appendChild(pageEl);
+            });
+
+            // 4. تحويل الصفحات إلى PDF
             const { jsPDF } = window.jspdf;
-            const doc = new jsPDF('p', 'mm', 'a4');
-            const pages = container.querySelectorAll('.pdf-page');
+            const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+            const pageElements = container.querySelectorAll('.pdf-page');
 
-            for (let j = 0; j < pages.length; j++) {
-                const canvas = await html2canvas(pages[j], { scale: 2 });
-                const imgData = canvas.toDataURL('image/jpeg', 1.0);
-                if (j > 0) doc.addPage();
-                doc.addImage(imgData, 'JPEG', 0, 0, 210, 297);
+            for (let i = 0; i < pageElements.length; i++) {
+                const canvas = await html2canvas(pageElements[i], { scale: 2, useCORS: true, logging: false });
+                if (i > 0) doc.addPage();
+                doc.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, 210, 297);
             }
 
-            doc.save(`NICU_Report_${new Date().toLocaleDateString()}.pdf`);
-            container.innerHTML = '';
+            doc.save('NICU_Report.pdf');
+            container.innerHTML = ''; // تنظيف
+            showToast('PDF Downloaded!');
         };
 
         init();
