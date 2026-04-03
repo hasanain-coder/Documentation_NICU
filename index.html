@@ -19,11 +19,10 @@
         body { background: var(--bg); background-image: radial-gradient(ellipse at 0% 0%, rgba(15, 118, 110, 0.06) 0%, transparent 50%), radial-gradient(ellipse at 100% 100%, rgba(20, 184, 166, 0.04) 0%, transparent 50%); }
         .btn-primary { background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%); transition: all 0.25s ease; }
         .btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(15, 118, 110, 0.25); }
+        .btn-primary:disabled { opacity: 0.5; transform: none; cursor: not-allowed; }
         .arabic-text { font-family: 'Cairo', 'Noto Sans Arabic', sans-serif; direction: rtl; text-align: right; unicode-bidi: isolate; }
-        .pdf-page { width: 210mm; height: 297mm; padding: 8mm; background: white; box-sizing: border-box; page-break-after: always; }
-        .pdf-grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: repeat(3, 1fr); gap: 3mm; height: 100%; }
-        .pdf-cell { border: 2px solid #000; border-radius: 2mm; padding: 3mm; display: flex; flex-direction: column; position: relative; }
-        #pdf-render-container { position: absolute; top: 0; left: 0; z-index: -1000; opacity: 0; pointer-events: none; }
+        .pdf-page { width: 210mm; min-height: 297mm; padding: 15mm; background: white; box-sizing: border-box; }
+        #pdf-render-container { position: fixed; top: 0; left: -9999px; width: 210mm; }
     </style>
 </head>
 <body class="min-h-screen">
@@ -167,10 +166,6 @@
     </div>
 
     <script>
-        /** * ==========================================
-         * NICU MEDICAL DATABASE (Structured Data)
-         * ==========================================
-         */
         const NICU_DATABASE = {
             METHODS: {
                 1: '** / 5min',
@@ -180,16 +175,16 @@
                 5: '** / 60 min',
                 6: 'over 24 hr',
                 7: 'Special Nutrients',
-                8: '** <span class="arabic-text" style="display:inline-block; direction:rtl;">مع المغذي</span>',
+                8: '** <span class="arabic-text">مع المغذي</span>',
                 9: 'كل اثنين وخميس',
                 10: '** + ## ml GW >> ^^ ml /24 hr',
-                11: '** + 3ml NS / 15 min <span class="arabic-text" style="display:inline-block; direction:rtl;">تبخير</span>',
+                11: '** + 3ml NS / 15 min <span class="arabic-text">تبخير</span>',
                 12: 'تحل الكبسولة ب ٢ سي سي كلوكوز وتر ثم يدفع عن طريق ال OG ثم يدفع ٢ سي سي كلوكوز وتر عن طريق ال OG',
                 13: 'بالفم',
-                14: '3ml NS / 15 min <span class="arabic-text" style="display:inline-block; direction:rtl;">تبخير</span>'
+                14: '3ml NS / 15 min <span class="arabic-text">تبخير</span>'
             },
             CATEGORIES: [
-                { name: 'Antibiotics', ids: [1, 2, 5, 6, 7, 8, 11, 16, 24] },
+                { name: 'Antibiotics', ids: [1, 2, 5, 6, 8, 11, 16, 24] }, // removed 7 as it was missing
                 { name: 'Sedatives & Inotropes', ids: [9, 17, 18, 19, 20, 22, 23, 26, 27] },
                 { name: 'Miscellaneous', ids: [3, 4, 10, 25, 28, 30] },
                 { name: 'Fluids', ids: [12, 13, 14, 15] },
@@ -198,35 +193,16 @@
                 { name: 'Other+', ids: ['other'] }
             ],
             DRUGS: [
-                { id: 1, name: 'Amoxicillin', dosePerKg: 50, unit: 'mg', factor: 50, methodIndex: 1, 
-                    getFreq: (ga, pna) => (ga < 100 && pna < 8) ? '2' : '3' 
-                },
+                { id: 1, name: 'Amoxicillin', dosePerKg: 50, unit: 'mg', factor: 50, methodIndex: 1, getFreq: (ga, pna) => (ga < 100 && pna < 8) ? '2' : '3' },
                 { id: 16, name: 'Amikacin', dosePerKg: 15, unit: 'mg', factor: 8, methodIndex: 2, defaultFreq: 1 },
-                { id: 2, name: 'Gentamicin', dosePerKg: 5, unit: 'mg', factor: 40, methodIndex: 2, 
-                    getFreq: (ga, pna) => {
-                        if (ga <= 29) return (pna <= 14) ? 'q48hr' : 'q36hr';
-                        if (ga <= 34) return 'q36hr';
-                        return '1';
-                    }
-                },
+                { id: 2, name: 'Gentamicin', dosePerKg: 5, unit: 'mg', factor: 40, methodIndex: 2, getFreq: (ga, pna) => (ga <= 29) ? (pna <= 14 ? 'q48hr' : 'q36hr') : (ga <= 34 ? 'q36hr' : '1') },
                 { id: 3, name: 'Caffeine Loading', dosePerKg: 20, unit: 'mg', factor: 20, methodIndex: 3, defaultFreq: 1 },
                 { id: 4, name: 'Caffeine Maint.', dosePerKg: 10, unit: 'mg', factor: 20, methodIndex: 2, defaultFreq: 1 },
                 { id: 5, name: 'Colistin Loading', dosePerKg: 150000, unit: 'IU', factor: 500000, methodIndex: 2, defaultFreq: 1 },
                 { id: 6, name: 'Colistin Maint.', dosePerKg: 37500, unit: 'IU', factor: 500000, methodIndex: 2, defaultFreq: 2 },
                 { id: 24, name: 'Colistin neb.', dosePerKg: 5, unit: 'mg', factor: 16.667, methodIndex: 11, defaultFreq: 2, alert: 'مهم: يعطى فنتلوين تبخير قبله ب١٠ دقائق' },
-                { id: 8, name: 'Meropenem', dosePerKg: 40, unit: 'mg', factor: 50, methodIndex: 3,
-                    getFreq: (ga, pna) => (ga < 32 && pna < 14) ? '2' : '3'
-                },
-                { id: 11, name: 'Vancomycin', dosePerKg: 15, unit: 'mg', factor: 2, methodIndex: 5,
-                    getFreq: (ga, pna, w) => {
-                        if (pna < 7) {
-                            if (w < 1.2) return '1';
-                            if (w <= 2) return '2';
-                            return '3';
-                        }
-                        return (w < 1.2) ? '1' : '3';
-                    }
-                },
+                { id: 8, name: 'Meropenem', dosePerKg: 40, unit: 'mg', factor: 50, methodIndex: 3, getFreq: (ga, pna) => (ga < 32 && pna < 14) ? '2' : '3' },
+                { id: 11, name: 'Vancomycin', dosePerKg: 15, unit: 'mg', factor: 2, methodIndex: 5, getFreq: (ga, pna, w) => pna < 7 ? (w < 1.2 ? '1' : (w <= 2 ? '2' : '3')) : (w < 1.2 ? '1' : '3') },
                 { id: 9, name: 'Dopamine syringe pump', isDopamine: true, defaultFreq: 1 },
                 { id: 22, name: 'Dopamine + fluid', dosePerKg: 5, unit: 'mg', factor: 40, methodIndex: 8, isDopamine: true },
                 { id: 23, name: 'Dopamine Y-site', dosePerKg: 5, unit: 'mg', factor: 40, methodIndex: 10, isDopamine: true },
@@ -236,38 +212,30 @@
                 { id: 20, name: 'Midazolam Y-site', dosePerKg: 0.03, unit: 'mg', factor: 5, methodIndex: 10 },
                 { id: 26, name: 'Phenobarbital loading', dosePerKg: 20, unit: 'mg', factor: 10, methodIndex: 3, alert: 'مهم: تخفف الامبولة الى ٢٠ مل مع NS' },
                 { id: 27, name: 'Phenobarbital Maint.', dosePerKg: 2.5, unit: 'mg', factor: 10, methodIndex: 3, defaultFreq: 2 },
-                { id: 21, name: 'Fluconazol prophylactic', dosePerKg: 4, unit: 'mg', methodIndex: 9, defaultFreq: 1 },
-                { id: 12, name: 'TPN', methodIndex: 6, hideDetails: true },
-                { id: 13, name: '1/5 GS', methodIndex: 7, isNutrient: true, prep: (vol) => `(5% GW ${(vol*0.8).toFixed(0)} ml + ${(vol*0.2).toFixed(0)} ml NS)` },
-                { id: 14, name: '10% GW', methodIndex: 7, isNutrient: true, prep: (vol) => `(5% GW ${(vol*0.9).toFixed(0)} ml + ${(vol*0.1).toFixed(0)} ml HT)` },
-                { id: 15, name: '5% GW', methodIndex: 7, isNutrient: true, noPrep: true },
+                { id: 21, name: 'Fluconazol prophylactic', dosePerKg: 4, unit: 'mg', factor: 1, methodIndex: 9, defaultFreq: 1 },
+                { id: 12, name: 'TPN', methodIndex: 6, hideDetails: true, factor: 1 },
+                { id: 13, name: '1/5 GS', methodIndex: 7, isNutrient: true, factor: 1, prep: (vol) => `(5% GW ${(vol*0.8).toFixed(0)} ml + ${(vol*0.2).toFixed(0)} ml NS)` },
+                { id: 14, name: '10% GW', methodIndex: 7, isNutrient: true, factor: 1, prep: (vol) => `(5% GW ${(vol*0.9).toFixed(0)} ml + ${(vol*0.1).toFixed(0)} ml HT)` },
+                { id: 15, name: '5% GW', methodIndex: 7, isNutrient: true, noPrep: true, factor: 1 },
                 { id: 30, name: 'Vit D drop', dosePerKg: 400, unit: 'IU', factor: 1, methodIndex: 13 },
                 { id: 10, name: 'Vit k', dosePerKg: 1, unit: 'mg', factor: 10, methodIndex: 4 },
                 { id: 32, name: 'Ventolin neb.', dosePerKg: 1.25, unit: 'mg', factor: 5, methodIndex: 11, defaultFreq: 4 },
-                { id: 33, name: 'NS neb.', dosePerKg: 3, unit: 'ml', methodIndex: 14, defaultFreq: 4 },
+                { id: 33, name: 'NS neb.', dosePerKg: 3, unit: 'ml', factor: 1, methodIndex: 14, defaultFreq: 4 },
                 { id: 34, name: 'Pulmicort neb.', dosePerKg: 0.25, unit: 'mg', factor: 0.5, methodIndex: 11, defaultFreq: 2 },
                 { id: 25, name: 'Decadron DART', dosePerKg: 0.075, unit: 'mg', factor: 0.4, methodIndex: 2, defaultFreq: 2, alert: 'مهم: تخفف الى ٢٠ مل' },
                 { id: 28, name: 'Decadron amp', dosePerKg: 0.25, unit: 'mg', factor: 0.4, methodIndex: 2, defaultFreq: 2 },
-                { id: 29, name: 'Sildenafil cap', dosePerKg: 1, unit: 'mg', methodIndex: 12, defaultFreq: 3 },
-                { id: 31, name: 'HydroCHLOROthiazide cap', dosePerKg: 1, unit: 'mg', methodIndex: 12, defaultFreq: 2 }
+                { id: 29, name: 'Sildenafil cap', dosePerKg: 1, unit: 'mg', factor: 1, methodIndex: 12, defaultFreq: 3 },
+                { id: 31, name: 'HydroCHLOROthiazide cap', dosePerKg: 1, unit: 'mg', factor: 1, methodIndex: 12, defaultFreq: 2 }
             ]
         };
 
-        /** * ==========================================
-         * APPLICATION CORE LOGIC
-         * ==========================================
-         */
         const STORAGE_KEY = 'nicu_patient_queue';
         let patients = [], currentDrugs = [], selectedPatientIds = new Set();
         const $ = id => document.getElementById(id);
 
         const utils = {
-            cleanNum: (s) => {
-                if (!s) return 0;
-                let c = s.toString().replace(/[،,٫]/g, '.').replace(/[^0-9.]/g, '');
-                return parseFloat(c) || 0;
-            },
-            bold: (t) => t ? t.toString().replace(/\d+(\.\d+)?/g, '<strong style="font-weight: 900;">$&</strong>') : '',
+            cleanNum: s => s ? parseFloat(s.toString().replace(/[،,٫]/g, '.').replace(/[^0-9.]/g, '')) || 0 : 0,
+            bold: t => t ? t.toString().replace(/\d+(\.\d+)?/g, '<strong style="font-weight: 900;">$&</strong>') : '',
             toast: (m, type='success') => {
                 const t = $('toast'); $('toastMsg').textContent = m;
                 t.className = `fixed bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 rounded-xl font-medium shadow-xl z-50 transition-all ${type==='error'?'bg-red-700':'bg-teal-800'} text-white opacity-100 translate-y-0`;
@@ -275,7 +243,6 @@
             }
         };
 
-        // UI Initialization
         const init = () => {
             const ageOpts = Array.from({length: 30}, (_, i) => `<option value="${i+1}">Day ${i+1}</option>`).join('');
             $('inputAge').innerHTML = '<option value="">Select day</option>' + ageOpts + '<option value="31">> 30 days</option>';
@@ -285,30 +252,26 @@
 
         const getMethodString = (drug, dose) => {
             if (drug.isDopamine && drug.id === 9) return '1 ml dopamin + 39 ml GW';
-            
-            // Nutrient Preparation Logic
             if (drug.isNutrient) {
                 if (drug.noPrep) return " ";
                 const vol = dose, av = utils.cleanNum($('inputAddonVol').value), at = $('inputAddonType').value || 'Add-on';
-                let main = `${vol} ml` + (av > 0 ? ` (+ ${av} ml ${at})` : "");
                 let calcV = vol, calcA = av, suffix = "";
                 if ((vol + av) > 160) { calcV /= 2; calcA /= 2; suffix = " X2"; }
                 let prepText = drug.prep ? drug.prep(calcV) : `(${drug.name} ${calcV} ml)`;
                 if (av > 0) prepText = prepText.replace(')', ` + ${calcA.toFixed(0)} ml ${at})`);
-                return `${main} | ${prepText}${suffix}`;
+                return `${vol} ml | ${prepText}${suffix}`;
             }
 
             let m = NICU_DATABASE.METHODS[drug.methodIndex] || '-';
-            let ml = dose / drug.factor;
+            let ml = dose / (drug.factor || 1);
             if (drug.methodIndex === 3 || drug.methodIndex === 10) {
-                const target = parseInt($('inputTargetVol').value);
+                const target = parseInt($('inputTargetVol').value) || 10;
                 const mult = (target === 10) ? 2 : 3;
                 ml *= mult;
                 m = m.replace('^^', target).replace('##', (target * 2 - ml).toFixed(0));
             } else {
                 m = m.replace('##', (20 - ml).toFixed(0));
             }
-
             let disp = ml < 1 ? (ml * 100).toFixed(0) + ' units' : ml.toFixed(1) + ' ml';
             return m.replace('**', disp);
         };
@@ -317,6 +280,7 @@
             const drugId = $('selectDrug').value;
             if (!drugId || drugId === 'other') return;
             const drug = NICU_DATABASE.DRUGS.find(d => d.id == drugId);
+            if (!drug) return;
             const w = utils.cleanNum($('inputWeight').value), ga = utils.cleanNum($('inputGA').value), pna = parseInt($('inputAge').value) || 0;
             
             if (drug.isDopamine && drug.id === 9) {
@@ -328,21 +292,17 @@
 
             $('dopamineTableContainer').classList.add('hidden');
             $('methodPreviewContainer').classList.remove('hidden');
-            
-            // Automatic Dose Calculation
             if (drug.getFreq) $('inputFreq').value = drug.getFreq(ga, pna, w);
             if (w > 0 && drug.dosePerKg && !$('inputDose').value) {
                 $('inputDose').value = (w * drug.dosePerKg).toFixed(drug.dosePerKg < 1 ? 2 : 1);
             }
-            
             $('previewMethod').innerHTML = getMethodString(drug, utils.cleanNum($('inputDose').value));
         };
 
-        const renderDopTable = (w) => {
+        const renderDopTable = w => {
             $('dopamineTableBody').innerHTML = [2, 5, 7, 10].map(d => `<tr><td class="p-2 text-center font-bold text-teal-800">${((d*w*1440)/1000).toFixed(0)} ml</td><td class="p-2 text-center">${d}</td></tr>`).join('');
         };
 
-        // Storage & Queue Management
         const loadData = () => { try { const d = localStorage.getItem(STORAGE_KEY); if(d){ patients = JSON.parse(d); renderQueue(); } } catch(e){} };
         const saveData = () => localStorage.setItem(STORAGE_KEY, JSON.stringify(patients));
 
@@ -351,7 +311,7 @@
                 <div class="bg-white rounded-2xl border p-4 shadow-sm">
                     <div class="flex justify-between border-b pb-2 mb-3">
                         <input type="checkbox" ${selectedPatientIds.has(p.id)?'checked':''} onclick="toggleSel('${p.id}')" class="w-5 h-5">
-                        <div class="text-right"><h3 class="font-bold">${p.name}</h3><p class="text-xs text-gray-500">${p.weight}kg | Day ${p.age}</p></div>
+                        <div class="text-right"><h3 class="font-bold">${p.name || 'Unknown'}</h3><p class="text-xs text-gray-500">${p.weight}kg | Day ${p.age}</p></div>
                         <button onclick="deletePat('${p.id}')" class="text-red-600">×</button>
                     </div>
                     ${p.drugs.map(d => `<div class="text-sm border-b border-dashed py-2">
@@ -365,25 +325,27 @@
         const updateMeta = () => {
             $('counterText').textContent = `${patients.length} Patients`;
             $('patientCounter').classList.toggle('hidden', patients.length === 0);
-            $('btnPdf').disabled = patients.length === 0;
+            $('btnPdf').disabled = selectedPatientIds.size === 0;
             $('emptyState').classList.toggle('hidden', patients.length > 0);
         };
 
-        // Events
         $('selectCategory').onchange = (e) => {
             const cat = NICU_DATABASE.CATEGORIES.find(c => c.name === e.target.value);
-            $('selectDrug').innerHTML = '<option value="">-- Drug --</option>' + (cat?.ids.map(id => {
-                const d = id === 'other' ? {id:'other', name:'Other+'} : NICU_DATABASE.DRUGS.find(x => x.id === id);
-                return `<option value="${d.id}">${d.name}</option>`;
-            }).join('') || '');
+            if (!cat) { $('selectDrug').innerHTML = '<option value="">-- Drug --</option>'; return; }
+            $('selectDrug').innerHTML = '<option value="">-- Drug --</option>' + cat.ids.map(id => {
+                if (id === 'other') return `<option value="other">Other+</option>`;
+                const d = NICU_DATABASE.DRUGS.find(x => x.id === id);
+                return d ? `<option value="${d.id}">${d.name}</option>` : '';
+            }).join('');
             updatePreview();
         };
 
         $('selectDrug').onchange = () => {
-            const isOther = $('selectDrug').value === 'other';
-            $('inputCustomDrug').classList.toggle('hidden', !isOther);
-            $('inputCustomMethod').classList.toggle('hidden', !isOther);
-            $('targetVolContainer').classList.toggle('hidden', !['3','10'].includes(NICU_DATABASE.DRUGS.find(d => d.id == $('selectDrug').value)?.methodIndex?.toString()));
+            const dVal = $('selectDrug').value;
+            const drug = NICU_DATABASE.DRUGS.find(d => d.id == dVal);
+            $('inputCustomDrug').classList.toggle('hidden', dVal !== 'other');
+            $('inputCustomMethod').classList.toggle('hidden', dVal !== 'other');
+            $('targetVolContainer').classList.toggle('hidden', !drug || !['3','10'].includes(drug.methodIndex?.toString()));
             updatePreview();
         };
 
@@ -392,13 +354,9 @@
             if(!dId || !w) return utils.toast('Missing Info', 'error');
             const drug = dId === 'other' ? { name: $('inputCustomDrug').value, unit: $('inputCustomUnit').value, method: $('inputCustomMethod').value } : NICU_DATABASE.DRUGS.find(d => d.id == dId);
             currentDrugs.push({
-                name: drug.name,
-                dose: $('inputDose').value,
-                unit: drug.unit || '',
-                freq: $('inputFreq').value,
+                name: drug.name, dose: $('inputDose').value, unit: drug.unit || '', freq: $('inputFreq').value,
                 method: dId === 'other' ? drug.method : getMethodString(drug, utils.cleanNum($('inputDose').value)),
-                isNutrient: drug.isNutrient,
-                drugId: dId
+                isNutrient: drug.isNutrient, drugId: dId
             });
             renderDrugs();
             $('inputDose').value = '';
@@ -415,27 +373,46 @@
             $('inputName').value = ''; $('inputWeight').value = '';
         };
 
-        window.deletePat = id => { patients = patients.filter(p => p.id !== id); saveData(); renderQueue(); };
-        window.toggleSel = id => { selectedPatientIds.has(id) ? selectedPatientIds.delete(id) : selectedPatientIds.add(id); };
+        window.deletePat = id => { patients = patients.filter(p => p.id !== id); selectedPatientIds.delete(id); saveData(); renderQueue(); };
+        window.toggleSel = id => { selectedPatientIds.has(id) ? selectedPatientIds.delete(id) : selectedPatientIds.add(id); updateMeta(); };
+
+        $('selectAllCheckbox').onchange = (e) => {
+            if(e.target.checked) patients.forEach(p => selectedPatientIds.add(p.id));
+            else selectedPatientIds.clear();
+            renderQueue();
+        };
 
         $('btnPdf').onclick = async () => {
             const sel = patients.filter(p => selectedPatientIds.has(p.id));
             if(!sel.length) return;
             utils.toast('Generating PDF...', 'info');
             const { jsPDF } = window.jspdf; const doc = new jsPDF();
-            const container = $('pdf-render-container'); container.innerHTML = '';
+            const container = $('pdf-render-container');
             
-            for (let p of sel) {
+            for (let i = 0; i < sel.length; i++) {
+                const p = sel[i];
                 const el = document.createElement('div'); el.className = 'pdf-page';
-                el.innerHTML = `<div class="border-4 border-black p-4 h-full"><h2 class="text-2xl font-black text-right">${p.name} (${p.weight}kg)</h2>
-                <div class="mt-4">${p.drugs.map(d => `<div class="border-b-2 border-black py-2"><div class="flex justify-between font-bold"><span>${d.name}</span><span>${d.dose}${d.unit} ${d.freq}</span></div><p style="direction:ltr">${d.method}</p></div>`).join('')}</div></div>`;
+                el.innerHTML = `<div style="border: 2px solid black; padding: 20px; height: 100%;">
+                    <h2 style="font-size: 24px; font-weight: bold; text-align: right;">${p.name || 'Patient'} (${p.weight}kg)</h2>
+                    <p style="text-align: right; margin-bottom: 20px;">Day: ${p.age}</p>
+                    <hr style="border: 1px solid black;">
+                    <div style="margin-top: 20px;">
+                        ${p.drugs.map(d => `<div style="margin-bottom: 15px; border-bottom: 1px dashed #ccc; padding-bottom: 10px;">
+                            <div style="display: flex; justify-content: space-between; font-weight: bold;">
+                                <span>${d.name}</span> <span>${d.dose}${d.unit} (${d.freq})</span>
+                            </div>
+                            <p style="direction: ltr; margin-top: 5px; font-size: 12px;">${d.method}</p>
+                        </div>`).join('')}
+                    </div>
+                </div>`;
                 container.appendChild(el);
-                const canvas = await html2canvas(el, {scale:2});
-                doc.addImage(canvas.toDataURL('image/jpeg'), 'JPEG', 0, 0, 210, 297);
-                if(sel.indexOf(p) < sel.length - 1) doc.addPage();
+                const canvas = await html2canvas(el, { scale: 2 });
+                doc.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, 210, 297);
+                if (i < sel.length - 1) doc.addPage();
                 container.innerHTML = '';
             }
-            doc.save('NICU_Report.pdf');
+            doc.save(`NICU_Report_${new Date().toLocaleDateString()}.pdf`);
+            utils.toast('PDF Downloaded');
         };
 
         init();
