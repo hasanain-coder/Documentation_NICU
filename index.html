@@ -361,10 +361,11 @@
             6: 'over 24 hr',
             7: 'Special Nutrients',
             9: 'كل اثنين وخميس',
-            8: '** مع المغذي',
+            8: '** <span class="arabic-text" style="display:inline-block; direction:rtl;">مع المغذي</span> ',
             10: '** + ## ml GW >> ^^ ml /24 hr',
             11: ' ** + 3ml NS / 15 min <span class="arabic-text" style="display:inline-block; direction:rtl;">تبخير</span>',
-            12: 'تحل الكبسولة ب ٢ سي سي كلوكوز وتر ثم يدفع عن طريق ال OG ثم يدفع ٢ سي سي كلوكوز وتر عن طريق ال OG'
+            12: 'تحل الكبسولة ب ٢ سي سي كلوكوز وتر ثم يدفع عن طريق ال OG ثم يدفع ٢ سي سي كلوكوز وتر عن طريق ال OG',
+            13: 'بالفم'
         };
 
         const DRUG_CONFIG = [
@@ -498,13 +499,14 @@
             { id: 12, name: 'TPN', methodIndex: 6, defaultFreq: 1, hideDetails: true },
             { id: 13, name: '1/5 GS', methodIndex: 7, defaultFreq: 1, hideDetails: true, isNutrient: true },
             { id: 14, name: '10% GW', methodIndex: 7, defaultFreq: 1, hideDetails: true, isNutrient: true },
-            { id: 15, name: '5% GW', methodIndex: 7, defaultFreq: 1, hideDetails: true, isNutrient: true, noPrep: true }
+            { id: 15, name: '5% GW', methodIndex: 7, defaultFreq: 1, hideDetails: true, isNutrient: true, noPrep: true },
+            { id: 29, name: 'Vit D drop', dosePerKg: 400, unit: 'IU', factor: 1, methodIndex: 13, defaultFreq: 1 },
         ];
 
         const DRUG_CATEGORIES = [
             { name: 'Antibiotics', ids: [1, 2, 5, 6, 7, 8, 11, 16, 24] },
             { name: 'Sedation', ids: [9, 17, 18, 19, 20, 22, 23, 26, 27] },
-            { name: 'Miscellaneous', ids: [3, 4, 10, 25, 28] },
+            { name: 'Miscellaneous', ids: [3, 4, 10, 25, 28, 29] },
             { name: 'Fluids', ids: [12, 13, 14, 15] },
             { name: 'Oral capsules', ids: [21, 29] },
             { name: 'Other+', ids: ['other'] }
@@ -763,6 +765,8 @@
                 }
             } else if (drug.id === 10) { 
                 $('inputDose').value = 1;
+            } else if (drug.id === 29) { 
+                $('inputDose').value = 400;
             } else if (drug.id === 21) { 
                 $('inputDose').value = 4;
             } else if (weight > 0) {
