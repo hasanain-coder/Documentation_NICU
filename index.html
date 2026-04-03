@@ -365,7 +365,8 @@
             10: '** + ## ml GW >> ^^ ml /24 hr',
             11: ' ** + 3ml NS / 15 min <span class="arabic-text" style="display:inline-block; direction:rtl;">تبخير</span>',
             12: 'تحل الكبسولة ب ٢ سي سي كلوكوز وتر ثم يدفع عن طريق ال OG ثم يدفع ٢ سي سي كلوكوز وتر عن طريق ال OG',
-            13: 'بالفم'
+            13: 'بالفم',
+            14: ' 3ml NS / 15 min <span class="arabic-text" style="display:inline-block; direction:rtl;">تبخير</span>',
         };
 
         const DRUG_CONFIG = [
@@ -501,14 +502,18 @@
             { id: 14, name: '10% GW', methodIndex: 7, defaultFreq: 1, hideDetails: true, isNutrient: true },
             { id: 15, name: '5% GW', methodIndex: 7, defaultFreq: 1, hideDetails: true, isNutrient: true, noPrep: true },
             { id: 30, name: 'Vit D drop', dosePerKg: 400, unit: 'IU', factor: 1, methodIndex: 13, defaultFreq: 1 },
+            { id: 31, name: 'HydroCHLOROthiazide cap', dosePerKg: 1, unit: 'mg', methodIndex: 12, defaultFreq: 2},
+            { id: 32, name: 'Ventolin neb.', dosePerKg: 1.25, unit: 'mg', factor: 5,  methodIndex: 11, defaultFreq: 4},
+            { id: 33, name: 'NS neb.', dosePerKg: 1, unit: 'mg', methodIndex: 13, hideDetails: true, defaultFreq: 4}
         ];
 
         const DRUG_CATEGORIES = [
             { name: 'Antibiotics', ids: [1, 2, 5, 6, 7, 8, 11, 16, 24] },
-            { name: 'Sedation', ids: [9, 17, 18, 19, 20, 22, 23, 26, 27] },
+            { name: 'Sedatives & Inotropes', ids: [9, 17, 18, 19, 20, 22, 23, 26, 27] },
             { name: 'Miscellaneous', ids: [3, 4, 10, 25, 28, 30] },
             { name: 'Fluids', ids: [12, 13, 14, 15] },
-            { name: 'Oral capsules', ids: [21, 29] },
+            { name: 'Oral capsules', ids: [21, 29, 31] },
+            { name: 'Nebulization', ids: [32, 33] },
             { name: 'Other+', ids: ['other'] }
         ];
 
@@ -769,6 +774,8 @@
                 $('inputDose').value = 400;
             } else if (drug.id === 21) { 
                 $('inputDose').value = 4;
+            } else if (drug.id === 32) { 
+                $('inputDose').value = 1.25;
             } else if (weight > 0) {
                 if(drug.dosePerKg) { 
                     $('inputDose').value = (weight * drug.dosePerKg).toFixed(1); 
