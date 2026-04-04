@@ -7,353 +7,390 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Arabic:wght@400;600;800&family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@300;400;500;600;700&family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #F0F4F3; --fg: #1C2526; --muted: #5A6872;
-            --accent: #0F766E; --accent-light: #14B8A6;
-            --card: #FFFFFF; --border: #D1DEDD; --danger: #B91C1C; --surface: #E8EFEE;
+            --bg: #F8FAF9; --fg: #1A1D1C; --muted: #5C6668; --accent: #1B6B5A; --accent-light: #2A9D8F; --accent-dark: #13483C;
+            --card: #FFFFFF; --border: #D8E0DE; --danger: #C1121F; --warning: #E07A00; --surface: #EDF2F0; --success: #2D7A5F;
         }
-        * { 
-            font-family: 'Inter', 'Cairo', 'Noto Sans Arabic', sans-serif; 
-            text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased;
+        body.dark-mode {
+            --bg: #0f1115; --fg: #E5E7EB; --muted: #9CA3AF; --accent: #2A9D8F; --accent-light: #40E0D0;
+            --card: #1a1d21; --border: #2d3139; --danger: #F87171; --warning: #FBBF24; --surface: #16191d;
         }
-        h1, h2, h3, .display-font { font-family: 'Crimson Pro', serif; }
-        body {
-            background: var(--bg);
-            background-image: 
-                radial-gradient(ellipse at 0% 0%, rgba(15, 118, 110, 0.06) 0%, transparent 50%),
-                radial-gradient(ellipse at 100% 100%, rgba(20, 184, 166, 0.04) 0%, transparent 50%);
-        }
+        * { font-family: 'Inter', 'Cairo', sans-serif; text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; }
+        h1, h2, h3 { font-family: 'DM Serif Display', serif; letter-spacing: -0.02em; }
+        body { background: var(--bg); transition: background 0.3s ease, color 0.3s ease; }
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: var(--surface); }
         ::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 4px; }
-        .animate-fade-up { animation: fadeUp 0.5s ease-out forwards; }
-        @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
-        .input-field { transition: all 0.2s ease; background: var(--surface); }
-        .input-field:focus { background: var(--card); border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12); }
-        .btn-primary { background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%); transition: all 0.25s ease; }
-        .btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(15, 118, 110, 0.25); }
-        .arabic-text { font-family: 'Cairo', sans-serif; direction: rtl; text-align: right; }
+
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-up { animation: fadeUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+        .patient-card { opacity: 0; animation: fadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+
+        input, select, textarea { background: var(--surface); color: var(--fg); border-color: var(--border); }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px rgba(27, 107, 90, 0.12); }
+
+        .btn-primary { background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%); transition: all 0.3s; color: white; position: relative; overflow: hidden; }
+        .btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(27, 107, 90, 0.3); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .arabic-text { font-family: 'Cairo', sans-serif; direction: rtl; text-align: right; unicode-bidi: isolate; }
+
+        /* PDF Specific Styles */
         #pdf-render-container { position: absolute; top: 0; left: 0; z-index: -1000; opacity: 0; pointer-events: none; background: white; }
-        .pdf-page { width: 210mm; height: 297mm; padding: 8mm; background: white; box-sizing: border-box; page-break-after: always; }
-        .pdf-grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: repeat(3, 1fr); gap: 3mm; height: 100%; }
-        .pdf-cell { border: 2px solid #000; border-radius: 2mm; padding: 3mm; display: flex; flex-direction: column; overflow: hidden; }
-        .pdf-cell-header { border-bottom: 2px solid #000; margin: -3mm -3mm 2mm -3mm; padding: 2mm 3mm; }
+        .pdf-page { width: 210mm; height: 297mm; padding: 8mm; background: white; box-sizing: border-box; display: flex; flex-direction: column; }
+        .pdf-grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: repeat(3, 1fr); gap: 3mm; flex: 1; }
+        .pdf-cell { border: 2px solid #000; padding: 3mm; background: #FFFFFF; display: flex; flex-direction: column; overflow: hidden; }
+        .pdf-header { border-bottom: 2px solid #000; padding-bottom: 2mm; margin-bottom: 2mm; }
         .pdf-drug-item { margin-bottom: 1.5mm; padding-bottom: 1.5mm; border-bottom: 1px dashed #999; }
         .pdf-drug-item:last-child { border-bottom: none; }
+
+        .stat-card { backdrop-filter: blur(8px); background: rgba(255, 255, 255, 0.8); border: 1px solid var(--border); }
+        body.dark-mode .stat-card { background: rgba(26, 29, 33, 0.8); }
+        .header-gradient { background: linear-gradient(135deg, var(--accent-dark) 0%, var(--accent) 50%, var(--accent-light) 100%); }
+        .dark-toggle { background: var(--surface); border: 1px solid var(--border); color: var(--fg); transition: all 0.3s; }
+        .dark-toggle:hover { background: var(--accent); color: white; }
     </style>
 </head>
 <body class="min-h-screen">
-    <header class="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-[var(--border)] shadow-sm">
-        <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-[var(--accent)] to-[var(--accent-light)] flex items-center justify-center shadow-md">
-                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+    <header class="sticky top-0 z-50 bg-[var(--card)]/95 backdrop-blur-lg border-b border-[var(--border)] shadow-sm">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-[var(--accent)] to-[var(--accent-light)] flex items-center justify-center shadow-lg">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
                 </div>
                 <div>
-                    <h1 class="text-xl md:text-2xl font-bold text-[var(--fg)]">NICU Dose Calculator</h1>
-                    <p class="text-xs text-[var(--muted)]">Baghdad Teaching Hospital</p>
+                    <h1 class="text-2xl md:text-3xl font-bold text-[var(--fg)] tracking-tight">NICU Dose Calculator</h1>
+                    <p class="text-xs text-[var(--muted)] font-medium">Baghdad Teaching Hospital</p>
                 </div>
             </div>
-            <div id="patientCounter" class="hidden px-4 py-2 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/20">
-                <span id="counterText" class="text-[var(--accent)] font-semibold text-sm">0 Patients</span>
+            <div class="flex items-center gap-4">
+                <button id="darkModeToggle" class="dark-toggle p-2.5 rounded-xl" aria-label="Toggle Dark Mode">
+                    <svg class="w-5 h-5 hidden dark-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                    <svg class="w-5 h-5 hidden moon-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+                </button>
+                <div id="patientCounter" class="hidden px-5 py-2.5 rounded-2xl bg-gradient-to-r from-[var(--accent)]/10 to-[var(--accent-light)]/10 border border-[var(--accent)]/20">
+                    <span class="text-[var(--accent)] font-bold text-sm" id="counterText">0 Patients</span>
+                </div>
             </div>
         </div>
     </header>
 
-    <main class="max-w-5xl mx-auto px-4 py-6 space-y-6">
-        <section class="bg-white rounded-2xl shadow-lg border border-[var(--border)] overflow-hidden animate-fade-up">
-            <div class="bg-gradient-to-r from-[var(--accent)] to-[var(--accent-light)] px-6 py-4">
-                <h2 class="text-xl text-white font-semibold">Patient Information</h2>
+    <main class="max-w-6xl mx-auto px-4 py-8 space-y-8">
+        <!-- Stats Row -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 animate-fade-up">
+            <div class="stat-card rounded-2xl p-4"><div class="text-3xl font-bold text-[var(--accent)]" id="statTotal">0</div><div class="text-xs text-[var(--muted)] uppercase">Total</div></div>
+            <div class="stat-card rounded-2xl p-4"><div class="text-3xl font-bold text-[var(--accent)]" id="statSelected">0</div><div class="text-xs text-[var(--muted)] uppercase">Selected</div></div>
+            <div class="stat-card rounded-2xl p-4"><div class="text-3xl font-bold text-[var(--accent)]" id="statDrugs">0</div><div class="text-xs text-[var(--muted)] uppercase">Drugs</div></div>
+            <div class="stat-card rounded-2xl p-4"><div class="text-3xl font-bold text-[var(--accent)]" id="statLastSaved">--</div><div class="text-xs text-[var(--muted)] uppercase">Saved</div></div>
+        </div>
+
+        <!-- Input Section -->
+        <section class="bg-[var(--card)] rounded-3xl shadow-xl border border-[var(--border)] overflow-hidden animate-fade-up">
+            <div class="header-gradient px-8 py-6">
+                <h2 class="text-2xl text-white font-semibold">Patient Information</h2>
+                <p class="text-white/80 text-sm mt-1">Age auto-updates daily</p>
             </div>
-            <div class="p-6 space-y-6">
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div class="space-y-1"><label class="text-sm font-semibold">Patient Name</label><input type="text" id="inputName" class="input-field w-full px-4 py-3 rounded-xl border" placeholder="Full name"></div>
-                    <div class="space-y-1"><label class="text-sm font-semibold">Weight (kg)</label><input type="text" id="inputWeight" inputmode="decimal" class="input-field w-full px-4 py-3 rounded-xl border" placeholder="e.g. 2.35"></div>
-                    <div class="space-y-1"><label class="text-sm font-semibold">Postnatal Age</label><select id="inputAge" class="input-field w-full px-4 py-3 rounded-xl border"></select></div>
-                    <div class="space-y-1"><label class="text-sm font-semibold">GA (weeks)</label><input type="text" id="inputGA" inputmode="decimal" class="input-field w-full px-4 py-3 rounded-xl border" placeholder="e.g. 34"></div>
+
+            <div class="p-8 space-y-8">
+                <!-- Demographics -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="space-y-2"><label class="text-sm font-semibold text-[var(--fg)]">Patient Name</label><input type="text" id="inputName" class="input-field w-full px-4 py-3.5 rounded-xl border border-[var(--border)]" placeholder="Full name"></div>
+                    <div class="space-y-2"><label class="text-sm font-semibold text-[var(--fg)]">Weight (kg)</label><input type="text" id="inputWeight" inputmode="decimal" oninput="this.value = this.value.replace(/[،,٫]/g, '.')" class="input-field w-full px-4 py-3.5 rounded-xl border border-[var(--border)]" placeholder="kg"></div>
+                    <div class="space-y-2"><label class="text-sm font-semibold text-[var(--fg)]">Age (Days)</label><select id="inputAge" class="input-field w-full px-4 py-3.5 rounded-xl border border-[var(--border)]"></select></div>
+                    <div class="space-y-2"><label class="text-sm font-semibold text-[var(--fg)]">GA (wks)</label><input type="text" id="inputGA" inputmode="decimal" oninput="this.value = this.value.replace(/[،,٫]/g, '.')" class="input-field w-full px-4 py-3.5 rounded-xl border border-[var(--border)]" placeholder="wks"></div>
                 </div>
 
-                <div class="border-t pt-6">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-4 mb-4 items-start">
-                        <div class="lg:col-span-1"><label class="text-sm font-semibold">Category</label><select id="selectCategory" class="input-field w-full px-4 py-3 rounded-xl border"></select></div>
-                        <div class="lg:col-span-1"><label class="text-sm font-semibold">Drug</label><select id="selectDrug" class="input-field w-full px-4 py-3 rounded-xl border"></select>
-                            <input type="text" id="inputCustomDrug" class="hidden input-field w-full px-4 py-2 rounded-xl border mt-2" placeholder="Drug Name">
-                            <input type="text" id="inputCustomMethod" class="hidden input-field w-full px-4 py-2 rounded-xl border mt-2" placeholder="Method">
-                        </div>
-                        <div class="lg:col-span-2 flex gap-2" id="doseWrapper">
-                            <div id="dosePerKgContainer" class="hidden flex-1"><label class="text-sm font-semibold text-[var(--accent)]">Dose/kg</label><input type="text" id="inputDosePerKg" class="input-field w-full px-4 py-3 rounded-xl border font-bold"></div>
-                            <div id="totalDoseContainer" class="flex-1"><label class="text-sm font-semibold">Total Dose</label><div class="flex gap-1"><input type="text" id="inputDose" class="input-field flex-1 px-4 py-3 rounded-xl border"><input type="text" id="inputCustomUnit" class="hidden w-16 px-2 py-3 rounded-xl border"></div></div>
-                        </div>
-                        <div class="lg:col-span-1" id="freqContainer"><label class="text-sm font-semibold">Frequency</label>
-                            <select id="inputFreq" class="input-field w-full px-4 py-3 rounded-xl border">
-                                <option value="1">Once (x1)</option><option value="2">Twice (x2)</option><option value="3">3 times (x3)</option><option value="4">4 times (x4)</option><option value="q36hr">q36hr</option><option value="q48hr">q48hr</option>
-                            </select>
-                        </div>
-                        <div class="lg:col-span-1 hidden" id="targetVolContainer"><label class="text-sm font-semibold text-[var(--accent)]">Target Vol</label><select id="inputTargetVol" class="input-field w-full px-4 py-3 rounded-xl border"><option value="10">10ml (x2)</option><option value="5">5ml (x3)</option></select></div>
-                        <div class="lg:col-span-1 flex items-end"><button id="btnAddDrug" class="btn-primary w-full h-[50px] rounded-xl text-white font-semibold">Add</button></div>
+                <div class="h-px bg-[var(--border)]"></div>
+                
+                <!-- Medication Section -->
+                <div>
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="w-10 h-10 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center"><svg class="w-5 h-5 text-[var(--accent)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg></div>
+                        <div><h3 class="text-xl font-semibold text-[var(--fg)]">Medication</h3><p class="text-xs text-[var(--muted)]">Configuration-driven selection</p></div>
                     </div>
 
-                    <div id="addonContainer" class="hidden grid grid-cols-2 gap-2 mb-4">
-                        <div class="space-y-1"><label class="text-sm font-semibold">Add-on (ml)</label><input type="text" id="inputAddonVol" class="input-field w-full px-4 py-3 rounded-xl border"></div>
-                        <div class="space-y-1"><label class="text-sm font-semibold">Type</label><input type="text" id="inputAddonType" class="input-field w-full px-4 py-3 rounded-xl border" placeholder="KCL/HT"></div>
-                    </div>
-
-                    <div id="methodPreviewContainer" class="hidden bg-[var(--surface)] border border-[var(--accent)]/20 rounded-xl p-4 mb-4">
-                        <div class="flex gap-3">
-                            <div class="p-2 bg-[var(--accent)]/10 rounded-lg"><svg class="w-5 h-5 text-[var(--accent)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg></div>
-                            <div class="flex-1"><p class="text-xs font-bold text-[var(--accent)] uppercase">Method</p><p id="previewMethod" class="text-sm font-bold">-</p><p id="warningMessage" class="hidden text-sm text-[var(--danger)] font-bold mt-2 arabic-text"></p></div>
+                    <div class="grid grid-cols-2 lg:grid-cols-7 gap-4 mb-6 items-start">
+                        <div class="space-y-2 lg:col-span-1"><label class="text-sm font-semibold text-[var(--fg)]">Category</label><select id="selectCategory" class="input-field w-full px-4 py-3.5 rounded-xl border border-[var(--border)]"></select></div>
+                        <div class="space-y-2 lg:col-span-1"><label class="text-sm font-semibold text-[var(--fg)]">Drug</label><select id="selectDrug" class="input-field w-full px-4 py-3.5 rounded-xl border border-[var(--border)]"></select><input type="text" id="inputCustomDrug" class="hidden input-field w-full px-4 py-3 rounded-xl border border-[var(--border)] mt-2" placeholder="Custom"></div>
+                        <div class="col-span-2 lg:col-span-2 space-y-2" id="doseWrapper">
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="space-y-2 hidden" id="dosePerKgContainer"><label class="text-sm font-semibold text-[var(--accent)]">Dose/kg</label><input type="text" id="inputDosePerKg" inputmode="decimal" oninput="this.value = this.value.replace(/[،,٫]/g, '.')" class="input-field w-full px-3 py-3.5 rounded-xl border border-[var(--accent)]/30" placeholder="Kg"></div>
+                                <div class="space-y-2" id="totalDoseContainer"><label class="text-sm font-semibold text-[var(--fg)]">Total Dose</label><div class="flex gap-1"><input type="text" id="inputDose" inputmode="decimal" oninput="this.value = this.value.replace(/[،,٫]/g, '.')" class="input-field flex-1 px-3 py-3.5 rounded-xl border border-[var(--border)]" placeholder="Dose"><input type="text" id="inputCustomUnit" class="hidden input-field w-14 px-1 py-3.5 rounded-xl border border-[var(--border)]" placeholder="Unit"></div></div>
+                            </div>
+                            <input type="text" id="inputCustomMethod" class="hidden input-field w-full px-4 py-3 rounded-xl border border-[var(--border)]" placeholder="Method">
+                        </div>
+                        <div class="space-y-2 lg:col-span-1" id="freqContainer"><label class="text-sm font-semibold text-[var(--fg)]">Freq</label><select id="inputFreq" class="input-field w-full px-4 py-3.5 rounded-xl border border-[var(--border)]"><option value="1">x1</option><option value="2">x2</option><option value="3">x3</option><option value="4">x4</option><option value="q36hr">q36</option><option value="q48hr">q48</option></select></div>
+                        <div class="space-y-2 lg:col-span-1 hidden" id="targetVolContainer"><label class="text-sm font-semibold text-[var(--accent)]">Target</label><select id="inputTargetVol" class="input-field w-full px-4 py-3.5 rounded-xl border border-[var(--border)]"><option value="10">10ml</option><option value="5">5ml</option></select></div>
+                        <div class="col-span-2 lg:col-span-1 flex flex-col gap-2">
+                             <div id="addonContainer" class="hidden grid grid-cols-2 gap-2">
+                                <div class="space-y-1"><label class="text-[10px] font-bold text-[var(--accent)] uppercase">Vol</label><input type="text" id="inputAddonVol" inputmode="decimal" oninput="this.value = this.value.replace(/[،,٫]/g, '.')" class="input-field w-full px-2 py-2 rounded-lg border border-[var(--border)] text-sm" placeholder="ml"></div>
+                                <div class="space-y-1"><label class="text-[10px] font-bold text-[var(--accent)] uppercase">Type</label><input type="text" id="inputAddonType" class="input-field w-full px-2 py-2 rounded-lg border border-[var(--border)] text-sm" placeholder="KCL"></div>
+                            </div>
+                            <button id="btnAddDrug" class="btn-primary w-full py-3.5 rounded-xl text-white font-semibold flex items-center justify-center gap-2 h-[52px]"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>Add</button>
                         </div>
                     </div>
+
+                    <div id="methodPreviewContainer" class="hidden bg-[var(--surface)] border border-[var(--accent)]/20 rounded-xl p-3 mt-3">
+                        <p class="text-[10px] font-bold text-[var(--accent)] uppercase mb-1">Method</p>
+                        <p id="previewMethod" class="text-[var(--fg)] text-sm" style="direction: ltr; text-align: left;">-</p>
+                        <p id="warningMessage" class="hidden text-xs text-[var(--danger)] font-bold mt-1 arabic-text"></p>
+                    </div>
+                    <div id="alertMessage" class="hidden bg-[var(--warning)]/10 border border-[var(--warning)]/30 rounded-lg p-2 mt-2"><p id="alertText" class="text-xs text-[var(--warning)] font-semibold arabic-text"></p></div>
                 </div>
 
-                <div id="dopamineTableContainer" class="hidden mt-6 overflow-x-auto">
-                    <h4 class="font-bold text-[var(--accent)] mb-2">Dopamine Infusion</h4>
-                    <table class="w-full text-sm border-collapse border border-[var(--border)] rounded-xl overflow-hidden">
-                        <thead class="bg-[var(--accent)] text-white"><tr><th class="p-2 border">Rate (ml/24h)</th><th class="p-2 border">Dose (mcg/kg/min)</th></tr></thead>
-                        <tbody id="dopamineTableBody" class="bg-white"></tbody>
-                    </table>
-                </div>
-                <div id="drugsList" class="mt-4 space-y-2"></div>
-                <button id="btnSavePatient" class="btn-primary w-full py-4 rounded-xl text-white font-bold text-lg">Save Patient</button>
+                <div id="dopamineTableContainer" class="hidden mt-4 overflow-x-auto text-xs"></div>
+                <div id="drugsList" class="mt-3 space-y-2"></div>
+                <button id="btnSavePatient" class="btn-primary w-full py-3 rounded-xl text-white font-bold mt-4">Save Patient</button>
             </div>
         </section>
 
-        <section class="space-y-4">
-            <div class="flex justify-between items-center"><h2 class="text-2xl font-bold">Patient Queue</h2><label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="selectAllCheckbox" class="w-5 h-5 rounded text-[var(--accent)]"><span class="text-sm font-medium">Select All</span></label></div>
-            <div class="flex gap-2"><button id="btnPdf" disabled class="btn-primary px-5 py-2 rounded-xl text-white font-medium">Generate PDF</button><button id="btnClearAll" class="px-5 py-2 rounded-xl border border-[var(--danger)]/30 text-[var(--danger)]">Clear All</button></div>
-            <div id="patientQueue" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
-            <div id="emptyState" class="text-center py-10 bg-white rounded-2xl border-2 border-dashed"><p class="text-[var(--muted)]">No patients in queue</p></div>
+        <!-- Patient Queue -->
+        <section class="space-y-3">
+            <div class="flex items-center justify-between">
+                <h2 class="text-lg font-bold text-[var(--fg)]">Queue</h2>
+                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="selectAllCheckbox" class="w-4 h-4 rounded border-[var(--border)] text-[var(--accent)]"><span class="text-xs font-medium text-[var(--fg)]">All</span></label>
+            </div>
+            <div class="flex gap-2">
+                <button id="btnPdf" disabled class="btn-primary flex-1 py-2 rounded-lg text-white font-semibold text-sm flex items-center justify-center gap-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>PDF</button>
+                <button id="btnClearAll" class="px-3 py-2 rounded-lg border border-[var(--danger)]/30 text-[var(--danger)] text-sm font-medium">Clear</button>
+            </div>
+            <div id="patientQueue" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3"></div>
+            <div id="emptyState" class="text-center py-10 bg-[var(--card)] rounded-2xl border border-dashed border-[var(--border)]"><p class="text-[var(--muted)] text-sm">No patients</p></div>
         </section>
     </main>
 
     <div id="pdf-render-container"></div>
-    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 rounded-xl font-medium shadow-xl z-50 opacity-0 transition-all duration-300"><span id="toastMsg"></span></div>
+    <div id="toast" class="fixed bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-lg font-medium shadow-xl z-50 opacity-0 transition-all duration-300 text-sm"></div>
 
-    <script>
-        const $ = id => document.getElementById(id);
-        const METHODS = { 
-            1: '** / 5min', 2: '** + 5 ml GW / 10 min', 3: '** + ## ml GW >> ^^ ml /30 min',
-            4: '** + 3 ml GW / 3 min', 5: '** / 60 min', 6: 'over 24 hr', 7: 'Special Nutrients',
-            8: '** مع المغذي', 9: 'كل اثنين وخميس', 10: '** + ## ml GW >> ^^ ml /24 hr',
-            11: '** + 3ml NS / 15 min تبخير', 12: 'تحل الكبسولة ب ٢ سي سي...'
-        };
+<script>
+// ==========================================
+// 1. CONFIGURATION
+// ==========================================
+const $ = id => document.getElementById(id);
+const METHODS = { 1: '** / 5min', 2: '** + 5 ml GW / 10 min', 3: '** + ## ml GW >> ^^ ml /30 min', 4: '** + 3 ml GW / 3 min', 5: '** / 60 min', 6: 'over 24 hr', 7: 'Special Nutrients', 9: 'Mon/Thu', 8: '** (with nutrient)', 10: '** + ## ml GW >> ^^ ml /24 hr', 11: 'Neb', 12: 'PO', 13: 'PO', 14: 'Neb' };
+const DRUG_CONFIG = [
+    { id: 1, name: 'Amoxicillin', category: 'Antibiotics', dosePerKg: 50, unit: 'mg', factor: 50, methodIndex: 1, inputMode: 'weightBased', getRecommendedFreq: (ga, pna) => (ga < 100 ? (pna < 8 ? '2' : '3') : '3'), warning_rule: (ga, age, freq) => { const r = (ga < 100) ? ((age < 8) ? '2' : '3') : '3'; if (freq !== r) return `⚠️ Proposed Freq: ${r === '3' ? 'TID' : 'BID'}!`; return null; }},
+    { id: 16, name: 'Amikacin', category: 'Antibiotics', dosePerKg: 15, unit: 'mg', factor: 8, methodIndex: 2, defaultFreq: 1, inputMode: 'weightBased' },
+    { id: 2, name: 'Gentamicin', category: 'Antibiotics', dosePerKg: 5, unit: 'mg', factor: 40, methodIndex: 2, inputMode: 'weightBased', getRecommendedFreq: (ga, pna) => { if (ga <= 29) return (pna <= 14) ? 'q48hr' : 'q36hr'; if (ga <= 34) return 'q36hr'; return '1'; }, warning_rule: (ga, age, freq) => { let r; if (ga <= 29) r = (age <= 14) ? 'q48hr' : 'q36hr'; else if (ga <= 34) r = 'q36hr'; else r = '1'; if (r && freq !== r) return `⚠️ Proposed: ${r}`; return null; } },
+    { id: 5, name: 'Colistin Load', category: 'Antibiotics', dosePerKg: 150000, unit: 'IU', factor: 500000, methodIndex: 2, defaultFreq: 1, inputMode: 'weightBased' },
+    { id: 6, name: 'Colistin Maint.', category: 'Antibiotics', dosePerKg: 37500, unit: 'IU', factor: 500000, methodIndex: 2, defaultFreq: 2, inputMode: 'weightBased' },
+    { id: 24, name: 'Colistin Neb', category: 'Antibiotics', dosePerKg: 5, unit: 'mg', factor: 16.667, methodIndex: 11, defaultFreq: 2, inputMode: 'weightBased', alert: 'Give Ventolin 10min before' },
+    { id: 7, name: 'Tigecycline', category: 'Antibiotics', dosePerKg: 2, unit: 'mg', factor: 2, methodIndex: 3, defaultFreq: 2, inputMode: 'weightBased' },
+    { id: 8, name: 'Meropenem', category: 'Antibiotics', dosePerKg: 40, unit: 'mg', factor: 50, methodIndex: 3, inputMode: 'weightBased', getRecommendedFreq: (ga, pna) => (ga < 32 ? (pna < 14 ? '2' : '3') : '3') },
+    { id: 11, name: 'Vancomycin', category: 'Antibiotics', dosePerKg: 15, unit: 'mg', factor: 2, methodIndex: 5, inputMode: 'weightBased', getRecommendedFreq: (ga, pna, w) => pna < 7 ? (w < 1.2 ? '1' : w <= 2 ? '2' : '3') : (w < 1.2 ? '1' : '3') },
+    { id: 9, name: 'Dopamine Pump', category: 'Inotropes', isDopamine: true, defaultFreq: 1, inputMode: 'dopaminePump' },
+    { id: 22, name: 'Dopamine + Fluid', category: 'Inotropes', unit: 'mg', factor: 40, methodIndex: 8, defaultFreq: 1, inputMode: 'infusion', showDosePerKgInput: true, defaultDosePerKg: 5, isDopamine: true },
+    { id: 23, name: 'Dopamine Y-site', category: 'Inotropes', unit: 'mg', factor: 40, methodIndex: 10, defaultFreq: 1, inputMode: 'infusion', showDosePerKgInput: true, defaultDosePerKg: 5, isDopamine: true },
+    { id: 17, name: 'Dex + Fluid', category: 'Inotropes', unit: 'mcg', factor: 100, methodIndex: 8, defaultFreq: 1, inputMode: 'infusion', showDosePerKgInput: true, defaultDosePerKg: 0.3 },
+    { id: 18, name: 'Dex Y-site', category: 'Inotropes', unit: 'mcg', factor: 100, methodIndex: 10, defaultFreq: 1, inputMode: 'infusion', showDosePerKgInput: true, defaultDosePerKg: 0.3 },
+    { id: 19, name: 'Midaz + Fluid', category: 'Inotropes', unit: 'mg', factor: 5, methodIndex: 8, defaultFreq: 1, inputMode: 'infusion', showDosePerKgInput: true, defaultDosePerKg: 0.03 },
+    { id: 20, name: 'Midaz Y-site', category: 'Inotropes', unit: 'mg', factor: 5, methodIndex: 10, defaultFreq: 1, inputMode: 'infusion', showDosePerKgInput: true, defaultDosePerKg: 0.03 },
+    { id: 26, name: 'Pheno Load', category: 'Inotropes', dosePerKg: 20, unit: 'mg', factor: 10, methodIndex: 3, defaultFreq: 1, inputMode: 'weightBased', alert: 'Dilute to 20ml NS' },
+    { id: 27, name: 'Pheno Maint.', category: 'Inotropes', dosePerKg: 2.5, unit: 'mg', factor: 10, methodIndex: 3, defaultFreq: 2, inputMode: 'weightBased', alert: 'Dilute to 20ml NS' },
+    { id: 3, name: 'Caffeine Load', category: 'Misc', dosePerKg: 20, unit: 'mg', factor: 20, methodIndex: 3, defaultFreq: 1, inputMode: 'weightBased' },
+    { id: 4, name: 'Caffeine Maint.', category: 'Misc', dosePerKg: 10, unit: 'mg', factor: 20, methodIndex: 2, defaultFreq: 1, inputMode: 'weightBased' },
+    { id: 10, name: 'Vit K', category: 'Misc', unit: 'mg', factor: 10, methodIndex: 4, defaultFreq: 1, inputMode: 'fixed', fixedDose: 1 },
+    { id: 25, name: 'Dart', category: 'Misc', dosePerKg: 0.075, unit: 'mg', factor: 0.4, methodIndex: 2, defaultFreq: 2, inputMode: 'weightBased', alert: 'Dilute to 20ml NS' },
+    { id: 30, name: 'Vit D', category: 'Misc', unit: 'IU', factor: 1, methodIndex: 13, defaultFreq: 1, inputMode: 'fixed', fixedDose: 400 },
+    { id: 12, name: 'TPN', category: 'Fluids', methodIndex: 6, defaultFreq: 1, inputMode: 'volume', hideDetails: true },
+    { id: 13, name: '1/5 GS', category: 'Fluids', methodIndex: 7, defaultFreq: 1, inputMode: 'volume', hideDetails: true, isNutrient: true },
+    { id: 14, name: '10% GW', category: 'Fluids', methodIndex: 7, defaultFreq: 1, inputMode: 'volume', hideDetails: true, isNutrient: true },
+    { id: 15, name: '5% GW', category: 'Fluids', methodIndex: 7, defaultFreq: 1, inputMode: 'volume', hideDetails: true, isNutrient: true, noPrep: true },
+    { id: 21, name: 'Fluconazole', category: 'Oral', dosePerKg: 4, unit: 'mg', methodIndex: 9, defaultFreq: 1, inputMode: 'fixed', fixedDose: 4 },
+    { id: 29, name: 'Sildenafil', category: 'Oral', dosePerKg: 1, unit: 'mg', methodIndex: 12, defaultFreq: 3, inputMode: 'weightBased' },
+    { id: 32, name: 'Ventolin', category: 'Neb', dosePerKg: 1.25, unit: 'mg', factor: 5, methodIndex: 11, defaultFreq: 4, inputMode: 'fixed', fixedDose: 1.25 },
+    { id: 33, name: 'NS Neb', category: 'Neb', dosePerKg: 3, unit: 'ml', methodIndex: 14, defaultFreq: 4, inputMode: 'fixed', fixedDose: 3 },
+    { id: 'oth', name: 'Other+', category: 'Other' }
+];
+const C = [...new Set(DRUG_CONFIG.map(x=>x.category))].map(n=>({n, ids:DRUG_CONFIG.filter(x=>x.category===n).map(x=>x.id)}));
+let P=[], L=[], S=new Set();
 
-        // دالة مساعدة لإنشاء قواعد التحذير المكررة
-        const freqRule = (gaLimit, pnaLimit, f1, f2) => (ga, pna) => (ga < gaLimit) ? (pna < pnaLimit ? f1 : f2) : f2;
+// ==========================================
+// 2. UTILS
+// ==========================================
+const clean = s => { let n=(s||'').toString().replace(/[،,٫]/g,'.'); [...'٠١٢٣٤٥٦٧٨٩'].forEach((a,i)=>n=n.replace(new RegExp(a,'g'),i)); return parseFloat(n.replace(/[^0-9.]/g,''))||0; };
+const toast = (m, t='i') => { const e=$('toast'); e.textContent=m; e.className=`fixed bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-lg shadow-xl z-50 transition-all ${t==='e'?'bg-red-500':t==='s'?'bg-green-600':'bg-slate-800'} text-white`; setTimeout(()=>e.classList.add('opacity-0'),2000); e.classList.remove('opacity-0'); };
+const gid = () => Date.now().toString(36);
+const bold = t => t?t.toString().replace(/\d+(\.\d+)?/g, '<b>$&</b>'):'';
+const daysDiff = (d1,d2) => Math.round((new Date(d2)-new Date(d1))/86400000);
+const getLiveAge = p => p.sd ? (p.aa||0)+daysDiff(p.sd,new Date()) : p.a;
+const initDark = () => { const isDark = localStorage.theme === 'dark'; document.body.classList.toggle('dark-mode', isDark); $('darkModeToggle').querySelector('.dark-icon').classList.toggle('hidden', isDark); $('darkModeToggle').querySelector('.moon-icon').classList.toggle('hidden', !isDark); };
 
-        const DRUG_CONFIG = [
-            { id: 1, name: 'Amoxicillin', dosePerKg: 50, factor: 50, methodIndex: 1, rule: freqRule(100, 8, '2', '3') },
-            { id: 16, name: 'Amikacin', dosePerKg: 15, factor: 8, methodIndex: 2, defaultFreq: '1' },
-            { id: 2, name: 'Gentamicin', dosePerKg: 5, factor: 40, methodIndex: 2, rule: (ga, pna) => ga <= 29 ? (pna <= 14 ? 'q48hr' : 'q36hr') : (ga <= 34 ? 'q36hr' : '1') },
-            { id: 3, name: 'Caffeine Load', dosePerKg: 20, factor: 20, methodIndex: 3, defaultFreq: '1' },
-            { id: 4, name: 'Caffeine Maint', dosePerKg: 10, factor: 20, methodIndex: 2, defaultFreq: '1' },
-            { id: 8, name: 'Meropenem', dosePerKg: 40, factor: 50, methodIndex: 3, rule: freqRule(32, 14, '2', '3') },
-            { id: 9, name: 'Dopamine pump', isDopamine: true, defaultFreq: '1' },
-            { id: 22, name: 'Dopamine + fluid', dosePerKg: 5, factor: 40, methodIndex: 8, isDopamine: true, calc24h: true },
-            { id: 23, name: 'Dopamine Y-site', dosePerKg: 5, factor: 40, methodIndex: 10, isDopamine: true, calc24h: true },
-            { id: 11, name: 'Vancomycin', dosePerKg: 15, factor: 2, methodIndex: 5, isVancomycin: true },
-            { id: 17, name: 'Dexmed. + fluid', dosePerKg: 0.3, factor: 100, methodIndex: 8, calc24h: true },
-            { id: 18, name: 'Dexmed. Y-site', dosePerKg: 0.3, factor: 100, methodIndex: 10, calc24h: true },
-            { id: 19, name: 'Midazolam + fluid', dosePerKg: 0.03, factor: 5, methodIndex: 8, calc24h: true },
-            { id: 20, name: 'Midazolam Y-site', dosePerKg: 0.03, factor: 5, methodIndex: 10, calc24h: true },
-            { id: 12, name: 'TPN', methodIndex: 6, hideDetails: true },
-            { id: 13, name: '1/5 GS', methodIndex: 7, isNutrient: true },
-            { id: 14, name: '10% GW', methodIndex: 7, isNutrient: true },
-            { id: 15, name: '5% GW', methodIndex: 7, isNutrient: true, noPrep: true }
-        ];
+// ==========================================
+// 3. LOGIC
+// ==========================================
+const resetUI = () => { $('totalDoseContainer').classList.remove('hidden'); $('freqContainer').classList.remove('hidden'); ['addonContainer','dosePerKgContainer','methodPreviewContainer','dopamineTableContainer','alertMessage','inputCustomDrug','inputCustomMethod','inputCustomUnit','targetVolContainer'].forEach(i=>$(i).classList.add('hidden')); $('inputDose').disabled=false; $('inputDose').placeholder='Dose'; $('inputDose').value=''; $('inputAddonVol').value=''; $('inputAddonType').value=''; $('warningMessage').classList.add('hidden'); };
+const checkClinicalAlerts = (drug) => { const ga = clean($('inputGA').value), age = $('inputAge').value==='>30'?31:parseInt($('inputAge').value)||0, freq = $('inputFreq').value, w=clean($('inputWeight').value); $('alertMessage').classList.add('hidden'); $('warningMessage').classList.add('hidden'); if(drug && drug.alert){ $('alertText').textContent=drug.alert; $('alertMessage').classList.remove('hidden'); } if(drug && drug.warning_rule){ const a=drug.warning_rule(ga,age,freq,w); if(a){ $('warningMessage').textContent=a; $('warningMessage').classList.remove('hidden'); } } };
+const genMethod = (drug, dose) => {
+    if(drug.isDopamine && drug.methodIndex !== 10 && drug.methodIndex !== 8) return '1 ml Dop + 39 ml GW';
+    if(drug.isNutrient) { if(drug.noPrep) return " "; const av=clean($('inputAddonVol').value), at=$('inputAddonType').value.trim()||'Add-on'; let cf=dose, ca=av, sf="", head=`${dose} ml`; if(av>0) head += ` (+ ${av} ml ${at})`; if(dose+av>160){ cf=dose/2; ca=av/2; sf=" X2"; } let txt = av>0 ? ` + ${ca.toFixed(0)}ml ${at}` : ""; let prep = ""; if(drug.name==='1/5 GS') prep = `(5% GW ${(cf*0.8).toFixed(0)}ml + ${(cf*0.2).toFixed(0)}ml NS${txt})${sf}`; else if(drug.name==='10% GW') prep = `(5% GW ${(cf*0.9).toFixed(0)}ml + ${(cf*0.1).toFixed(0)}ml HT${txt})${sf}`; else prep = `(${drug.name} ${cf}ml${txt})${sf}`; return `${head} | ${prep}`; }
+    if(!METHODS[drug.methodIndex]) return '-';
+    let v=dose/drug.f, s=METHODS[drug.methodIndex], dl;
+    if(drug.methodIndex===3||drug.methodIndex===10){ const t=parseInt($('inputTargetVol')?.value||10); v*=t/5; s=s.replace('^^',t); } else dl=20-v;
+    return s.replace('**', v<1?`${Math.round(v*100)}u`:`${v.toFixed(1)}ml`).replace('##', (dl||20-v).toFixed(0));
+};
 
-        const DRUG_CATEGORIES = [
-            { name: 'Antibiotics', ids: [1, 2, 8, 11, 16] },
-            { name: 'Sedation', ids: [9, 17, 18, 19, 20, 22, 23] },
-            { name: 'Fluids', ids: [12, 13, 14, 15] },
-            { name: 'Other+', ids: ['other'] }
-        ];
+ $('selectCategory').innerHTML = '<option value="">Cat</option>'+C.map(c=>`<option value="${c.n}">${c.n}</option>`).join('');
+ $('inputAge').innerHTML = '<option value="">Day</option>'+Array.from({length:30},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('')+'<option value=">30">>30</option>';
 
-        let patients = [], currentDrugs = [], selectedPatientIds = new Set();
+ $('selectCategory').onchange = function() { const c = C.find(x=>x.n===this.value); $('selectDrug').innerHTML = '<option value="">Drug</option>'+(c?c.ids.map(id=>{ const d=DRUG_CONFIG.find(x=>x.id===id); return d?`<option value="${id}">${d.name}</option>`:''; }).join(''):''); resetUI(); };
+ $('selectDrug').onchange = function() {
+    resetUI(); if(!this.value) return;
+    if(this.value==='other'){ $('inputCustomDrug').classList.remove('hidden'); $('inputCustomMethod').classList.remove('hidden'); $('inputCustomUnit').classList.remove('hidden'); return; }
+    const d=DRUG_CONFIG.find(x=>x.id==this.value); if(!d) return;
+    const w=clean($('inputWeight').value), ga=clean($('inputGA').value), pna=$('inputAge').value==='>30'?31:parseInt($('inputAge').value)||0;
+    if(d.category==='Fluids'||d.hideDetails) $('freqContainer').classList.add('hidden');
+    if(d.isNutrient && !d.noPrep) $('addonContainer').classList.remove('hidden');
+    if(d.methodIndex===3||d.methodIndex===10) $('targetVolContainer').classList.remove('hidden');
+    $('inputFreq').value = d.getRecommendedFreq ? d.getRecommendedFreq(ga,pna,w) : (d.defaultFreq||1);
+    if(d.inputMode==='dopaminePump'){ $('inputDose').placeholder='Table'; $('inputDose').disabled=true; $('dopamineTableContainer').classList.remove('hidden'); $('dopamineTableContainer').innerHTML = `<div class="p-2 bg-white border rounded mt-2 text-xs"><b>Dopamine:</b><br>${[2,5,7,10].map(r=>`${r}mcg = ${((r*w*1.44)).toFixed(0)}ml/24h`).join('<br>')}</div>`; return; }
+    else if(d.inputMode==='infusion'){ $('dosePerKgContainer').classList.remove('hidden'); $('inputDosePerKg').value=d.defaultDosePerKg; if(w>0) $('inputDose').value=(w*(d.defaultDosePerKg||d.dosePerKg)*(d.isDopamine?1.44:24)).toFixed(2); }
+    else if(d.inputMode==='fixed') $('inputDose').value=d.fixedDose;
+    else if(d.inputMode==='volume') $('inputDose').placeholder='Vol (ml)';
+    else if(w>0 && d.dosePerKg) $('inputDose').value=(w*d.dosePerKg).toFixed(1);
+    $('methodPreviewContainer').classList.remove('hidden'); $('previewMethod').innerHTML=genMethod(d, clean($('inputDose').value)); checkClinicalAlerts(d);
+};
 
-        // تنظيف وتحويل المدخلات الرقمية
-        const cleanInputNumber = val => {
-            if (!val) return 0;
-            let s = val.toString().replace(/[،,٫]/g, '.');
-            ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'].forEach((n, i) => s = s.replace(new RegExp(n, 'g'), i));
-            return parseFloat(s.replace(/[^0-9.]/g, '')) || 0;
-        };
+ $('inputDose').oninput = () => { const d=DRUG_CONFIG.find(x=>x.id==$('selectDrug').value); if(d) $('previewMethod').innerHTML=genMethod(d, clean($('inputDose').value)); };
+ $('inputDosePerKg').oninput = () => { const d=DRUG_CONFIG.find(x=>x.id==$('selectDrug').value), w=clean($('inputWeight').value); if(d&&w) $('inputDose').value=(w*clean($('inputDosePerKg').value)*(d.isDopamine?1.44:24)).toFixed(2); $('previewMethod').innerHTML=genMethod(d, clean($('inputDose').value)); };
+ $('inputAddonVol').oninput = () => { const d=DRUG_CONFIG.find(x=>x.id==$('selectDrug').value); if(d) $('previewMethod').innerHTML=genMethod(d, clean($('inputDose').value)); };
+ $('inputTargetVol').onchange = () => { const d=DRUG_CONFIG.find(x=>x.id==$('selectDrug').value); if(d) $('previewMethod').innerHTML=genMethod(d, clean($('inputDose').value)); };
 
-        // مراقب عام لكل حقول الإدخال لتصحيح الفواصل تلقائياً
-        document.body.addEventListener('input', e => {
-            if (e.target.inputMode === 'decimal') {
-                e.target.value = e.target.value.replace(/[،,٫]/g, '.');
+ $('btnAddDrug').onclick = () => {
+    const w=clean($('inputWeight').value); if(!w) return toast('Enter weight','e');
+    const v=$('selectDrug').value; if(!v) return toast('Select drug','e');
+    let n='', o=null;
+    if(v==='other'){ n=$('inputCustomDrug').value; if(!n) return toast('Name?','e'); }
+    else { o=DRUG_CONFIG.find(x=>x.id==v); n=o.name; }
+    if(L.some(x=>x.n.toLowerCase()===n.toLowerCase())) return toast('Duplicate','w');
+    const f=$('inputFreq').value;
+    L.push({id:gid(), n, d:clean($('inputDose').value), u:o?.u||'', f:o?.hideDetails?'':f, m:$('previewMethod').innerText, nut:o?.isNutrient, hid:o?.hideDetails, al:o?.alert, did:o?.id});
+    renderList();
+    $('selectCategory').value=''; $('selectDrug').innerHTML='<option value="">Drug</option>'; resetUI();
+};
+
+window.renderList = () => { $('drugsList').innerHTML = L.map((d,i)=>`<div class="bg-[var(--surface)] p-2 rounded-lg flex justify-between items-center text-xs"><div><b>${d.n}</b> <span class="text-[var(--muted)]">${d.d}${d.u} ${d.f}</span><br><span class="text-[10px]">${d.m}</span></div><button onclick="L.splice(${i},1);renderList()" class="text-red-500 font-bold px-2">&times;</button></div>`).join(''); };
+ $('btnSavePatient').onclick = () => { const n=$('inputName').value, w=clean($('inputWeight').value), a=$('inputAge').value, g=$('inputGA').value; if(!n||!w||!L.length) return toast('Missing data','e'); P.push({id:gid(), n, w, a, aa: a==='>30'?31:parseInt(a), sd: new Date().toISOString().split('T')[0], g, dr:[...L].sort((a,b)=>a.nut-b.nut)}); localStorage.p=JSON.stringify(P); L=[]; renderList(); render(); toast('Saved','s'); };
+
+const render = () => {
+    $('patientQueue').innerHTML = P.map(p => `<div class="patient-card bg-[var(--card)] rounded-xl border border-[var(--border)] overflow-hidden text-xs"><div class="p-2 border-b border-[var(--border)] flex items-center justify-between"><div class="flex gap-2 items-center"><input type="checkbox" ${S.has(p.id)?'checked':''} onclick="S.${S.has(p.id)?'delete':'add'}('${p.id}')" class="w-4 h-4 rounded text-[var(--accent)]"><div><span class="font-bold text-sm">${p.n}</span><div class="text-[10px] text-[var(--muted)]">${p.w}kg | ${p.g}w | <span class="text-[var(--accent)]">${getLiveAge(p)}</span></div></div></div><div class="flex gap-1"><button onclick="edit('${p.id}')" class="p-1 text-[var(--accent)] hover:bg-[var(--accent)]/10 rounded"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg></button><button onclick="del('${p.id}')" class="p-1 text-[var(--danger)] hover:bg-red-50 rounded"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></div></div><div class="p-2 space-y-1">${p.dr.map(d=>`<div class="border-b border-dashed pb-1"><b>${d.n}</b> ${d.d}${d.u} ${d.f}<br><span class="text-[10px] text-[var(--muted)]">${d.m}</span></div>`).join('')}</div></div>`).join('');
+    $('emptyState').classList.toggle('hidden', P.length); $('patientCounter').classList.toggle('hidden', !P.length); $('counterText').textContent = P.length; $('btnPdf').disabled = !P.length;
+};
+window.edit = id => { const p=P.find(x=>x.id===id); if(!p) return; $('inputName').value=p.n; $('inputWeight').value=p.w; $('inputGA').value=p.g; $('inputAge').value=getLiveAge(p); L=[...p.dr]; P=P.filter(x=>x.id!==id); localStorage.p=JSON.stringify(P); render(); renderList(); window.scrollTo(0,0); };
+window.del = id => { P=P.filter(x=>x.id!==id); S.delete(id); localStorage.p=JSON.stringify(P); render(); };
+ $('selectAllCheckbox').onchange = function() { S = new Set(this.checked ? P.map(x=>x.id) : []); render(); };
+
+// ==========================================
+// 4. PDF GENERATION (RESTORED GRID LOGIC)
+// ==========================================
+ $('btnPdf').onclick = async () => {
+    const sel = P.filter(p=>S.has(p.id)); if(!sel.length) return toast('Select patients','e');
+    toast('Generating...','i');
+    const {jsPDF} = window.jspdf;
+    const doc = new jsPDF({orientation: 'p', unit: 'mm', format: 'a4'});
+    const cnt = $('pdf-render-container'); 
+
+    // 1. Prepare Patient Data (Chunking logic)
+    let processed = [];
+    sel.forEach(p => {
+        let remaining = [...p.dr], chunks = [];
+        while(remaining.length > 0) {
+            let chunk = [], hasDop = false;
+            for(let i=0; i<remaining.length; i++) {
+                if(remaining[i].did === 9) hasDop = true; // Dopamine ID
+                chunk.push(remaining[i]);
+                let limit = hasDop ? 15 : 20; // Drug limit per card
+                if(chunk.length === limit || i === remaining.length - 1) {
+                    chunks.push(chunk);
+                    remaining = remaining.slice(i + 1);
+                    break;
+                }
             }
+        }
+        chunks.forEach((chunk, idx) => {
+            processed.push({...p, name: idx===0 ? p.name : p.name+' (cont.)', dr: chunk});
+        });
+    });
+
+    // 2. Grid Placement Algorithm
+    let pages = [], cells = Array(6).fill(null); // 2 cols x 3 rows = 6 slots
+    const place = (patient) => {
+        const hasDop = patient.dr.some(d => d.did === 9);
+        const count = patient.dr.filter(d => d.did !== 9).length;
+        let span = 1;
+        if (count > 11 || (hasDop && count > 8)) span = 3;
+        else if (count > 5 || (hasDop && count > 1)) span = 2;
+
+        for (let i = 0; i < 6; i++) {
+            if (cells[i] === null) {
+                if (span === 3 && i < 2 && !cells[i] && !cells[i+2] && !cells[i+4]) { cells[i] = {patient, span}; cells[i+2]='x'; cells[i+4]='x'; return true; }
+                if (span === 2 && i < 4 && !cells[i] && !cells[i+2]) { cells[i] = {patient, span}; cells[i+2]='x'; return true; }
+                if (span === 1) { cells[i] = {patient, span}; return true; }
+            }
+        }
+        return false;
+    };
+
+    processed.forEach(p => { if (!place(p)) { pages.push([...cells]); cells = Array(6).fill(null); place(p); } });
+    if (cells.some(c => c !== null)) pages.push([...cells]);
+
+    // 3. Render Pages
+    cnt.innerHTML = ''; cnt.style.opacity = '1';
+    
+    for (const page of pages) {
+        const pageDiv = document.createElement('div');
+        pageDiv.className = 'pdf-page';
+        pageDiv.innerHTML = `<div class="pdf-grid"></div>`;
+        const grid = pageDiv.querySelector('.pdf-grid');
+
+        page.forEach((cell, idx) => {
+            if (!cell || cell === 'x') return;
+            const p = cell.patient;
+            const el = document.createElement('div');
+            el.className = 'pdf-cell';
+            if (cell.span > 1) el.style.gridRow = `span ${cell.span}`;
+            
+            // Generate Drug HTML
+            let drugsHtml = p.dr.map(d => `
+                <div class="pdf-drug-item">
+                    <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:10pt;"><span>${d.n}</span><span>${d.d}${d.u} ${d.f}</span></div>
+                    ${d.al ? `<div class="arabic-text" style="color:red; font-size:8pt; text-align:right;">${d.al}</div>` : ''}
+                    <div style="font-size:9pt; color:#333; text-align:left;">${d.m}</div>
+                    ${d.did === 9 ? `<table style="width:100%; margin-top:1mm; font-size:8pt; border-collapse:collapse; text-align:center;"><tr><th style="border:1px solid #000;">Rate</th><th style="border:1px solid #000;">Dose</th></tr>${[2,5,7,10].map(r=>`<tr><td style="border:1px solid #000;">${((r*p.w*1.44)).toFixed(0)} ml</td><td style="border:1px solid #000;">${r}mcg</td></tr>`).join('')}</table>` : ''}
+                </div>
+            `).join('');
+
+            el.innerHTML = `
+                <div class="pdf-header"><div style="display:flex; justify-content:space-between;"><div style="font-size:10pt; font-weight:bold;">${p.w}kg | ${p.g}w | ${getLiveAge(p)}</div><div style="direction:rtl; font-family:'Cairo' font-weight:bold;">${p.n}</div></div></div>
+                <div style="flex:1; overflow:hidden;">${drugsHtml}</div>
+            `;
+            grid.appendChild(el);
         });
 
-        const showToast = (msg, type = 'success') => {
-            const toast = $('toast');
-            toast.textContent = msg;
-            toast.className = `fixed bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 rounded-xl font-medium shadow-xl z-50 transition-all duration-300 ${type === 'success' ? 'bg-[#047857] text-white' : 'bg-red-700 text-white'}`;
-            toast.style.opacity = '1';
-            setTimeout(() => toast.style.opacity = '0', 3000);
-        };
+        cnt.appendChild(pageDiv);
+        await document.fonts.ready;
+        await new Promise(r => setTimeout(r, 100)); // Wait for layout
+        const canvas = await html2canvas(pageDiv, {scale: 2, useCORS: true});
+        doc.addImage(canvas.toDataURL('jpeg', 0.95), 'JPEG', 0, 0, 210, 297);
+        doc.addPage();
+        cnt.removeChild(pageDiv);
+    }
 
-        const handleDrugSelectionChange = () => {
-            const drug = DRUG_CONFIG.find(d => d.id == $('selectDrug').value);
-            const weight = cleanInputNumber($('inputWeight').value);
-            const ga = cleanInputNumber($('inputGA').value);
-            const pna = parseInt($('inputAge').value) || 0;
+    cnt.style.opacity = '0';
+    // Remove last empty page if generated
+    const pageCount = doc.internal.getNumberOfPages();
+    if(pageCount > 0) doc.deletePage(pageCount); 
 
-            // إعادة ضبط الواجهة
-            $('totalDoseContainer').classList.remove('hidden');
-            $('freqContainer').classList.remove('hidden');
-            $('dosePerKgContainer').classList.add('hidden');
-            $('addonContainer').classList.add('hidden');
-            $('targetVolContainer').classList.add('hidden');
-            $('dopamineTableContainer').classList.add('hidden');
+    doc.save('NICU_Report.pdf');
+    toast('PDF Generated', 's');
+};
 
-            if (!drug) return;
-
-            // منطق حساب الجرعة
-            if (drug.calc24h) {
-                $('dosePerKgContainer').classList.remove('hidden');
-                $('inputDosePerKg').value = drug.dosePerKg;
-                if (weight > 0) {
-                    const total = drug.isDopamine ? (weight * drug.dosePerKg * 1440) / 1000 : (weight * drug.dosePerKg * 24);
-                    $('inputDose').value = total.toFixed(2);
-                }
-            } else if (drug.isDopamine && drug.id === 9) {
-                $('dopamineTableContainer').classList.remove('hidden');
-                renderDopamineTable(weight);
-            } else if (weight > 0 && drug.dosePerKg) {
-                $('inputDose').value = (weight * drug.dosePerKg).toFixed(1);
-            }
-
-            // منطق التردد
-            if (drug.rule) $('inputFreq').value = drug.rule(ga, pna);
-            else if (drug.defaultFreq) $('inputFreq').value = drug.defaultFreq;
-
-            if (drug.methodIndex === 3 || drug.methodIndex === 10) $('targetVolContainer').classList.remove('hidden');
-            if (drug.isNutrient && !drug.noPrep) $('addonContainer').classList.remove('hidden');
-
-            updateMethodPreview(drug, cleanInputNumber($('inputDose').value));
-        };
-
-        const handleManualDoseChange = (source) => {
-            const drug = DRUG_CONFIG.find(d => d.id == $('selectDrug').value);
-            const weight = cleanInputNumber($('inputWeight').value);
-            if (!drug || weight <= 0) return;
-
-            if (drug.calc24h) {
-                if (source === 'kg') {
-                    const val = cleanInputNumber($('inputDosePerKg').value);
-                    const total = drug.isDopamine ? (weight * val * 1440) / 1000 : (weight * val * 24);
-                    $('inputDose').value = total.toFixed(2);
-                } else {
-                    const total = cleanInputNumber($('inputDose').value);
-                    const perKg = drug.isDopamine ? (total * 1000) / (weight * 1440) : total / (weight * 24);
-                    $('inputDosePerKg').value = perKg.toFixed(3);
-                }
-            }
-            updateMethodPreview(drug, cleanInputNumber($('inputDose').value));
-        };
-
-        const generateMethodString = (drug, finalDose) => {
-            if (drug.isDopamine && drug.id === 9) return '1 ml dopamin + 39 ml GW';
-            if (drug.isNutrient) {
-                if (drug.noPrep) return " ";
-                const addon = cleanInputNumber($('inputAddonVol').value);
-                const type = $('inputAddonType').value || 'Add-on';
-                let base = (drug.name === '1/5 GS') ? `(5% GW ${(finalDose*0.8).toFixed(0)} + NS ${(finalDose*0.2).toFixed(0)})` : `(5% GW ${(finalDose*0.9).toFixed(0)} + HT ${(finalDose*0.1).toFixed(0)})`;
-                return base + (addon > 0 ? ` + ${addon}ml ${type}` : "");
-            }
-            if (!METHODS[drug.methodIndex]) return '-';
-            
-            let vol = finalDose / (drug.factor || 1);
-            let target = parseInt($('inputTargetVol').value) || 10;
-            if (drug.methodIndex === 3 || drug.methodIndex === 10) vol *= (target === 10 ? 2 : 3);
-            
-            let s = METHODS[drug.methodIndex].replace('**', (vol < 1 ? (vol*100).toFixed(0)+' unit' : vol.toFixed(1)+' ml'));
-            return s.replace('##', (20 - (vol)).toFixed(0)).replace('^^', target);
-        };
-
-        const updateMethodPreview = (drug, dose) => {
-            $('previewMethod').innerHTML = generateMethodString(drug, dose);
-            $('methodPreviewContainer').classList.toggle('hidden', !drug);
-        };
-
-        const renderDopamineTable = w => {
-            $('dopamineTableBody').innerHTML = [2, 5, 7, 10].map(d => `<tr><td class="p-2 border font-bold">${((d*w*1440)/1000).toFixed(0)} ml</td><td class="p-2 border">${d}</td></tr>`).join('');
-        };
-
-        const addDrug = () => {
-            const drug = DRUG_CONFIG.find(d => d.id == $('selectDrug').value);
-            if (!drug || !cleanInputNumber($('inputWeight').value)) return showToast("Check weight/drug", "error");
-            
-            const dose = cleanInputNumber($('inputDose').value);
-            currentDrugs.push({
-                name: drug.name,
-                dose: drug.id === 9 ? 'Infusion' : dose,
-                unit: drug.unit || 'mg',
-                freq: $('inputFreq').value,
-                method: generateMethodString(drug, dose)
-            });
-            renderDrugsList();
-            showToast("Added");
-        };
-
-        const renderDrugsList = () => {
-            $('drugsList').innerHTML = currentDrugs.map((d, i) => `
-                <div class="bg-[var(--surface)] p-4 rounded-xl flex justify-between items-center">
-                    <div><p class="font-bold">${d.name} <span class="text-xs text-[var(--muted)]">${d.dose} ${d.unit}</span></p><p class="text-xs">${d.method}</p></div>
-                    <button onclick="currentDrugs.splice(${i},1);renderDrugsList()" class="text-red-600">×</button>
-                </div>`).join('');
-        };
-
-        const savePatient = () => {
-            if (!$('inputName').value || currentDrugs.length === 0) return showToast("Missing Info", "error");
-            patients.push({ id: Date.now().toString(36), name: $('inputName').value, weight: $('inputWeight').value, age: $('inputAge').value, ga: $('inputGA').value, drugs: [...currentDrugs] });
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(patients));
-            currentDrugs = []; renderDrugsList(); $('inputName').value = '';
-            renderQueue(); showToast("Saved");
-        };
-
-        const renderQueue = () => {
-            const empty = patients.length === 0;
-            $('emptyState').classList.toggle('hidden', !empty);
-            $('btnPdf').disabled = empty;
-            $('patientQueue').innerHTML = patients.map(p => `
-                <div class="bg-white p-4 rounded-2xl border border-[var(--border)]">
-                    <div class="flex justify-between border-b pb-2 mb-2"><h3 class="font-bold">${p.name}</h3><button onclick="deletePatient('${p.id}')" class="text-red-500">Delete</button></div>
-                    <p class="text-xs text-[var(--muted)]">${p.weight}kg | Day ${p.age}</p>
-                    <div class="mt-2 space-y-1">${p.drugs.map(d => `<div class="text-[10px] border-l-2 border-[var(--accent)] pl-2">${d.name}</div>`).join('')}</div>
-                </div>`).join('');
-            $('counterText').textContent = `${patients.length} Patients`;
-            $('patientCounter').classList.toggle('hidden', empty);
-        };
-
-        const deletePatient = id => { patients = patients.filter(p => p.id !== id); localStorage.setItem(STORAGE_KEY, JSON.stringify(patients)); renderQueue(); };
-
-        const populate = () => {
-            $('inputAge').innerHTML = Array.from({length:30}, (_,i)=>`<option value="${i+1}">Day ${i+1}</option>`).join('') + `<option value="31">>30 Days</option>`;
-            $('selectCategory').innerHTML = '<option value="">Category</option>' + DRUG_CATEGORIES.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
-        };
-
-        // ربط الأحداث
-        $('selectCategory').onchange = () => {
-            const cat = DRUG_CATEGORIES.find(c => c.name === $('selectCategory').value);
-            $('selectDrug').innerHTML = '<option value="">Drug</option>' + (cat ? cat.ids.map(id => {
-                const d = DRUG_CONFIG.find(x => x.id == id);
-                return `<option value="${id}">${d?d.name:'Other'}</option>`;
-            }).join('') : '');
-        };
-        $('selectDrug').onchange = handleDrugSelectionChange;
-        $('inputWeight').oninput = handleDrugSelectionChange;
-        $('inputDosePerKg').oninput = () => handleManualDoseChange('kg');
-        $('inputDose').oninput = () => handleManualDoseChange('total');
-        $('btnAddDrug').onclick = addDrug;
-        $('btnSavePatient').onclick = savePatient;
-        $('btnClearAll').onclick = () => { if(confirm('Clear all?')) { patients=[]; localStorage.clear(); renderQueue(); }};
-
-        window.onload = () => { populate(); const d = localStorage.getItem(STORAGE_KEY); if(d){ patients=JSON.parse(d); renderQueue(); }};
-    </script>
+// Init
+ $('darkModeToggle').onclick = () => { localStorage.theme = localStorage.theme==='dark'?'light':'dark'; initDark(); };
+initDark();
+try { const d=localStorage.p; if(d) P=JSON.parse(d); render(); } catch(e){}
+</script>
 </body>
 </html>
