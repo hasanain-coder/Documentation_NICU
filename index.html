@@ -202,7 +202,7 @@ const DRUG_CONFIG = [
     { id: 29, name: 'Sildenafil', category: 'Oral', dosePerKg: 1, unit: 'mg', methodIndex: 12, defaultFreq: 3, inputMode: 'weightBased' },
     { id: 32, name: 'Ventolin', category: 'Neb', dosePerKg: 1.25, unit: 'mg', factor: 5, methodIndex: 11, defaultFreq: 4, inputMode: 'fixed', fixedDose: 1.25 },
     { id: 33, name: 'NS Neb', category: 'Neb', dosePerKg: 3, unit: 'ml', methodIndex: 14, defaultFreq: 4, inputMode: 'fixed', fixedDose: 3 },
-    { id: 'oth', name: 'Other+', category: 'Other' }
+    { id: 'other', name: 'Other+', category: 'Other' }
 ];
 const C = [...new Set(DRUG_CONFIG.map(x=>x.category))].map(n=>({n, ids:DRUG_CONFIG.filter(x=>x.category===n).map(x=>x.id)}));
 let P=[], L=[], S=new Set();
