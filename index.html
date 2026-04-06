@@ -220,7 +220,6 @@
         const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
         const boldNumbersInText = (text) => !text ? '' : text.toString().replace(/\d+(\.\d+)?/g, '<strong style="font-weight: 900;">$&</strong>');
         
-        // Safe Live Age Feature
         const daysDiff = (date1Str, date2) => Math.round((new Date(date2) - new Date(date1Str)) / 86400000);
         const getLiveAge = (p) => {
             if (!p.saveDate || p.ageBaseline === '>30') return p.ageBaseline || p.age;
@@ -246,9 +245,11 @@
             $('totalDoseContainer').classList.remove('hidden'); $('freqContainer').classList.remove('hidden'); $('addonContainer').classList.add('hidden'); $('dosePerKgContainer').classList.add('hidden'); 
             if(val===''){ $('inputDose').value=''; $('inputDose').disabled=false; $('methodPreviewContainer').classList.add('hidden'); $('inputCustomDrug').classList.add('hidden'); $('inputCustomMethod').classList.add('hidden'); $('inputCustomUnit').classList.add('hidden'); $('targetVolContainer').classList.add('hidden'); $('dopamineTableContainer').classList.add('hidden'); return; }
             const drugId=parseInt(val), drug=DRUG_CONFIG.find(d=>d.id===drugId);
-            if(drug&&(drug.name==='TPN'||drug.inputMode==='volume')) $('totalDoseContainer').classList.add('hidden');
+            
+            // FIX: Removed hiding the total dose container for volume fluids so the input stays visible
             if($('selectCategory').value==='Fluids') $('freqContainer').classList.add('hidden');
             if(drug&&drug.isNutrient&&!drug.noPrep) $('addonContainer').classList.remove('hidden');
+            
             if(val==='other'){ $('inputCustomDrug').classList.remove('hidden'); $('inputCustomMethod').classList.remove('hidden'); $('inputCustomUnit').classList.remove('hidden'); $('inputDose').disabled=false; $('inputDose').placeholder='Manual Dose'; $('inputDose').value=''; $('methodPreviewContainer').classList.add('hidden'); $('targetVolContainer').classList.add('hidden'); $('dopamineTableContainer').classList.add('hidden'); return; } else { $('inputCustomDrug').classList.add('hidden'); $('inputCustomMethod').classList.add('hidden'); $('inputCustomUnit').classList.add('hidden'); }
             if(!drug) return; $('targetVolContainer').classList.toggle('hidden', drug.methodIndex!==3&&drug.methodIndex!==10);
             if(drug.inputMode==='dopaminePump'){ $('inputDose').value=''; $('inputDose').placeholder='See table below'; $('inputDose').disabled=true; $('dopamineTableContainer').classList.remove('hidden'); $('methodPreviewContainer').classList.add('hidden'); renderDopamineTable(w); return; }
@@ -311,7 +312,6 @@
         const savePatient = () => {
             const name=$('inputName').value.trim(),weight=cleanInputNumber($('inputWeight').value); if(!name||!weight||currentDrugs.length===0){showToast('Missing info','error');return;}
             const sortedDrugs=[...currentDrugs].sort((a,b)=>{if(a.isNutrient&&!b.isNutrient)return 1;if(!a.isNutrient&&b.isNutrient)return -1;return 0;});
-            // Safely store baseline and save date for Live Age
             patients.push({id:generateId(),name,weight,age:$('inputAge').value,ageBaseline:$('inputAge').value,saveDate:new Date().toISOString().split('T')[0],ga:$('inputGA').value,drugs:sortedDrugs});
             saveToStorage();renderQueue();$('inputName').value='';$('inputWeight').value='';$('inputGA').value='';$('inputAge').value='';currentDrugs=[];renderDrugsList();$('methodPreviewContainer').classList.add('hidden');$('dopamineTableContainer').classList.add('hidden');
             $('statLastSaved').textContent = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
@@ -319,10 +319,7 @@
         };
 
         window.deletePatient = (id) => { patients=patients.filter(p=>p.id!==id); selectedPatientIds.delete(id); saveToStorage(); renderQueue(); };
-        
-        // Safely edit: Load the TRUE baseline back, not the mutated live age
         window.editPatient = (id) => { const p=patients.find(px=>px.id===id); if(!p) return; $('inputName').value=p.name; $('inputWeight').value=p.weight; $('inputGA').value=p.ga; $('inputAge').value=p.ageBaseline || p.age; currentDrugs=[...p.drugs]; renderDrugsList(); deletePatient(id); window.scrollTo({top:0,behavior:'smooth'}); };
-        
         window.togglePatientSelection = (id) => { if(selectedPatientIds.has(id)) selectedPatientIds.delete(id); else selectedPatientIds.add(id); updateCounter(); };
         const toggleSelectAll = (e) => { if(e.target.checked) patients.forEach(p=>selectedPatientIds.add(p.id)); else selectedPatientIds.clear(); renderQueue(); };
 
