@@ -198,13 +198,15 @@
             { id: 31, name: 'HydroCHLOROthiazide cap', dosePerKg: 1, unit: 'mg', methodIndex: 12, defaultFreq: 2, inputMode: 'weightBased' },
             { id: 32, name: 'Ventolin neb.', dosePerKg: 1.25, unit: 'mg', factor: 5, methodIndex: 11, defaultFreq: 4, inputMode: 'fixed', fixedDose: 1.25 },
             { id: 34, name: 'Pulmicort neb.', dosePerKg: 0.25, unit: 'mg', factor: 0.5, methodIndex: 11, defaultFreq: 2, inputMode: 'fixed', fixedDose: 0.25 },
-            { id: 33, name: 'NS neb.', dosePerKg: 3, unit: 'ml', methodIndex: 14, defaultFreq: 4, inputMode: 'fixed', fixedDose: 3 }
+            { id: 33, name: 'NS neb.', dosePerKg: 3, unit: 'ml', methodIndex: 14, defaultFreq: 4, inputMode: 'fixed', fixedDose: 3 },
+            { id: 35, name: 'Aminophylline amp', dosePerKg: 5, unit: 'mg', factor: 25, methodIndex: 3, defaultFreq: 1, inputMode: 'weightBased' },
+            { id: 36, name: 'Lasix amp', dosePerKg: 1, unit: 'mg', factor: 10, methodIndex: 3, defaultFreq: 1, inputMode: 'weightBased' }
         ];
 
         const DRUG_CATEGORIES = [
             { name: 'Antibiotics', ids: [1, 2, 5, 6, 7, 8, 11, 16, 24] },
             { name: 'Sedatives & Inotropes', ids: [9, 17, 18, 19, 20, 22, 23, 26, 27] },
-            { name: 'Miscellaneous', ids: [3, 4, 10, 25, 28, 30] },
+            { name: 'Miscellaneous', ids: [3, 4, 10, 25, 28, 30, 35, 36] },
             { name: 'Fluids', ids: [12, 13, 14, 15] },
             { name: 'Oral capsules', ids: [21, 29, 31] },
             { name: 'Nebulization', ids: [32, 33, 34] },
