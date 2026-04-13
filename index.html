@@ -186,6 +186,7 @@
             { id: 18, name: 'Dexmedetomidine Y-site', dosePerKg: 0.3, unit: 'mcg', factor: 100, methodIndex: 10, defaultFreq: 1, inputMode: 'infusion', defaultDosePerKg: 0.3 },
             { id: 19, name: 'Midazolam + fluid', dosePerKg: 0.03, unit: 'mg', factor: 5, methodIndex: 8, defaultFreq: 1, inputMode: 'infusion', defaultDosePerKg: 0.03 },
             { id: 20, name: 'Midazolam Y-site', dosePerKg: 0.03, unit: 'mg', factor: 5, methodIndex: 10, defaultFreq: 1, inputMode: 'infusion', defaultDosePerKg: 0.03 },
+            { id: 37, name: 'Noradrenaline Y-site', dosePerKg: 0.05, unit: 'mcg', factor: 1000, methodIndex: 10, defaultFreq: 1, inputMode: 'infusion', defaultDosePerKg: 0.05, alert: 'مهم: الجرعة محسوبة على تركيز الامبولة 4mg/4ml' },
             { id: 26, name: 'Phenobarbital loading', dosePerKg: 20, unit: 'mg', factor: 10, methodIndex: 3, defaultFreq: 1, inputMode: 'weightBased', alert: 'مهم: تخفف الامبولة الى ٢٠ مل مع NS قبل الاعطاء' },
             { id: 27, name: 'Phenobarbital Maint.', dosePerKg: 2.5, unit: 'mg', factor: 10, methodIndex: 3, defaultFreq: 2, inputMode: 'weightBased', alert: 'مهم: تخفف الامبولة الى ٢٠ مل مع NS قبل الاعطاء' },
             { id: 21, name: 'Fluconazol prophylactic', dosePerKg: 4, unit: 'mg', methodIndex: 9, defaultFreq: 1, inputMode: 'fixed', fixedDose: 4 },
@@ -205,7 +206,7 @@
 
         const DRUG_CATEGORIES = [
             { name: 'Antibiotics', ids: [1, 2, 5, 6, 7, 8, 11, 16, 24] },
-            { name: 'Sedatives & Inotropes', ids: [9, 17, 18, 19, 20, 22, 23, 26, 27] },
+            { name: 'Sedatives & Inotropes', ids: [9, 17, 18, 19, 20, 22, 23, 26, 27, 37] },
             { name: 'Miscellaneous', ids: [3, 4, 10, 25, 28, 30, 35, 36] },
             { name: 'Fluids', ids: [12, 13, 14, 15] },
             { name: 'Oral capsules', ids: [21, 29, 31] },
