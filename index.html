@@ -34,8 +34,6 @@
         .card-hover { transition: all 0.3s ease; }
         .card-hover:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(0,0,0,0.08); }
         .arabic-text { font-family: 'Cairo', 'Noto Sans Arabic', sans-serif; direction: rtl; text-align: right; unicode-bidi: isolate; }
-        .stat-card { backdrop-filter: blur(8px); background: rgba(255,255,255,0.8); border: 1px solid var(--border); transition: all 0.3s ease; }
-        body.dark-mode .stat-card { background: rgba(26,29,33,0.8); }
         .dark-toggle { background: var(--surface); border: 1px solid var(--border); color: var(--fg); transition: all 0.3s ease; cursor: pointer; }
         .dark-toggle:hover { background: var(--accent); color: white; }
         .live-badge { font-size: 9px; padding: 1px 5px; border-radius: 4px; background: var(--accent); color: white; vertical-align: middle; margin-left: 4px; }
@@ -73,12 +71,7 @@
     </header>
 
     <main class="max-w-5xl mx-auto px-4 py-6 space-y-6">
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 animate-fade-up">
-            <div class="stat-card rounded-2xl p-4"><div class="text-2xl font-bold text-[var(--accent)]" id="statTotal">0</div><div class="text-xs text-[var(--muted)] uppercase tracking-wide">Total Patients</div></div>
-            <div class="stat-card rounded-2xl p-4"><div class="text-2xl font-bold text-[var(--accent)]" id="statSelected">0</div><div class="text-xs text-[var(--muted)] uppercase tracking-wide">Selected</div></div>
-            <div class="stat-card rounded-2xl p-4"><div class="text-2xl font-bold text-[var(--accent)]" id="statDrugs">0</div><div class="text-xs text-[var(--muted)] uppercase tracking-wide">Current Drugs</div></div>
-            <div class="stat-card rounded-2xl p-4"><div class="text-2xl font-bold text-[var(--accent)]" id="statLastSaved">--:--</div><div class="text-xs text-[var(--muted)] uppercase tracking-wide">Last Saved</div></div>
-        </div>
+        <!-- Status Bar Removed -->
 
         <section id="inputSection" class="bg-[var(--card)] rounded-2xl shadow-lg border border-[var(--border)] overflow-hidden animate-fade-up">
             <div class="bg-gradient-to-r from-[var(--accent)] to-[var(--accent-light)] px-6 py-4">
@@ -133,6 +126,11 @@
                             </div>
                         </div>
                     </div>
+                    <!-- Alert Message Block -->
+                    <div id="alertMessage" class="hidden bg-[var(--warning)]/10 border border-[var(--warning)]/30 rounded-xl p-3 mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-[var(--warning)] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                        <p id="alertText" class="text-sm text-[var(--warning)] font-semibold arabic-text"></p>
+                    </div>
                 </div>
                 <div id="dopamineTableContainer" class="hidden mt-6 overflow-x-auto"><h4 class="text-lg font-bold text-[var(--accent)] mb-3">Dopamine Infusion Table</h4><table class="w-full text-sm border-collapse border border-[var(--border)] rounded-xl overflow-hidden"><thead class="bg-[var(--accent)] text-white"><tr><th class="p-2 border border-[#0F766E]">Rate (ml/24hr)</th><th class="p-2 border border-[#0F766E]">Dose (mcg/kg/min)</th></tr></thead><tbody id="dopamineTableBody" class="bg-[var(--card)]"></tbody></table></div>
                 <div id="drugsList" class="mt-4 space-y-2"></div>
@@ -180,13 +178,13 @@
             { id: 9, name: 'Dopamine syringe pump', isDopamine: true, defaultFreq: 1, inputMode: 'dopaminePump' },
             { id: 22, name: 'Dopamine + fluid', dosePerKg: 5, unit: 'mg', factor: 40, methodIndex: 8, defaultFreq: 1, isDopamine: true, inputMode: 'infusion', defaultDosePerKg: 5 },
             { id: 23, name: 'Dopamine Y-site', dosePerKg: 5, unit: 'mg', factor: 40, methodIndex: 10, defaultFreq: 1, isDopamine: true, inputMode: 'infusion', defaultDosePerKg: 5 },
+            { id: 37, name: 'Noradrenaline Y-site', dosePerKg: 0.05, unit: 'mcg', factor: 1000, methodIndex: 10, defaultFreq: 1, perMinute: true, inputMode: 'infusion', defaultDosePerKg: 0.05, alert: 'مهم: الجرعة محسوبة على تركيز الامبولة 4mg/4ml (1mg/ml)' },
             { id: 10, name: 'Vit k', dosePerKg: 1, unit: 'mg', factor: 10, methodIndex: 4, defaultFreq: 1, inputMode: 'fixed', fixedDose: 1 },
             { id: 11, name: 'Vancomycin', dosePerKg: 15, unit: 'mg', factor: 2, methodIndex: 5, inputMode: 'weightBased', getRecommendedFreq: (ga, pna, w) => pna < 7 ? (w < 1.2 ? '1' : w <= 2 ? '2' : '3') : (w < 1.2 ? '1' : '3'), warning_rule: (ga, pna, freq, w) => { let r; if (pna < 7) { if (w < 1.2) r = '1'; else if (w <= 2) r = '2'; else r = '3'; } else { if (w < 1.2) r = '1'; else r = '3'; } if (freq !== r) { let msg = r === '1' ? 'مرة واحدة يومياً (كل ٢٤ ساعة)' : r === '2' ? 'مرتان يومياً (كل ١٢ ساعة)' : 'ثلاث مرات يومياً (كل ٨ ساعات)'; return `⚠️ تنبيه: التردد المقترح بناءً على الوزن وPNA هو ${msg}!`; } return null; } },
             { id: 17, name: 'Dexmedetomidine + fluid', dosePerKg: 0.3, unit: 'mcg', factor: 100, methodIndex: 8, defaultFreq: 1, inputMode: 'infusion', defaultDosePerKg: 0.3 },
             { id: 18, name: 'Dexmedetomidine Y-site', dosePerKg: 0.3, unit: 'mcg', factor: 100, methodIndex: 10, defaultFreq: 1, inputMode: 'infusion', defaultDosePerKg: 0.3 },
             { id: 19, name: 'Midazolam + fluid', dosePerKg: 0.03, unit: 'mg', factor: 5, methodIndex: 8, defaultFreq: 1, inputMode: 'infusion', defaultDosePerKg: 0.03 },
             { id: 20, name: 'Midazolam Y-site', dosePerKg: 0.03, unit: 'mg', factor: 5, methodIndex: 10, defaultFreq: 1, inputMode: 'infusion', defaultDosePerKg: 0.03 },
-            { id: 37, name: 'Noradrenaline Y-site', dosePerKg: 0.05, unit: 'mcg', factor: 1000, methodIndex: 10, defaultFreq: 1, inputMode: 'infusion', defaultDosePerKg: 0.05, alert: 'مهم: الجرعة محسوبة على تركيز الامبولة 4mg/4ml' },
             { id: 26, name: 'Phenobarbital loading', dosePerKg: 20, unit: 'mg', factor: 10, methodIndex: 3, defaultFreq: 1, inputMode: 'weightBased', alert: 'مهم: تخفف الامبولة الى ٢٠ مل مع NS قبل الاعطاء' },
             { id: 27, name: 'Phenobarbital Maint.', dosePerKg: 2.5, unit: 'mg', factor: 10, methodIndex: 3, defaultFreq: 2, inputMode: 'weightBased', alert: 'مهم: تخفف الامبولة الى ٢٠ مل مع NS قبل الاعطاء' },
             { id: 21, name: 'Fluconazol prophylactic', dosePerKg: 4, unit: 'mg', methodIndex: 9, defaultFreq: 1, inputMode: 'fixed', fixedDose: 4 },
@@ -243,14 +241,11 @@
                 const addonVol = cleanInputNumber($('inputAddonVol').value), addonType = $('inputAddonType').value.trim()||'Add-on'; 
                 let calcFluid = totalFluid, calcAddon = addonVol, sf=""; 
                 if((totalFluid + addonVol) > 160){ calcFluid = totalFluid / 2; calcAddon = addonVol / 2; sf=" X2"; } 
-                
                 let txt = addonVol > 0 ? ` + ${calcAddon.toFixed(0)} ml ${addonType}` : ""; 
                 let prep = ""; 
                 if(drug.name==='1/5 GS') prep = `(5% GW ${(calcFluid * 0.8).toFixed(0)} ml + ${(calcFluid * 0.2).toFixed(0)} ml NS${txt})${sf}`; 
                 else if(drug.name==='10% GW') prep = `(5% GW ${(calcFluid * 0.9).toFixed(0)} ml + ${(calcFluid * 0.1).toFixed(0)} ml HT${txt})${sf}`; 
                 else prep = `(${drug.name} ${calcFluid} ml${txt})${sf}`; 
-                
-                // FIX: Removed the mainHeader prefix from here
                 return `${prep}`; 
             }
             if(!METHODS[drug.methodIndex]) return '-'; let v=finalDoseMg/drug.factor, s=METHODS[drug.methodIndex], dl; if(drug.methodIndex===3||drug.methodIndex===10){ const t=parseInt($('inputTargetVol').value); if(t===10){ v*=2; dl=20-v; s=s.replace('^^','10'); } else if(t===5){ v*=3; dl=15-v; s=s.replace('^^','5'); } } else dl=20-v; let dv=v, us=' ml'; if(v<1){ dv=v*100; us=' units'; } let ds=us===' units'?Math.round(dv):dv.toFixed(1); s=s.replace('**',`${ds}${us}`); if(s.includes('##')) s=s.replace('##',dl.toFixed(0)); return s;
@@ -261,6 +256,9 @@
         const handleDrugSelectionChange = () => {
             const val=$('selectDrug').value, ga=cleanInputNumber($('inputGA').value), w=cleanInputNumber($('inputWeight').value), pna=$('inputAge').value==='>30'?31:parseInt($('inputAge').value)||0;
             $('totalDoseContainer').classList.remove('hidden'); $('freqContainer').classList.remove('hidden'); $('addonContainer').classList.add('hidden'); $('dosePerKgContainer').classList.add('hidden'); 
+            $('alertMessage').classList.add('hidden');
+            $('warningMessage').classList.add('hidden');
+            
             if(val===''){ $('inputDose').value=''; $('inputDose').disabled=false; $('methodPreviewContainer').classList.add('hidden'); $('inputCustomDrug').classList.add('hidden'); $('inputCustomMethod').classList.add('hidden'); $('inputCustomUnit').classList.add('hidden'); $('targetVolContainer').classList.add('hidden'); $('dopamineTableContainer').classList.add('hidden'); return; }
             const drugId=parseInt(val), drug=DRUG_CONFIG.find(d=>d.id===drugId);
             if($('selectCategory').value==='Fluids') $('freqContainer').classList.add('hidden');
@@ -270,15 +268,62 @@
             if(drug.inputMode==='dopaminePump'){ $('inputDose').value=''; $('inputDose').placeholder='See table below'; $('inputDose').disabled=true; $('dopamineTableContainer').classList.remove('hidden'); $('methodPreviewContainer').classList.add('hidden'); renderDopamineTable(w); return; }
             $('inputDose').disabled=false; $('inputDose').placeholder='Auto'; $('dopamineTableContainer').classList.add('hidden'); $('methodPreviewContainer').classList.remove('hidden');
             switch(drug.inputMode){
-                case 'infusion': $('dosePerKgContainer').classList.remove('hidden'); $('inputDosePerKg').value=drug.defaultDosePerKg; if(w>0){ let c=drug.isDopamine?(w*drug.defaultDosePerKg*1440)/1000:(w*drug.defaultDosePerKg*24); $('inputDose').value=c.toFixed(2); } break;
+                case 'infusion':
+                    $('dosePerKgContainer').classList.remove('hidden'); 
+                    $('inputDosePerKg').value=drug.defaultDosePerKg; 
+                    if(w>0){
+                        let calc;
+                        if (drug.perMinute) {
+                            calc = w * drug.defaultDosePerKg * 1440;
+                        } else if (drug.isDopamine) {
+                            calc = (w * drug.defaultDosePerKg * 1440) / 1000;
+                        } else {
+                            calc = w * drug.defaultDosePerKg * 24;
+                        }
+                        $('inputDose').value=calc.toFixed(2);
+                    }
+                    break;
                 case 'fixed': $('inputDose').value=drug.fixedDose; break;
                 case 'volume': $('inputDose').value=''; $('inputDose').placeholder='Total Volume (ml)'; if(drug.isNutrient) updateMethodPreview(drug,0); break;
                 default: if(w>0&&drug.dosePerKg) $('inputDose').value=(w*drug.dosePerKg).toFixed(1); else $('inputDose').value=''; break;
             }
             if(drug.getRecommendedFreq) $('inputFreq').value=drug.getRecommendedFreq(ga,pna,w); else $('inputFreq').value=drug.defaultFreq||1; checkClinicalAlerts(drug); updateMethodPreview(drug, parseFloat($('inputDose').value)||0);
+            if(drug.alert){ $('alertText').textContent=drug.alert; $('alertMessage').classList.remove('hidden'); }
         };
 
-        const handleManualDoseChange = (source) => { const val=$('selectDrug').value; if(val==='other'||val==='') return; const drugId=parseInt(val), drug=DRUG_CONFIG.find(d=>d.id===drugId), w=cleanInputNumber($('inputWeight').value); if(source==='dosePerKg'&&drug.inputMode==='infusion'){ const dk=cleanInputNumber($('inputDosePerKg').value); if(w>0){ let c=drug.isDopamine?(w*dk*1440)/1000:(w*dk*24); $('inputDose').value=c.toFixed(2); } } else if(source==='totalDose'&&drug.inputMode==='infusion'){ const td=cleanInputNumber($('inputDose').value); if(w>0){ let ck=drug.isDopamine?(td*1000)/(w*1440):td/(w*24); $('inputDosePerKg').value=ck.toFixed(3); } } const md=cleanInputNumber($('inputDose').value); if(drug&&!drug.isDopamine){ checkClinicalAlerts(drug); updateMethodPreview(drug,md); } else if(drug&&drug.isDopamine&&(drug.methodIndex===10||drug.methodIndex===8)) updateMethodPreview(drug,md); };
+        const handleManualDoseChange = (source) => { 
+            const val=$('selectDrug').value; if(val==='other'||val==='') return; 
+            const drugId=parseInt(val), drug=DRUG_CONFIG.find(d=>d.id===drugId), w=cleanInputNumber($('inputWeight').value);
+            if(source==='dosePerKg'&&drug.inputMode==='infusion'){
+                const doseKg=cleanInputNumber($('inputDosePerKg').value);
+                if(w>0){
+                    let calc;
+                    if (drug.perMinute) {
+                        calc = w * doseKg * 1440;
+                    } else if (drug.isDopamine) {
+                        calc = (w * doseKg * 1440) / 1000;
+                    } else {
+                        calc = w * doseKg * 24;
+                    }
+                    $('inputDose').value=calc.toFixed(2);
+                }
+            } else if(source==='totalDose'&&drug.inputMode==='infusion'){
+                const totalDose=cleanInputNumber($('inputDose').value);
+                if(w>0){
+                    let calc;
+                    if (drug.perMinute) {
+                        calc = totalDose / (w * 1440);
+                    } else if (drug.isDopamine) {
+                        calc = (totalDose * 1000) / (w * 1440);
+                    } else {
+                        calc = totalDose / (w * 24);
+                    }
+                    $('inputDosePerKg').value=calc.toFixed(3);
+                }
+            }
+            const md=cleanInputNumber($('inputDose').value);
+            if(drug&&!drug.isDopamine){ checkClinicalAlerts(drug); updateMethodPreview(drug,md); } else if(drug&&drug.isDopamine&&(drug.methodIndex===10||drug.methodIndex===8)) updateMethodPreview(drug,md);
+        };
         const updateMethodPreview = (drug, dose) => { $('previewMethod').innerHTML=generateMethodString(drug,dose); $('methodPreviewContainer').classList.remove('hidden'); };
         const renderDopamineTable = (w) => { const tb=$('dopamineTableBody'); tb.innerHTML=[2,5,7,10].map(d=>`<tr><td class="p-2 pb-3 text-center font-bold text-[var(--accent)] border border-[var(--border)]">${((d*w*1440)/1000).toFixed(0)} ml/24hr</td><td class="p-2 pb-3 text-center border border-[var(--border)]">${d} mcg/kg/min</td></tr>`).join(''); };
         const saveToStorage = () => { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(patients)); } catch(e){} };
@@ -311,7 +356,7 @@
         const loadFromStorage = () => { try { const data = localStorage.getItem(STORAGE_KEY); if(data) { patients = JSON.parse(data); renderQueue(); } } catch(e){} };
         const populateDropdowns = () => { $('inputAge').innerHTML = '<option value="">Select day</option>' + Array.from({length:30},(_,i)=>`<option value="${i+1}">Day ${i+1}</option>`).join('') + '<option value=">30">More than 30 days</option>'; $('selectCategory').innerHTML = '<option value="">-- Select Category --</option>' + DRUG_CATEGORIES.map(c=>`<option value="${c.name}">${c.name}</option>`).join(''); $('selectDrug').innerHTML = '<option value="">-- Select Category First --</option>'; };
 
-        const updateCounter = () => { const total=patients.length, selected=selectedPatientIds.size; $('counterText').textContent=`${total} Patient${total!==1?'s':''}`; $('patientCounter').classList.toggle('hidden',total===0); $('btnPdf').disabled=selected===0; $('emptyState').classList.toggle('hidden',total>0); $('selectAllCheckbox').checked=total>0&&total===selected; $('statTotal').textContent=total; $('statSelected').textContent=selected; $('statDrugs').textContent=currentDrugs.length; };
+        const updateCounter = () => { const total=patients.length, selected=selectedPatientIds.size; $('counterText').textContent=`${total} Patient${total!==1?'s':''}`; $('patientCounter').classList.toggle('hidden',total===0); $('btnPdf').disabled=selected===0; $('emptyState').classList.toggle('hidden',total>0); $('selectAllCheckbox').checked=total>0&&total===selected; };
 
         const renderDrugsList = () => { $('drugsList').innerHTML = currentDrugs.map((d,i)=>`<div class="animate-slide-in bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4 flex items-start justify-between"><div class="flex-1"><div class="flex items-center gap-2 mb-1"><p class="font-bold text-[var(--fg)]">${d.name}</p>${d.isNutrient?`<span class="px-2 py-0.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-xs font-semibold">${d.dose} ml${d.addonVol ? ' (+ ' + d.addonVol + ' ml ' + d.addonType + ')' : ''} / 24 hr</span>`:(d.hideDetails?'':`<span class="px-2 py-0.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-xs font-semibold">${d.dose}${d.unit} ${d.freq}</span>`)}</div>${d.alert?`<p class="text-[var(--danger)] font-bold text-xs mb-1 arabic-text">${d.alert}</p>`:''}<p class="text-sm text-[var(--fg)] leading-relaxed" style="direction: ltr; text-align: left;">${boldNumbersInText(d.method)}</p></div><button onclick="removeDrug(${i})" class="ml-3 p-2 hover:bg-red-100 rounded-lg group flex-shrink-0"><svg class="w-5 h-5 text-[var(--muted)] group-hover:text-[var(--danger)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg></button></div>`).join(''); updateCounter(); };
 
@@ -321,7 +366,6 @@
             else{
                 const drug=drugObj;
                 const dose=cleanInputNumber($('inputDose').value);
-                // FIX: Save addon details alongside the fluid for rendering later
                 let addonVolVal = (drug.isNutrient && !drug.noPrep) ? cleanInputNumber($('inputAddonVol').value) : 0;
                 let addonTypeVal = (drug.isNutrient && !drug.noPrep) ? $('inputAddonType').value.trim() || '' : '';
                 
@@ -338,7 +382,6 @@
             const sortedDrugs=[...currentDrugs].sort((a,b)=>{if(a.isNutrient&&!b.isNutrient)return 1;if(!a.isNutrient&&b.isNutrient)return -1;return 0;});
             patients.push({id:generateId(),name,weight,age:$('inputAge').value,ageBaseline:$('inputAge').value,saveDate:new Date().toISOString().split('T')[0],ga:$('inputGA').value,drugs:sortedDrugs});
             saveToStorage();renderQueue();$('inputName').value='';$('inputWeight').value='';$('inputGA').value='';$('inputAge').value='';currentDrugs=[];renderDrugsList();$('methodPreviewContainer').classList.add('hidden');$('dopamineTableContainer').classList.add('hidden');
-            $('statLastSaved').textContent = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
             showToast('Patient saved');
         };
 
