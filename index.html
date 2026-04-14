@@ -160,7 +160,7 @@
     <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 rounded-xl font-medium shadow-xl z-50 opacity-0 translate-y-4 transition-all duration-300 pointer-events-none"><span id="toastMsg">Message</span></div>
 
     <script>
-        const METHODS = { 1: '** / 5min', 2: '** + 5 ml GW / 10 min', 3: '** + ## ml GW >> ^^ ml /30 min', 4: '** + 3 ml GW / 3 min', 5: '** / 60 min', 6: 'over 24 hr', 7: 'Special Nutrients', 9: 'كل اثنين وخميس', 8: '** <span class="arabic-text" style="display:inline-block; direction:rtl;">مع المغذي</span> ', 10: '** + ## ml GW >> ^^ ml /24 hr', 11: ' ** + 3ml NS / 15 min <span class="arabic-text" style="display:inline-block; direction:rtl;">تبخير</span>', 12: 'تحل الكبسولة ب ٢ سي سي كلوكوز وتر ثم يدفع عن طريق ال OG ثم يدفع ٢ سي سي كلوكوز وتر عن طريق ال OG', 13: 'بالفم', 14: ' 3ml NS / 15 min <span class="arabic-text" style="display:inline-block; direction:rtl;">تبخير</span>' };
+        const METHODS = { 1: '** / 5min', 2: '** + 5 ml GW / 10 min', 3: '** + ## ml GW >> ^^ ml /30 min', 4: '** + 3 ml GW / 3 min', 5: '** / 60 min', 6: 'over 24 hr', 7: 'Special Nutrients', 9: 'كل اثنين وخميس', 8: '** <span class="arabic-text" style="display:inline-block; direction:rtl;">مع المغذي</span> ', 10: '** + ## ml GW >> ^^ ml /24 hr', 11: ' ** + 3ml NS / 15 min <span class="arabic-text" style="display:inline-block; direction:rtl;">تبخير</span>', 12: 'تحل الكبسولة ب ٢ سي سي كلوكوز وتر ثم يدفع عن طريق ال OG ثم يدفع ٢ سي سي كلوكوز وتر عن طريق ال OG', 13: 'بالفم', 14: ' 3ml NS / 15 min <span class="arabic-text" style="display:inline-block; direction:rtl;">تبخير</span>', 15:'<span class="arabic-text" style="display:inline-block; direction:rtl;">قطرة واحدة بالعين المصابة</span>' };
         
         const DRUG_CONFIG = [
             { id: 1, name: 'Amoxicillin', dosePerKg: 50, unit: 'mg', factor: 50, methodIndex: 1, inputMode: 'weightBased', getRecommendedFreq: (ga, pna) => (ga < 100 ? (pna < 8 ? '2' : '3') : '3'), warning_rule: (ga, age, freq) => { const r = (ga < 100) ? ((age < 8) ? '2' : '3') : '3'; if (freq !== r) return `⚠️ تنبيه: التردد المقترح بناءً على PNA هو ${r === '3' ? 'ثلاث مرات يومياً (كل ٨ ساعات)' : 'مرتان يومياً (كل ١٢ ساعة)'}!`; return null; } },
@@ -200,7 +200,8 @@
             { id: 33, name: 'NS neb.', dosePerKg: 3, unit: 'ml', methodIndex: 14, defaultFreq: 4, inputMode: 'fixed', fixedDose: 3 },
             { id: 35, name: 'Aminophylline amp', dosePerKg: 5, unit: 'mg', factor: 25, methodIndex: 3, defaultFreq: 1, inputMode: 'weightBased' },
             { id: 38, name: 'Paracetamol vial', dosePerKg: 15, unit: 'mg', factor: 10, methodIndex: 2, defaultFreq: 4, inputMode: 'weightBased' },
-            { id: 36, name: 'Lasix amp', dosePerKg: 1, unit: 'mg', factor: 10, methodIndex: 3, defaultFreq: 1, inputMode: 'weightBased' }
+            { id: 36, name: 'Lasix amp', dosePerKg: 1, unit: 'mg', factor: 10, methodIndex: 3, defaultFreq: 1, inputMode: 'weightBased' },
+            { id: 39, name: 'Gentamicin eye drop', dosePerKg: 1, unit: '', methodIndex: 15, defaultFreq: 4, inputMode: 'fixed', fixedDose: 1 },
         ];
 
         const DRUG_CATEGORIES = [
@@ -208,7 +209,7 @@
             { name: 'Sedatives & Inotropes', ids: [9, 17, 18, 19, 20, 22, 23, 26, 27, 37] },
             { name: 'Miscellaneous', ids: [3, 4, 10, 25, 28, 30, 35, 36, 38] },
             { name: 'Fluids', ids: [12, 13, 14, 15] },
-            { name: 'Oral capsules', ids: [21, 29, 31] },
+            { name: 'Oral & Ocular', ids: [21, 29, 31, 39] },
             { name: 'Nebulization', ids: [32, 33, 34] },
             { name: 'Other+', ids: ['other'] }
         ];
